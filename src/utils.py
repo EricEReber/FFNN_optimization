@@ -24,7 +24,7 @@ def FrankeFunction(x, y):
 
 # debug function
 def SkrankeFunction(x, y):
-    return 0 + 1*x + 2*y + 3*x**2 + 4*x*y + 5*y**2
+    return 0 + 1 * x + 2 * y + 3 * x**2 + 4 * x * y + 5 * y**2
 
 
 def create_X(x, y, n):
@@ -328,7 +328,7 @@ def find_best_lambda(X, z, model, lambdas, N, K):
     best_lambda = 0
     best_MSE = 10**10
 
-    for n in range(N+1):
+    for n in range(N + 1):
         print(n)
         l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
         model.fit(X[:, :l], z)
@@ -351,12 +351,36 @@ def read_from_cmdline():
     # with debug or file, we cannot have noise. We cannot have debug and file
     # either
     group.add_argument("-f", "--file", help="Terrain data file name")
-    group.add_argument("-d", "--debug", help="Use debug function for testing. Default false", action="store_true")
-    group.add_argument("-no", "--noise", help="Amount of noise to have. Recommended range [0-0.1]. Default 0.05", type=float, default=0.05)
-    parser.add_argument("-st", "--step", help="Step size for linspace function. Range [0.01-0.4]. Default 0.05", type=float, default=0.05)
-    parser.add_argument("-b", "--betas", help="Betas to plot, when applicable. Default 10", type=int)
+    group.add_argument(
+        "-d",
+        "--debug",
+        help="Use debug function for testing. Default false",
+        action="store_true",
+    )
+    group.add_argument(
+        "-no",
+        "--noise",
+        help="Amount of noise to have. Recommended range [0-0.1]. Default 0.05",
+        type=float,
+        default=0.05,
+    )
+    parser.add_argument(
+        "-st",
+        "--step",
+        help="Step size for linspace function. Range [0.01-0.4]. Default 0.05",
+        type=float,
+        default=0.05,
+    )
+    parser.add_argument(
+        "-b", "--betas", help="Betas to plot, when applicable. Default 10", type=int
+    )
     parser.add_argument("-n", help="Polynomial degree. Default 9", type=int, default=9)
-    parser.add_argument("-nsc", "--noscale", help="Do not use scaling (centering for synthetic case or MinMaxScaling for organic case)", action="store_true") 
+    parser.add_argument(
+        "-nsc",
+        "--noscale",
+        help="Do not use scaling (centering for synthetic case or MinMaxScaling for organic case)",
+        action="store_true",
+    )
 
     # parse arguments and call run_filter
     args = parser.parse_args()
@@ -374,12 +398,12 @@ def read_from_cmdline():
     num_betas = int((args.n + 1) * (args.n + 2) / 2)  # Number of elements in beta
     if args.betas:
         if args.betas > num_betas:
-            raise ValueError(f"More betas than exist in the design matrix: {args.betas}")
+            raise ValueError(
+                f"More betas than exist in the design matrix: {args.betas}"
+            )
         betas_to_plot = args.betas
     else:
         betas_to_plot = min(10, num_betas)
-
-
 
     if args.file:
         # Load the terrain
@@ -412,13 +436,38 @@ def read_from_cmdline():
 
         X, X_train, X_test, z_train, z_test = preprocess(x, y, z, args.n, 0.2)
 
-    return betas_to_plot, args.n, X, X_train, X_test, z, z_train, z_test, centering, x, y, z
+    return (
+        betas_to_plot,
+        args.n,
+        X,
+        X_train,
+        X_test,
+        z,
+        z_train,
+        z_test,
+        centering,
+        x,
+        y,
+        z,
+    )
 
-def gradient_descent(cost_func, act_func, weights, input, target, is_output: bool, *, scheduler = Scheduler(), previous_delta, previous_weights):
+
+def gradient_descent(
+    cost_func,
+    act_func,
+    weights,
+    input,
+    target,
+    is_output: bool,
+    *,
+    scheduler=Scheduler(),
+    previous_delta,
+    previous_weights,
+):
     # presumes batch sent in, weights sliced
     # input is z_previous
 
-    a = weights@input
+    a = weights @ input
     z = act_func(a)
 
     if is_output:
