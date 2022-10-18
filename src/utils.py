@@ -340,6 +340,59 @@ def find_best_lambda(X, z, model, lambdas, N, K):
 
     return best_lambda, best_MSE, best_polynomial
 
+class FFNN:
+    def __init__(self, dimensions: list[int], act_funcs: list[Callable]):
+        self.weights = list()
+
+        self.dimensions = dimensions
+        self.act_funcs = act_funcs
+
+        for i in range(len(dimensions) - 1):
+            # weight_array = np.random.randn(dimensions[i+1],dimensions[i]+1)
+            weight_array = np.ones((dimensions[i+1],dimensions[i]+1))*(-1)
+            weight_array[:,0] = np.ones(dimensions[i+1])
+            print(weight_array)
+            self.weights.append(weight_array)
+
+    def feedforward(self, x: np.ndarray):
+        z = np.insert(x, 0, 1)
+        print(z)
+        print(f"{z.shape=}")
+        for i in range(len(self.weights)):
+            z = self.act_funcs[i](self.weights[i]@z)
+            z = np.insert(z, 0, 1)
+        return z[1:]
+
+    def predict(self, x: np.ndarray):
+        return self.feedforward(x)
+
+
+
+
+# class Scheduler:
+#
+#     def __init__(self, et):
+#         pass
+#
+#     def update_eta(self, eta: float):
+#         return eta
+#
+# class Momentum(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+#
+# class Adagrad(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+#
+# class Rms_prop(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+
+
 
 def read_from_cmdline():
     argv = sys.argv[1:]
