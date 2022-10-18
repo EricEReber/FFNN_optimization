@@ -2,8 +2,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-import numpy as np
 from random import random, seed
+import autograd.np as np
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler
@@ -413,3 +413,21 @@ def read_from_cmdline():
         X, X_train, X_test, z_train, z_test = preprocess(x, y, z, args.n, 0.2)
 
     return betas_to_plot, args.n, X, X_train, X_test, z, z_train, z_test, centering, x, y, z
+
+def gradient_descent(cost_func, act_func, weights, input, target, is_output: bool, *, scheduler = Scheduler(), previous_delta, previous_weights):
+    # presumes batch sent in, weights sliced
+    # input is z_previous
+
+    a = weights@input
+    z = act_func(a)
+
+    if is_output:
+        delta = grad(act_func, a) * grad(cost_func, z, target)
+    else:
+        delta = grad(act_func, a) * previous_delta * previous_weights
+
+    gradient = delta * z
+    eta = scheduler.update_eta(gradient)
+    weights -= eta * gradient
+
+    return weights, delta
