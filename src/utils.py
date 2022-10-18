@@ -404,12 +404,12 @@ class FFNN:
 
 
 class Scheduler:
-
     def __init__(self, eta0):
         self.eta0 = eta0
 
     def update_eta(self, **args):
         return self.eta0
+
 
 # class Momentum(scheduler):
 #
