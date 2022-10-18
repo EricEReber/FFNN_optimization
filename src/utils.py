@@ -24,7 +24,7 @@ def FrankeFunction(x, y):
 
 # debug function
 def SkrankeFunction(x, y):
-    return 0 + 1*x + 2*y + 3*x**2 + 4*x*y + 5*y**2
+    return 0 + 1 * x + 2 * y + 3 * x**2 + 4 * x * y + 5 * y**2
 
 
 def create_X(x, y, n):
@@ -328,7 +328,7 @@ def find_best_lambda(X, z, model, lambdas, N, K):
     best_lambda = 0
     best_MSE = 10**10
 
-    for n in range(N+1):
+    for n in range(N + 1):
         print(n)
         l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
         model.fit(X[:, :l], z)
@@ -340,43 +340,77 @@ def find_best_lambda(X, z, model, lambdas, N, K):
 
     return best_lambda, best_MSE, best_polynomial
 
+
+# Activation functions
+def sigmoid(x):
+    return 1.0 / (1 + np.exp(-x))
+
+
+def RELU(x: np.ndarray):
+    return np.where(x > np.zeros(x.shape), x, np.zeros(x.shape))
+
+
+def LRELU(x: np.ndarray, delta: float):
+    return np.where(x > np.zeros(x.shape), x, delta * x)
+
+
 class FFNN:
-    def __init__(self, dimensions: list[int], act_funcs: list[Callable]):
+    """
+    Feed Forward Neural Network
+
+    Attributes:
+        dimensions (list[int]): A list of positive integers, which defines our layers. The first number
+        is the input layer, and how many nodes it has. The last number is our output layer. The numbers
+        in between define how many hidden layers we have, and how many nodes they have.
+
+        act_funcs (list[Callable]): A list of activation functions, one for each weight array
+
+        weights (str): A list of numpy arrays, containing our weights
+    """
+
+    def __init__(
+        self,
+        dimensions: list[int],
+        *,
+        hidden_func: Callable = sigmoid,
+        output_func: Callable = lambda x: x,
+    ):
         self.weights = list()
 
         self.dimensions = dimensions
-        self.act_funcs = act_funcs
+
+        self.hidden_func = hidden_func
+        self.output_func = output_func
 
         for i in range(len(dimensions) - 1):
             # weight_array = np.random.randn(dimensions[i+1],dimensions[i]+1)
-            weight_array = np.ones((dimensions[i+1],dimensions[i]+1))*(-1)
-            weight_array[:,0] = np.ones(dimensions[i+1])
+            weight_array = np.ones((dimensions[i + 1], dimensions[i] + 1)) * (-1)
+            weight_array[:, 0] = np.ones(dimensions[i + 1])
             print(weight_array)
             self.weights.append(weight_array)
 
     def feedforward(self, x: np.ndarray):
         z = np.insert(x, 0, 1)
-        print(z)
-        print(f"{z.shape=}")
         for i in range(len(self.weights)):
-            z = self.act_funcs[i](self.weights[i]@z)
-            z = np.insert(z, 0, 1)
-        return z[1:]
+            if i < len(self.weights) - 1:
+                z = self.hidden_func(self.weights[i] @ z)
+                z = np.insert(z, 0, 1)
+            else:
+                z = self.output_func(self.weights[i] @ z)
+        return z
 
     def predict(self, x: np.ndarray):
         return self.feedforward(x)
 
 
+class Scheduler:
 
+    def __init__(self, eta0):
+        self.eta0 = eta0
 
-# class Scheduler:
-#
-#     def __init__(self, et):
-#         pass
-#
-#     def update_eta(self, eta: float):
-#         return eta
-#
+    def update_eta(self, **args):
+        return self.eta0
+
 # class Momentum(scheduler):
 #
 #     def update_eta(self, eta: float):
@@ -393,7 +427,6 @@ class FFNN:
 #         return eta
 
 
-
 def read_from_cmdline():
     argv = sys.argv[1:]
 
@@ -404,12 +437,36 @@ def read_from_cmdline():
     # with debug or file, we cannot have noise. We cannot have debug and file
     # either
     group.add_argument("-f", "--file", help="Terrain data file name")
-    group.add_argument("-d", "--debug", help="Use debug function for testing. Default false", action="store_true")
-    group.add_argument("-no", "--noise", help="Amount of noise to have. Recommended range [0-0.1]. Default 0.05", type=float, default=0.05)
-    parser.add_argument("-st", "--step", help="Step size for linspace function. Range [0.01-0.4]. Default 0.05", type=float, default=0.05)
-    parser.add_argument("-b", "--betas", help="Betas to plot, when applicable. Default 10", type=int)
+    group.add_argument(
+        "-d",
+        "--debug",
+        help="Use debug function for testing. Default false",
+        action="store_true",
+    )
+    group.add_argument(
+        "-no",
+        "--noise",
+        help="Amount of noise to have. Recommended range [0-0.1]. Default 0.05",
+        type=float,
+        default=0.05,
+    )
+    parser.add_argument(
+        "-st",
+        "--step",
+        help="Step size for linspace function. Range [0.01-0.4]. Default 0.05",
+        type=float,
+        default=0.05,
+    )
+    parser.add_argument(
+        "-b", "--betas", help="Betas to plot, when applicable. Default 10", type=int
+    )
     parser.add_argument("-n", help="Polynomial degree. Default 9", type=int, default=9)
-    parser.add_argument("-nsc", "--noscale", help="Do not use scaling (centering for synthetic case or MinMaxScaling for organic case)", action="store_true") 
+    parser.add_argument(
+        "-nsc",
+        "--noscale",
+        help="Do not use scaling (centering for synthetic case or MinMaxScaling for organic case)",
+        action="store_true",
+    )
 
     # parse arguments and call run_filter
     args = parser.parse_args()
@@ -427,12 +484,12 @@ def read_from_cmdline():
     num_betas = int((args.n + 1) * (args.n + 2) / 2)  # Number of elements in beta
     if args.betas:
         if args.betas > num_betas:
-            raise ValueError(f"More betas than exist in the design matrix: {args.betas}")
+            raise ValueError(
+                f"More betas than exist in the design matrix: {args.betas}"
+            )
         betas_to_plot = args.betas
     else:
         betas_to_plot = min(10, num_betas)
-
-
 
     if args.file:
         # Load the terrain
@@ -465,4 +522,17 @@ def read_from_cmdline():
 
         X, X_train, X_test, z_train, z_test = preprocess(x, y, z, args.n, 0.2)
 
-    return betas_to_plot, args.n, X, X_train, X_test, z, z_train, z_test, centering, x, y, z
+    return (
+        betas_to_plot,
+        args.n,
+        X,
+        X_train,
+        X_test,
+        z,
+        z_train,
+        z_test,
+        centering,
+        x,
+        y,
+        z,
+    )
