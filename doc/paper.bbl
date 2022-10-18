@@ -1,0 +1,39 @@
+\begin{thebibliography}{}
+
+\bibitem[Fahrmeir et~al., 2013]{linreg}
+Fahrmeir, L., Kneib, T., Lang, S., and Marx, B. (2013).
+\newblock {\em Regression Models, Methods and Applications}.
+\newblock Springer, London.
+
+\bibitem[Gonzales and Woods, 2018]{dip}
+Gonzales, R.~C. and Woods, R.~E. (2018).
+\newblock {\em Digital Image Processing}.
+\newblock Pearson, New Nork, NY.
+
+\bibitem[Hastie et~al., 2009]{hastie}
+Hastie, T., Tibshirani, R., and Friedman, J. (2009).
+\newblock {\em The Elements of Statistical Learning}.
+\newblock Springer, New Nork, NY.
+
+\bibitem[Pishro-Nik, 2014]{CLT}
+Pishro-Nik, H. (2014).
+\newblock Miscellaneous {Introduction to Probability, Statistics, and Random
+  Processes}.
+\newblock On the WWW.
+\newblock URL
+  \verb+https://www.probabilitycourse.com/chapter7/7_1_2_central_limit_theorem.php+.
+
+\bibitem[Routledge, 2022]{LLN}
+Routledge, R. (2022).
+\newblock Miscellaneous {Law of Large Numbers}.
+\newblock On the WWW.
+\newblock URL \verb+https://www.britannica.com/science/law-of-large-numbers+.
+
+\bibitem[Scikit-Learn, 2022]{lasso}
+Scikit-Learn (2022).
+\newblock Miscellaneous {sklearn.linear\_model.Lasso}.
+\newblock On the WWW.
+\newblock URL
+  \verb+https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html+.
+
+\end{thebibliography}
