@@ -2,7 +2,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-import numpy as np
+import autograd.numpy as np
+from autograd import grad
 from random import random, seed
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.linear_model import LinearRegression
@@ -400,6 +401,13 @@ class FFNN:
         return z
 
     def predict(self, x: np.ndarray):
+        """
+        Return a prediction vector for each coloumn in x
+
+        Parameters:
+            x (np.ndarray): An p x n array where p is the number of nodes in the
+            input layer and n is the number of vectors in our batch
+        """
         return self.feedforward(x)
 
 
