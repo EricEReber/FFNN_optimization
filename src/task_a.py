@@ -33,6 +33,20 @@ betas, z_preds_train, z_preds_test, z_preds = linreg_to_N(
     X, X_train, X_test, z_train, z_test, N, centering=centering, model=OLS_model
 )
 
+# perform linear regression with gradient descent
+n_iterations = 10000
+eta = 0.005
+# initialize betas
+MSEs_gd = np.zeros((n_iterations))
+
+beta_gd = np.random.uniform(low=0, high=1, size=(X.shape[1]))
+for iteration in range(0, n_iterations):
+    _, z_pred_train_gd, z_pred_test_gd, z_pred_gd = gradient_descent_linreg(
+        CostOLS, X, X_train, X_test, beta_gd, z_train, eta,
+    )
+    MSEs_gd[iteration] = MSE(z_test, z_pred_test_gd)
+
+
 # perform linear regression scikit
 _, z_preds_train_sk, z_preds_test_sk, _ = linreg_to_N(
     X, X_train, X_test, z_train, z_test, N, centering=centering, model=OLS_scikit
@@ -53,7 +67,7 @@ pred_map = z_preds[:, -1].reshape(z.shape)
 fig = plt.figure(figsize=plt.figaspect(0.3))
 
 # Subplot for terrain
-ax = fig.add_subplot(121, projection="3d")
+ax = fig.add_subplot(221, projection="3d")
 # Plot the surface.
 surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.zaxis.set_major_locator(LinearLocator(10))
@@ -64,7 +78,7 @@ ax.set_title("Scaled terrain", size=24)
 
 # Subplot for the prediction
 # Plot the surface.
-ax = fig.add_subplot(122, projection="3d")
+ax = fig.add_subplot(222, projection="3d")
 # Plot the surface.
 surf = ax.plot_surface(
     x,
@@ -79,47 +93,34 @@ ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
 ax.set_title(f"Polynomial fit of scaled terrain, N = {N}", size=24)
 fig.colorbar(surf, shrink=0.5, aspect=5)
 
+ax = fig.add_subplot(223, projection="3d")
+# Plot the surface.
+surf = ax.plot_surface(
+    x,
+    y,
+    np.reshape(z_pred_gd, z.shape),
+    cmap=cm.coolwarm,
+    linewidth=0,
+    antialiased=False,
+)
+ax.zaxis.set_major_locator(LinearLocator(10))
+ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+ax.set_title(f"Gradient descent fit of scaled terrain, N = {N}", size=24)
+fig.colorbar(surf, shrink=0.5, aspect=5)
 plt.show()
 
 # ---------------- PLOTTING GRAPHS --------------
-plt.subplot(121)
-plt.title("Terrain 1")
-plt.imshow(z)
-plt.colorbar()
-plt.subplot(122)
-plt.title("Predicted terrain 1")
-plt.imshow(pred_map)
-plt.colorbar()
-plt.show()
-
-for beta in range(betas_to_plot):
-    data = betas[beta, :]
-    data[data == 0] = np.nan
-    plt.plot(data, label=f"beta{beta}", marker="o", markersize=3)
-    plt.xlabel("Polynomial degree (N)", size=15)
-    plt.ylabel("Beta value", size=15)
-    plt.title("Beta progression", size=22)
-    plt.legend()
-plt.show()
-
-print(f"Minimal MSE_test value = {np.min(MSE_test)} for N = {np.argmin(MSE_test)}")
-print(f"Beta vector for final regression: {betas[:,N]}")
-plt.plot(MSE_train, label="train implementation", marker="o", markersize=3)
-plt.plot(MSE_test, label="test implementation", marker="o", markersize=3)
-plt.plot(MSE_train_sk, "r--", label="train ScikitLearn", marker="o", markersize=3)
-plt.plot(MSE_test_sk, "g--", label="test ScikitLearn", marker="o", markersize=3)
+MSEs_matrix_inversion = np.zeros(MSEs_gd.shape)
+MSEs_matrix_inversion[:] = MSE_test[-1]
+plt.plot(range(n_iterations), MSEs_gd, label="test gradient descent")
+plt.plot(
+    range(n_iterations),
+    MSEs_matrix_inversion,
+    "r--",
+    label="test matrix inversion",
+)
 plt.ylabel("MSE score", size=15)
-plt.xlabel("Polynomial degree (N)", size=15)
-plt.title("MSE scores over model complexity", size=22)
-plt.legend()
-plt.show()
-
-plt.plot(R2_train, label="train implementation", marker="o", markersize=3)
-plt.plot(R2_test, label="test implementation", marker="o", markersize=3)
-plt.plot(R2_train_sk, "r--", label="train ScikitLearn", marker="o", markersize=3)
-plt.plot(R2_test_sk, "g--", label="test ScikitLearn", marker="o", markersize=3)
-plt.ylabel("R2 score")
-plt.xlabel("Polynomial degree (N)")
-plt.title("R2 scores over model complexity")
+plt.xlabel("Iterations of Gradient Descent", size=15)
+plt.title(f"MSE scores over Gradient Descent iterations\n eta={eta}", size=18)
 plt.legend()
 plt.show()

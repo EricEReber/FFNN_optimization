@@ -440,24 +440,33 @@ class Scheduler:
 #
 #     def update_eta(self, eta: float):
 #         return eta
+
+
+def CostOLS(X, beta, target):
+    return (1.0 / target.shape[0]) * np.sum((target - X @ beta) ** 2)
+
+
 def gradient_descent_linreg(
     cost_func,
     X,
-    betas,
+    X_train,
+    X_test,
+    beta,
     target,
     *args,
-    scheduler=Scheduler(1),
-    n_iterations=1000,
+    scheduler_class=Scheduler,
 ):
+    scheduler = scheduler_class(args)
 
     ols_grad = grad(cost_func, 1)
 
-    for iter in range(n_iterations):
-        eta = scheduler.update_eta(args)
-        betas -= eta * ols_grad(X, betas, target)
+    eta = scheduler.update_eta()
+    beta -= eta * ols_grad(X_train, beta, target)
 
-    z_pred = X @ betas
-    return z_pred
+    z_pred = X @ beta
+    z_pred_train = X_train @ beta
+    z_pred_test = X_test @ beta
+    return beta, z_pred_train, z_pred_test, z_pred
 
 
 def gradient_step(
