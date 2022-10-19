@@ -433,46 +433,75 @@ class Momentum(Scheduler):
 
 class Adagrad(Scheduler):
         
-        def __init__(self, eta, gradient): 
-            super().__init__(eta)
-            self.gradient = self.gradient
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0])) 
-            self.change = 0
+    def __init__(self, eta, gradient): 
+        super().__init__(eta)
+        self.gradient = self.gradient
+        self.giter = np.zeros((gradient.shape[0], gradient.shape[0])) 
+        self.change = 0
 
-        def update_change(self, eta: float, batch_num: int):
-            delta = 1e-8 # avoid division ny zero
+    def update_change(self, eta: float, batch_num: int):
+        delta = 1e-8 # avoid division ny zero
             
-            self.gradient = (1/batch_num)*self.gradient
-            self.giter += self.gradient @ self.gradient.T 
+        self.gradient = (1/batch_num)*self.gradient
+        self.giter += self.gradient @ self.gradient.T 
             
-            ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(self.giter)))]
-            self.change = np.multiply(ginverse, self.gradient)
+        ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(self.giter)))]
+        self.change = np.multiply(ginverse, self.gradient)
 
- class RMS_prop(Scheduler):
+class RMS_prop(Scheduler):
         
-        def __init__(self, eta, gradient, rho): 
-            super().__init__(eta)
-            self.gradient = self.gradient
-            self.rho = rho
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
-            self.change = 0
+    def __init__(self, eta, gradient, rho): 
+        super().__init__(eta)
+        self.gradient = self.gradient
+        self.rho = rho
+        self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        self.change = 0
 
-        def update_change(self, eta: float, batch_num: int):
-            delta = 1e-8 # avoid division ny zero
+    def update_change(self, eta: float, batch_num: int):
+        delta = 1e-8 # avoid division ny zero
             
-            self.gradient = (1/batch_num)*self.gradient
-            prev_giter = self.giter 
-            self.giter += self.gradient @ self.gradient.T 
+        self.gradient = (1/batch_num)*self.gradient
+        prev_giter = self.giter 
+        self.giter += self.gradient @ self.gradient.T 
             
-            gnew = (self.rho*prev_giter+(1-self.rho)*self.giter)
-            ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
-            self.change = np.multiply(ginverse, self.gradient)
+        gnew = (self.rho*prev_giter+(1-self.rho)*self.giter)
+        ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
+        self.change = np.multiply(ginverse, self.gradient)
 
 
-# class Adam(Scheduler): 
-#    
-#    def update_eta(self, eta: float): 
-#        return eta
+class Adam(Scheduler):
+        
+    def __init__(self, eta, gradient, rho, rho2): 
+        super().__init__(eta)
+        self.gradient = self.gradient
+        self.rho = rho
+        self.prev_rho = 0
+        self.rho2 = rho2
+        self.prev_rho2 = 0
+        self.prev_grad = np.zeros((gradient.shape[0]))
+        self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        self.change = 0
+
+    def update_change(self, eta: float, batch_num: int):
+        delta = 1e-8 # avoid division ny zero
+            
+        self.gradient = (1/batch_num)*self.gradient
+
+        self.prev_giter = self.giter 
+        self.giter += self.gradient @ self.gradient.T 
+         
+        stew = (self.rho2*self.prev_grad + (1-self.rho2)*self.prev_grad)
+        stew /= (1-(self.rho2*self.prev_rho2))
+        self.prev_rho2 *= self.rho2
+
+        gnew = (self.rho*self.prev_giter+(1-self.rho)*self.giter)
+        gnew /= (1-(self.rho*self.prev_rho))
+        self.prev_rho *= self.rho
+
+        ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
+        self.change = np.multiply(ginverse, self.stew)
+        
+        self.prev_grad += self.gradient
 
 
 
