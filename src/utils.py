@@ -435,12 +435,11 @@ def gradient_descent_linreg(
     n_iterations=1000,
 ):
 
-    ols_grad_symb = grad(cost_func, 1)
+    ols_grad = grad(cost_func, 1)
 
     for iter in range(n_iterations):
         eta = scheduler.update_eta()
-        ols_grad = ols_grad_symb(X, betas, target)
-        betas -= eta * ols_grad
+        betas -= eta * ols_grad(X, betas, target)
 
     return betas
 
@@ -452,7 +451,7 @@ def gradient_step(
     input,
     target,
     is_output: bool,
-    *,
+    *args,
     scheduler=Scheduler(1),
     previous_delta,
     previous_weights,
@@ -461,16 +460,16 @@ def gradient_step(
     # input is z_previous
 
     a = weights @ input
-    z = act_func(a)
 
+    act_func_derivative = grad(act_func, 0)
     if is_output:
-        delta = grad(act_func, a) * grad(cost_func, z, target)
+        cost_func_derivative = grad(cost_func, 0)
+        delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
     else:
-        delta = grad(act_func, a) * previous_delta * previous_weights
+        delta = act_func_derivative(a) * previous_delta * previous_weights
 
-    gradient = delta * z
     eta = scheduler.update_eta(gradient)
-    weights -= eta * gradient
+    weights -= eta * delta
 
     return weights, delta
 
