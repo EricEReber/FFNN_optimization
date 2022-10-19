@@ -2,7 +2,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-import numpy as np
+import autograd.numpy as np
+from autograd import grad
 from random import random, seed
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.linear_model import LinearRegression
@@ -400,6 +401,13 @@ class FFNN:
         return z
 
     def predict(self, x: np.ndarray):
+        """
+        Return a prediction vector for each coloumn in x
+
+        Parameters:
+            x (np.ndarray): An p x n array where p is the number of nodes in the
+            input layer and n is the number of vectors in our batch
+        """
         return self.feedforward(x)
 
 
@@ -430,19 +438,19 @@ def gradient_descent_linreg(
     X,
     betas,
     target,
-    *,
-    scheduler=Scheduler(),
+    *args,
+    scheduler=Scheduler(1),
     n_iterations=1000,
 ):
 
-    ols_grad_symb = grad(cost_func, 1)
+    ols_grad = grad(cost_func, 1)
 
     for iter in range(n_iterations):
-        eta = scheduler.update_eta()
-        ols_grad = ols_grad_symb(X, betas, target)
-        betas -= eta * ols_grad
+        eta = scheduler.update_eta(args)
+        betas -= eta * ols_grad(X, betas, target)
 
-    return betas
+    z_pred = X @ betas
+    return z_pred
 
 
 def gradient_step(
@@ -452,8 +460,8 @@ def gradient_step(
     input,
     target,
     is_output: bool,
-    *,
-    scheduler=Scheduler(),
+    *args,
+    scheduler=Scheduler(1),
     previous_delta,
     previous_weights,
 ):
@@ -461,16 +469,16 @@ def gradient_step(
     # input is z_previous
 
     a = weights @ input
-    z = act_func(a)
 
+    act_func_derivative = grad(act_func, 0)
     if is_output:
-        delta = grad(act_func, a) * grad(cost_func, z, target)
+        cost_func_derivative = grad(cost_func, 0)
+        delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
     else:
-        delta = grad(act_func, a) * previous_delta * previous_weights
+        delta = act_func_derivative(a) * previous_delta * previous_weights
 
-    gradient = delta * z
     eta = scheduler.update_eta(gradient)
-    weights -= eta * gradient
+    weights -= eta * delta
 
     return weights, delta
 
