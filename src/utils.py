@@ -425,6 +425,54 @@ class Scheduler:
 #
 #     def update_eta(self, eta: float):
 #         return eta
+def gradient_descent_linreg(
+    cost_func,
+    X,
+    betas,
+    target,
+    *,
+    scheduler=Scheduler(),
+    n_iterations=1000,
+):
+
+    ols_grad_symb = grad(cost_func, 1)
+
+    for iter in range(n_iterations):
+        eta = scheduler.update_eta()
+        ols_grad = ols_grad_symb(X, betas, target)
+        betas -= eta * ols_grad
+
+    return betas
+
+
+def gradient_step(
+    cost_func,
+    act_func,
+    weights,
+    input,
+    target,
+    is_output: bool,
+    *,
+    scheduler=Scheduler(),
+    previous_delta,
+    previous_weights,
+):
+    # presumes batch sent in, weights sliced
+    # input is z_previous
+
+    a = weights @ input
+    z = act_func(a)
+
+    if is_output:
+        delta = grad(act_func, a) * grad(cost_func, z, target)
+    else:
+        delta = grad(act_func, a) * previous_delta * previous_weights
+
+    gradient = delta * z
+    eta = scheduler.update_eta(gradient)
+    weights -= eta * gradient
+
+    return weights, delta
 
 
 def read_from_cmdline():
