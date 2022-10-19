@@ -431,7 +431,7 @@ def gradient_descent_linreg(
     betas,
     target,
     *,
-    scheduler=Scheduler(),
+    scheduler=Scheduler(1),
     n_iterations=1000,
 ):
 
@@ -453,7 +453,7 @@ def gradient_step(
     target,
     is_output: bool,
     *,
-    scheduler=Scheduler(),
+    scheduler=Scheduler(1),
     previous_delta,
     previous_weights,
 ):
