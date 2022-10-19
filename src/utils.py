@@ -436,23 +436,29 @@ class Adagrad(Scheduler):
     def __init__(self, eta, gradient): 
         super().__init__(eta)
         self.gradient = self.gradient
-        self.giter = np.zeros((gradient.shape[0], gradient.shape[0])) 
+        self.gradients = np.zeros((self.gradient.shape[0])) 
+        self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0])) 
         self.change = 0
 
     def update_change(self, eta: float, batch_num: int):
         delta = 1e-8 # avoid division ny zero
             
-        self.gradient = (1/batch_num)*self.gradient
+        self.gradients = (1/batch_num)*self.gradient
         self.giter += self.gradient @ self.gradient.T 
             
         ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(self.giter)))]
         self.change = np.multiply(ginverse, self.gradient)
+
+    def reset_giter(self): 
+        self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+
 
 class RMS_prop(Scheduler):
         
     def __init__(self, eta, gradient, rho): 
         super().__init__(eta)
         self.gradient = self.gradient
+        self.gradients = np.zeros((self.gradient.shape[0]))
         self.rho = rho
         self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
         self.change = 0
@@ -460,37 +466,43 @@ class RMS_prop(Scheduler):
     def update_change(self, eta: float, batch_num: int):
         delta = 1e-8 # avoid division ny zero
             
-        self.gradient = (1/batch_num)*self.gradient
-        prev_giter = self.giter 
+        self.gradients = (1/batch_num)*self.gradient
+        self.prev_giter = self.giter 
         self.giter += self.gradient @ self.gradient.T 
             
-        gnew = (self.rho*prev_giter+(1-self.rho)*self.giter)
+        gnew = (self.rho*self.prev_giter+(1-self.rho)*self.giter)
         ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
         self.change = np.multiply(ginverse, self.gradient)
-
+    
+    def reset_giter(self):
+        self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        self.prev_giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
 
 class Adam(Scheduler):
         
-    def __init__(self, eta, gradient, rho, rho2): 
+    def __init__(self, eta, gradient, rho, rho2, batch_num=1): 
         super().__init__(eta)
         self.gradient = self.gradient
+        self.gradients = np.zeros((self.gradient.shape[0]))
         self.rho = rho
         self.prev_rho = 0
         self.rho2 = rho2
         self.prev_rho2 = 0
-        self.prev_grad = np.zeros((gradient.shape[0]))
-        self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        self.prev_grad = np.zeros((self.gradient.shape[0]))
+        self.giter = np.zeros((self.gradient.shape[0], gradient.shape[0]))
         self.change = 0
+        self.batch_num = batch_num
 
-    def update_change(self, eta: float, batch_num: int):
+    def update_change(self, eta: float):
         delta = 1e-8 # avoid division ny zero
-            
-        self.gradient = (1/batch_num)*self.gradient
+
+        self.prev_grad += self.gradients
+        self.gradients = (1/batch_num)*self.gradient
 
         self.prev_giter = self.giter 
-        self.giter += self.gradient @ self.gradient.T 
+        self.giter += self.gradients @ self.gradients.T 
          
-        stew = (self.rho2*self.prev_grad + (1-self.rho2)*self.prev_grad)
+        stew = (self.rho2*self.prev_grad + (1-self.rho2)*self.gradients)
         stew /= (1-(self.rho2*self.prev_rho2))
         self.prev_rho2 *= self.rho2
 
@@ -501,8 +513,13 @@ class Adam(Scheduler):
         ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
         self.change = np.multiply(ginverse, self.stew)
         
-        self.prev_grad += self.gradient
 
+    def reset_gradient():
+        self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        self.prev_giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        self.prev_grad = np.zeros((self.gradient.shape[0]))
+        self.prev_rho = 1
+        self.prev_rho2 = 1
 
 
 
