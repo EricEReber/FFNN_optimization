@@ -438,7 +438,7 @@ def gradient_descent_linreg(
     X,
     betas,
     target,
-    *,
+    *args,
     scheduler=Scheduler(1),
     n_iterations=1000,
 ):
@@ -446,10 +446,11 @@ def gradient_descent_linreg(
     ols_grad = grad(cost_func, 1)
 
     for iter in range(n_iterations):
-        eta = scheduler.update_eta()
+        eta = scheduler.update_eta(args)
         betas -= eta * ols_grad(X, betas, target)
 
-    return betas
+    z_pred = X @ betas
+    return z_pred
 
 
 def gradient_step(
