@@ -410,29 +410,62 @@ class FFNN:
         """
         return self.feedforward(x)
 
+#------------------- Gradient Descent Optimizing Methods -------------------# 
 
 class Scheduler:
-    def __init__(self, eta0):
-        self.eta0 = eta0
+    def __init__(self, eta):
+        self.eta = eta
 
     def update_eta(self, **args):
-        return self.eta0
+        return self.eta
 
 
-# class Momentum(scheduler):
+class Momentum:
+    def __init__(self, eta: float, momentum: float, gradient)
+        self.eta = eta
+        self.gradient = gradient
+        self.momentum = momentum
+        self.change = 0
+
+
+    def update_change(self):
+         self.change = self.eta * self.gradient + self.momentum + self.change
+#
+class Adagrad(Scheduler):
+        
+        def __init__(self, eta, gradient): 
+            super().__init__(eta)
+            self.gradient = self.gradient
+            self.giter = np.zeros((gradient.shape[0], gradient.shape[0])) 
+            self.change = 0
+
+        def update_change(self, eta: float, batch_num: int):
+            delta = 1e-8 # avoid division ny zero
+            
+            self.gradient = (1/batch_num)*self.gradient
+            self.giter += self.gradient @ self.gradient.T 
+            
+            ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(self.giter)))]
+            self.change = np.multiply(self.ginverse, self.gradient)
+
+            
+
+
+
+         
+# class Rms_prop(Scheduler):
 #
 #     def update_eta(self, eta: float):
 #         return eta
-#
-# class Adagrad(scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
-#
-# class Rms_prop(scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
+# 
+# class Adam(Scheduler): 
+#    
+#    def update_eta(self, eta: float): 
+#        return eta
+
+
+
+
 def gradient_descent_linreg(
     cost_func,
     X,
