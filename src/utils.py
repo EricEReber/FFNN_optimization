@@ -430,7 +430,7 @@ class Momentum(Scheduler):
 
     def update_change(self):
          self.change = self.eta * self.gradient + self.momentum + self.change
-#
+
 class Adagrad(Scheduler):
         
         def __init__(self, eta, gradient): 
@@ -446,18 +446,29 @@ class Adagrad(Scheduler):
             self.giter += self.gradient @ self.gradient.T 
             
             ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(self.giter)))]
-            self.change = np.multiply(self.ginverse, self.gradient)
+            self.change = np.multiply(ginverse, self.gradient)
 
+ class RMS_prop(Scheduler):
+        
+        def __init__(self, eta, gradient, rho): 
+            super().__init__(eta)
+            self.gradient = self.gradient
+            self.rho = rho
+            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+            self.change = 0
+
+        def update_change(self, eta: float, batch_num: int):
+            delta = 1e-8 # avoid division ny zero
             
+            self.gradient = (1/batch_num)*self.gradient
+            prev_giter = self.giter 
+            self.giter += self.gradient @ self.gradient.T 
+            
+            gnew = (self.rho*prev_giter+(1-self.rho)*self.giter)
+            ginverse = np.c_[eta/(delta + np.sqrt(np.diagonal(gnew)))]
+            self.change = np.multiply(ginverse, self.gradient)
 
 
-
-         
-# class Rms_prop(Scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
-# 
 # class Adam(Scheduler): 
 #    
 #    def update_eta(self, eta: float): 
