@@ -420,13 +420,13 @@ class Scheduler:
         return self.eta
 
 
-class Momentum:
+class Momentum(Scheduler): 
+
     def __init__(self, eta: float, momentum: float, gradient)
-        self.eta = eta
+        super().__init__(eta)
         self.gradient = gradient
         self.momentum = momentum
         self.change = 0
-
 
     def update_change(self):
          self.change = self.eta * self.gradient + self.momentum + self.change
