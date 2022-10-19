@@ -364,38 +364,45 @@ class FFNN:
         is the input layer, and how many nodes it has. The last number is our output layer. The numbers
         in between define how many hidden layers we have, and how many nodes they have.
 
-        act_funcs (list[Callable]): A list of activation functions, one for each weight array
+        hidden_func (Callable): The activation function for the hidden layers
 
-        weights (str): A list of numpy arrays, containing our weights
+        output_func (Callable): The activation function for the output layer
+
+        weights (list): A list of numpy arrays, containing our weights
     """
 
     def __init__(
         self,
-        dimensions: list[int],
+        dimensions: tuple[int],
         *,
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
     ):
         self.weights = list()
-
         self.dimensions = dimensions
-
         self.hidden_func = hidden_func
         self.output_func = output_func
 
         for i in range(len(dimensions) - 1):
-            # weight_array = np.random.randn(dimensions[i+1],dimensions[i]+1)
-            weight_array = np.ones((dimensions[i + 1], dimensions[i] + 1)) * (-1)
+            weight_array = np.random.randn(dimensions[i + 1], dimensions[i] + 1)
             weight_array[:, 0] = np.ones(dimensions[i + 1])
-            print(weight_array)
             self.weights.append(weight_array)
 
     def feedforward(self, x: np.ndarray):
-        z = np.insert(x, 0, 1)
+        """
+        Return a prediction vector for each coloumn in x
+
+        Parameters:
+            x (np.ndarray): An p x n array where p is the number of nodes in the
+            input layer and n is the number of vectors in our batch
+        """
+        if len(x.shape) == 1:
+            x = x.reshape((x.shape[0], 1))
+        z = np.vstack([np.ones(x.shape[1]), x])
         for i in range(len(self.weights)):
             if i < len(self.weights) - 1:
                 z = self.hidden_func(self.weights[i] @ z)
-                z = np.insert(z, 0, 1)
+                z = np.vstack([np.ones(z.shape[1]), z])
             else:
                 z = self.output_func(self.weights[i] @ z)
         return z
