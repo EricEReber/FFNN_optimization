@@ -383,39 +383,59 @@ class FFNN:
         self.hidden_func = hidden_func
         self.output_func = output_func
 
+        m = max(dimensions[1:-1])
+        n = len(dimensions[1:-1])
+
         for i in range(len(dimensions) - 1):
-            weight_array = np.random.randn(dimensions[i + 1], dimensions[i] + 1)
-            weight_array[:, 0] = np.ones(dimensions[i + 1])
+            weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1]))
+            # weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
+            weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
 
-    def feedforward(self, x: np.ndarray):
+    def feedforward(self, X: np.ndarray):
         """
-        Return a prediction vector for each coloumn in x
+        Return a prediction vector for each row in X
 
         Parameters:
-            x (np.ndarray): An p x n array where p is the number of nodes in the
-            input layer and n is the number of vectors in our batch
+            X (np.ndarray): The design matrix, with n rows of p features each
+
+        Returns:
+            z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
-        if len(x.shape) == 1:
-            x = x.reshape((x.shape[0], 1))
-        z = np.vstack([np.ones(x.shape[1]), x])
+
+        # if X is just a vector, make it into a design matrix
+        if len(X.shape) == 1:
+            X = X.reshape((1, X.shape[0]))
+
+        # put a coloumn of ones as the first coloumn of the design matrix, so that
+        # we have a bias term
+        X = np.hstack([np.ones((X.shape[0], 1)), X])
+
+        # a^0, the nodes in the input layer (one a^0 for each row in X)
+        a = X
+
+        # the feed forward part
         for i in range(len(self.weights)):
             if i < len(self.weights) - 1:
-                z = self.hidden_func(self.weights[i] @ z)
-                z = np.vstack([np.ones(z.shape[1]), z])
+                a = self.hidden_func(a @ self.weights[i])
+                a = np.hstack([np.ones((a.shape[0], 1)), a])
             else:
-                z = self.output_func(self.weights[i] @ z)
-        return z
+                # a^L, the nodes in our output layer
+                a = self.output_func(a @ self.weights[i])
+        # this will be a^L
+        return a
 
-    def predict(self, x: np.ndarray):
+    def predict(self, X: np.ndarray):
         """
-        Return a prediction vector for each coloumn in x
+        Return a prediction vector for each row in X
 
         Parameters:
-            x (np.ndarray): An p x n array where p is the number of nodes in the
-            input layer and n is the number of vectors in our batch
+            X (np.ndarray): The design matrix, with n rows of p features each
+
+        Returns:
+            z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
-        return self.feedforward(x)
+        return self.feedforward(X)
 
 
 class Scheduler:
