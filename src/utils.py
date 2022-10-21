@@ -355,6 +355,14 @@ def LRELU(x: np.ndarray, delta: float):
     return np.where(x > np.zeros(x.shape), x, delta * x)
 
 
+class Scheduler:
+    def __init__(self, eta0):
+        self.eta0 = eta0
+
+    def update_eta(self, **args):
+        return self.eta0
+
+
 class FFNN:
     """
     Feed Forward Neural Network
@@ -377,11 +385,15 @@ class FFNN:
         *,
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
+        iterations: int = 1000,
     ):
         self.weights = list()
+        self.a_matrices = list()
         self.dimensions = dimensions
         self.hidden_func = hidden_func
         self.output_func = output_func
+        self.iterations = iterations
+        print(self.iterations)
 
         m = max(dimensions[1:-1])
         n = len(dimensions[1:-1])
@@ -402,6 +414,7 @@ class FFNN:
         Returns:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
+        self.a_matrices = list()
 
         # if X is just a vector, make it into a design matrix
         if len(X.shape) == 1:
@@ -418,10 +431,13 @@ class FFNN:
         for i in range(len(self.weights)):
             if i < len(self.weights) - 1:
                 a = self.hidden_func(a @ self.weights[i])
+                self.a_matrices.append(a)
                 a = np.hstack([np.ones((a.shape[0], 1)), a])
             else:
                 # a^L, the nodes in our output layer
                 a = self.output_func(a @ self.weights[i])
+                self.a_matrices.append(a)
+
         # this will be a^L
         return a
 
@@ -437,13 +453,31 @@ class FFNN:
         """
         return self.feedforward(X)
 
+    def fit(
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        *,
+        scheduler: Scheduler = Scheduler(0.001),
+    ):
+        for iter in range(self.iterations):
+            # this sets self.a_matrices
+            self.feedforward(X)
 
-class Scheduler:
-    def __init__(self, eta0):
-        self.eta0 = eta0
+            # back propagation
 
-    def update_eta(self, **args):
-        return self.eta0
+            for i in range(len(self.dimensions) - 1, 0, -1):
+                print(i)
+
+                # act_func_derivative = grad(act_func, 0)
+                # if is_output:
+                #     cost_func_derivative = grad(cost_func, 0)
+                #     delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
+                # else:
+                #     delta = act_func_derivative(a) * previous_delta * previous_weights
+                #
+                # eta = scheduler.update_eta(gradient)
+                # weights -= eta * delta
 
 
 # class Momentum(scheduler):
@@ -487,36 +521,6 @@ def gradient_descent_linreg(
     z_pred_train = X_train @ beta
     z_pred_test = X_test @ beta
     return beta, z_pred_train, z_pred_test, z_pred
-
-
-def gradient_step(
-    cost_func,
-    act_func,
-    weights,
-    input,
-    target,
-    is_output: bool,
-    *args,
-    scheduler=Scheduler(1),
-    previous_delta,
-    previous_weights,
-):
-    # presumes batch sent in, weights sliced
-    # input is z_previous
-
-    a = weights @ input
-
-    act_func_derivative = grad(act_func, 0)
-    if is_output:
-        cost_func_derivative = grad(cost_func, 0)
-        delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
-    else:
-        delta = act_func_derivative(a) * previous_delta * previous_weights
-
-    eta = scheduler.update_eta(gradient)
-    weights -= eta * delta
-
-    return weights, delta
 
 
 def read_from_cmdline():
