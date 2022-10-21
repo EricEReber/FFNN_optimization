@@ -342,6 +342,10 @@ def find_best_lambda(X, z, model, lambdas, N, K):
     return best_lambda, best_MSE, best_polynomial
 
 
+def CostOLS(X, beta, target):
+    return (1.0 / target.shape[0]) * np.sum((target - X @ beta) ** 2)
+
+
 # Activation functions
 def sigmoid(x):
     return 1.0 / (1 + np.exp(-x))
@@ -385,6 +389,7 @@ class FFNN:
         *,
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
+        cost_func: Callable = CostOLS,
         iterations: int = 1000,
     ):
         self.weights = list()
@@ -392,8 +397,8 @@ class FFNN:
         self.dimensions = dimensions
         self.hidden_func = hidden_func
         self.output_func = output_func
+        self.cost_func = cost_func
         self.iterations = iterations
-        print(self.iterations)
 
         m = max(dimensions[1:-1])
         n = len(dimensions[1:-1])
@@ -459,25 +464,38 @@ class FFNN:
         t: np.ndarray,
         *,
         scheduler: Scheduler = Scheduler(0.001),
+        batches: int = 1,
     ):
         for iter in range(self.iterations):
-            # this sets self.a_matrices
             self.feedforward(X)
+            self.backpropagate(X, t)
 
-            # back propagation
+    def backpropagate(self, X, t, *, scheduler=Scheduler(0.001)):
+        out_derivative = grad(self.output_func, 0)
+        hidden_derivative = grad(self.hidden_func, 0)
 
-            for i in range(len(self.dimensions) - 1, 0, -1):
-                print(i)
+        for i in range(len(self.dimensions) - 1, 0, -1):
+            print(f"{i=}")
+            if i == len(self.dimensions) - 1:
+                cost_func_derivative = grad(self.cost_func, 1)
+                print("first")
+                print(len(self.a_matrices
+                delta = out_derivative(self.a_matrices[i]) * cost_func_derivative(
+                    self.a_matrices[i], self.weights[i-1], t
+                )
 
-                # act_func_derivative = grad(act_func, 0)
-                # if is_output:
-                #     cost_func_derivative = grad(cost_func, 0)
-                #     delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
-                # else:
-                #     delta = act_func_derivative(a) * previous_delta * previous_weights
-                #
-                # eta = scheduler.update_eta(gradient)
-                # weights -= eta * delta
+                print(delta)
+
+
+            # act_func_derivative = grad(act_func, 0)
+            # if is_output:
+            #     cost_func_derivative = grad(cost_func, 0)
+            #     delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
+            # else:
+            #     delta = act_func_derivative(a) * previous_delta * previous_weights
+            #
+            # eta = scheduler.update_eta(gradient)
+            # weights -= eta * delta
 
 
 # class Momentum(scheduler):
@@ -494,10 +512,6 @@ class FFNN:
 #
 #     def update_eta(self, eta: float):
 #         return eta
-
-
-def CostOLS(X, beta, target):
-    return (1.0 / target.shape[0]) * np.sum((target - X @ beta) ** 2)
 
 
 def gradient_descent_linreg(
