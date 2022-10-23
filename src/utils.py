@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import autograd.numpy as np
-from autograd import grad
+from autograd import grad, elementwise_grad
 from random import random, seed
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.linear_model import LinearRegression
@@ -342,8 +342,15 @@ def find_best_lambda(X, z, model, lambdas, N, K):
     return best_lambda, best_MSE, best_polynomial
 
 
-def CostOLS(X, beta, target):
-    return (1.0 / target.shape[0]) * np.sum((target - X @ beta) ** 2)
+def CostOLS(target):
+    """Return a function valued only at beta, so
+    that it may be easily differentiated
+    """
+
+    def func(X):
+        return (1.0 / target.shape[0]) * np.sum((target - X) ** 2)
+
+    return func
 
 
 # Activation functions
@@ -399,14 +406,16 @@ class FFNN:
         self.output_func = output_func
         self.cost_func = cost_func
         self.iterations = iterations
+        self.z_matrices = list()
 
         m = max(dimensions[1:-1])
         n = len(dimensions[1:-1])
 
         for i in range(len(dimensions) - 1):
-            weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1]))
-            # weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
-            weight_array[0, :] = np.ones(dimensions[i + 1])
+            # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
+            weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
+            weight_array[0, :] = np.random.randn(dimensions[i + 1]) * 0.01
+            # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
 
     def feedforward(self, X: np.ndarray):
@@ -419,7 +428,10 @@ class FFNN:
         Returns:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
+
+        # reset matrices
         self.a_matrices = list()
+        self.z_matrices = list()
 
         # if X is just a vector, make it into a design matrix
         if len(X.shape) == 1:
@@ -435,13 +447,17 @@ class FFNN:
         # the feed forward part
         for i in range(len(self.weights)):
             if i < len(self.weights) - 1:
-                a = self.hidden_func(a @ self.weights[i])
-                self.a_matrices.append(a)
+                z = a @ self.weights[i]
+                self.z_matrices.append(z)
+                a = self.hidden_func(z)
                 a = np.hstack([np.ones((a.shape[0], 1)), a])
+                self.a_matrices.append(a)
             else:
                 # a^L, the nodes in our output layer
-                a = self.output_func(a @ self.weights[i])
+                z = a @ self.weights[i]
+                a = self.output_func(z)
                 self.a_matrices.append(a)
+                self.z_matrices.append(z)
 
         # this will be a^L
         return a
@@ -463,29 +479,49 @@ class FFNN:
         X: np.ndarray,
         t: np.ndarray,
         *,
-        scheduler: Scheduler = Scheduler(0.001),
+        scheduler: Scheduler = Scheduler(0.01),
         batches: int = 1,
     ):
         for iter in range(self.iterations):
             self.feedforward(X)
-            self.backpropagate(X, t)
+            self.backpropagate(X, t, scheduler)
 
-    def backpropagate(self, X, t, *, scheduler=Scheduler(0.001)):
-        out_derivative = grad(self.output_func, 0)
-        hidden_derivative = grad(self.hidden_func, 0)
+    def backpropagate(self, X, t, scheduler):
+        out_derivative = elementwise_grad(self.output_func)
+        hidden_derivative = elementwise_grad(self.hidden_func)
 
-        for i in range(len(self.dimensions) - 1, 0, -1):
-            print(f"{i=}")
-            if i == len(self.dimensions) - 1:
-                cost_func_derivative = grad(self.cost_func, 1)
-                print("first")
-                print(len(self.a_matrices
-                delta = out_derivative(self.a_matrices[i]) * cost_func_derivative(
-                    self.a_matrices[i], self.weights[i-1], t
-                )
+        for i in range(len(self.weights) - 1, -1, -1):
+            if i == len(self.weights) - 1:
+                cost_func_derivative = grad(self.cost_func(t))
+                gradient_matrix = out_derivative(
+                    self.z_matrices[i]
+                ) * cost_func_derivative(self.a_matrices[i])
+                # print(f"{delta_matrix=}")
+                # output_gradient = np.zeros(
+                #     (
+                #         self.weights[i].shape[0],
+                #         self.weights[i].shape[1],
+                #         self.a_matrices[i - 1].shape[1],
+                #     )
+                # )
 
-                print(delta)
+                # a matrix showing how much each weight in W^L should change
+                delta_weights = self.a_matrices[i - 1][:, 1:].T @ gradient_matrix
+                delta_biases = self.weights[i][1, :] * gradient_matrix
+                self.weights[i][1:, :] -= scheduler.update_eta() * delta_weights
+                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_biases)
 
+            else:
+                gradient_matrix = (
+                    self.weights[i + 1][1:, :] @ gradient_matrix.T
+                ).T * hidden_derivative(self.a_matrices[i][:, 1:])
+                delta_weights = self.a_matrices[i - 1][:, 1:].T @ gradient_matrix
+                delta_biases = self.weights[i][1, :] * gradient_matrix
+
+                print(delta_weights.shape)
+                print(self.weights[i][1:,:].shape)
+                self.weights[i][1:, :] -= scheduler.update_eta() * delta_weights
+                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_biases)
 
             # act_func_derivative = grad(act_func, 0)
             # if is_output:
