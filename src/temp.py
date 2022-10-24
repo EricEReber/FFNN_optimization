@@ -2,7 +2,7 @@ from utils import *
 from autograd import grad, elementwise_grad
 import autograd.numpy as np
 
-dims = (4, 3, 3)
+dims = (4, 3, 2)
 np.random.seed(0)
 
 
@@ -37,22 +37,23 @@ neural = FFNN(dims, epochs=1000)
 
 X = np.array([[1, 1, 1, 1], [0, 1, 1, 1], [3, 5, 6, 7]])
 
-target = np.array([[1, 1], [1, 2], [3, 3]])
+target = np.array([[3, 2], [3, 2], [0, 2]])
 
-# print(neural.predict(X))
+print(f"{neural.predict(X)=}")
+neural.fit(X, target, scheduler=Scheduler(0.01))
+print(f"{neural.predict(X)=}")
 
 # neural.fit(X, target)
 
-x = np.array([2, 3, 4, 5])
-# t = np.array([1, 5, 2, 3])
-t = np.array([1, 5, 3])
+neural = FFNN(dims, epochs=1)
+
+x = np.array([[2, 3, 4, 5], [2, 3, 4, 5]])
+t = np.array([[1, 5], [2, 3]])
 
 print(f"{neural.predict(x)=}")
-
 neural.fit(x, t)
-
-
 print(f"{neural.predict(x)=}")
+
 
 # x = np.array([2, 3, 4, 5])
 # print(neural.hidden_outs)
