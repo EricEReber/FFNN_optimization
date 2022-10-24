@@ -418,6 +418,16 @@ class FFNN:
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
 
+    def accuracy(self, a: np.ndarray, target: np.ndarray):
+        """
+        Returns accuracy of prediction a^L, returned from predict() method
+
+        :param a: prediction
+        :param target: real values
+        :return: ratio of correct predictions to total predictions
+        """
+        return np.average((target == a))
+
     def feedforward(self, X: np.ndarray):
         """
         Return a prediction vector for each row in X
@@ -472,6 +482,7 @@ class FFNN:
         Returns:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
+
         return self.feedforward(X)
 
     def fit(
@@ -519,7 +530,7 @@ class FFNN:
                 delta_biases = self.weights[i][1, :] * gradient_matrix
 
                 print(delta_weights.shape)
-                print(self.weights[i][1:,:].shape)
+                print(self.weights[i][1:, :].shape)
                 self.weights[i][1:, :] -= scheduler.update_eta() * delta_weights
                 self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_biases)
 
