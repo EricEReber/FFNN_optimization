@@ -397,7 +397,7 @@ class FFNN:
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
         cost_func: Callable = CostOLS,
-        iterations: int = 1000,
+        epochs: int = 1000,
     ):
         self.weights = list()
         self.a_matrices = list()
@@ -405,7 +405,7 @@ class FFNN:
         self.hidden_func = hidden_func
         self.output_func = output_func
         self.cost_func = cost_func
-        self.iterations = iterations
+        self.epochs = epochs
         self.z_matrices = list()
 
         m = max(dimensions[1:-1])
@@ -493,7 +493,7 @@ class FFNN:
         scheduler: Scheduler = Scheduler(0.01),
         batches: int = 1,
     ):
-        for iter in range(self.iterations):
+        for e in range(self.epochs):
             self.feedforward(X)
             self.backpropagate(X, t, scheduler)
 
@@ -504,7 +504,7 @@ class FFNN:
         for i in range(len(self.weights) - 1, -1, -1):
             if i == len(self.weights) - 1:
                 cost_func_derivative = grad(self.cost_func(t))
-                gradient_matrix = out_derivative(
+                delta_matrix = out_derivative(
                     self.z_matrices[i]
                 ) * cost_func_derivative(self.a_matrices[i])
                 # print(f"{delta_matrix=}")
@@ -517,22 +517,20 @@ class FFNN:
                 # )
 
                 # a matrix showing how much each weight in W^L should change
-                delta_weights = self.a_matrices[i - 1][:, 1:].T @ gradient_matrix
-                delta_biases = self.weights[i][1, :] * gradient_matrix
-                self.weights[i][1:, :] -= scheduler.update_eta() * delta_weights
-                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_biases)
+                gradient_weights = self.a_matrices[i - 1][:, 1:].T @ delta_matrix
+                self.weights[i][1:, :] -= scheduler.update_eta() * gradient_weights
+                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_matrix)
 
             else:
-                gradient_matrix = (
-                    self.weights[i + 1][1:, :] @ gradient_matrix.T
+                delta_matrix = (
+                    self.weights[i + 1][1:, :] @ delta_matrix.T
                 ).T * hidden_derivative(self.a_matrices[i][:, 1:])
-                delta_weights = self.a_matrices[i - 1][:, 1:].T @ gradient_matrix
-                delta_biases = self.weights[i][1, :] * gradient_matrix
+                gradient_weights = self.a_matrices[i - 1][:, 1:].T @ delta_matrix
 
-                print(delta_weights.shape)
-                print(self.weights[i][1:, :].shape)
-                self.weights[i][1:, :] -= scheduler.update_eta() * delta_weights
-                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_biases)
+                # print(gradient_weights.shape)
+                # print(self.weights[i][1:,:].shape)
+                self.weights[i][1:, :] -= scheduler.update_eta() * gradient_weights
+                self.weights[i][0, :] -= scheduler.update_eta() * np.ravel(delta_matrix)
 
             # act_func_derivative = grad(act_func, 0)
             # if is_output:

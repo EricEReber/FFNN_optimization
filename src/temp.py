@@ -2,7 +2,7 @@ from utils import *
 from autograd import grad, elementwise_grad
 import autograd.numpy as np
 
-dims = (4, 3, 2)
+dims = (4, 3, 3)
 np.random.seed(0)
 
 
@@ -33,7 +33,7 @@ def CostOLS(X, target):
 # print(deri(beta))
 # print(X @ beta)
 
-neural = FFNN(dims, iterations=1)
+neural = FFNN(dims, epochs=1000)
 
 X = np.array([[1, 1, 1, 1], [0, 1, 1, 1], [3, 5, 6, 7]])
 
@@ -45,7 +45,7 @@ target = np.array([[1, 1], [1, 2], [3, 3]])
 
 x = np.array([2, 3, 4, 5])
 # t = np.array([1, 5, 2, 3])
-t = np.array([1, 5])
+t = np.array([1, 5, 3])
 
 print(f"{neural.predict(x)=}")
 
