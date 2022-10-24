@@ -352,6 +352,17 @@ def CostOLS(target):
 
     return func
 
+def CostLogReg(target):
+    """Return a function valued only at X, so
+    that it may be easily differentiated
+    """
+
+    def func(X):
+        pass
+
+    return func
+
+
 
 # Activation functions
 def sigmoid(x):
@@ -495,7 +506,11 @@ class FFNN:
         scheduler: Scheduler = Scheduler(0.01),
         batches: int = 1,
     ):
+        i = 0
         for e in range(self.epochs):
+            i += 1
+            if i % 20 == 0:
+                print(i)
             self.feedforward(X)
             self.backpropagate(X, t, scheduler)
             # print(self.predict(X))
