@@ -33,7 +33,7 @@ def CostOLS(X, target):
 # print(deri(beta))
 # print(X @ beta)
 
-neural = FFNN(dims, epochs=4500)
+neural = FFNN(dims, epochs=4000)
 
 X = np.array(
     [
@@ -51,7 +51,7 @@ print(f"{neural.predict(X)=}")
 print(f"{target=}")
 print(f"{neural.predict(X) - target=}")
 
-neural.fit(X, target)
+# neural.fit(X, target)
 
 # neural = FFNN(dims, epochs=1)
 

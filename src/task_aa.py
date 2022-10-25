@@ -25,12 +25,14 @@ np.random.seed(42069)
 
 # approximation of terrain (2D plot)
 
-dims = (2, 20, 20, 1)
+dims = (2, 20, 20, 20, 1)
 
+z_train = FrankeFunction(X_train[:, 1], X_train[:, 2])
 z_train = z_train.reshape(z_train.shape[0], 1)
+print(f"{X_train[:, 1:3]=}")
 
-neural = FFNN(dims, epochs=2000)
-neural.fit(X_train[:, 1:3], z_train, scheduler=Scheduler(0.1))
+neural = FFNN(dims, epochs=1000)
+neural.fit(X_train[:, 1:3], z_train, scheduler=Scheduler(0.3))
 z_pred = neural.predict(X[:, 1:3])
 print(z_pred)
 

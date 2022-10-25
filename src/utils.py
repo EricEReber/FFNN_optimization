@@ -511,6 +511,7 @@ class FFNN:
             i += 1
             if i % 20 == 0:
                 print(i)
+                pass
             self.feedforward(X)
             self.backpropagate(X, t, scheduler)
             # print(self.predict(X))
