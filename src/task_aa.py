@@ -7,26 +7,59 @@ from utils import *
 
 np.random.seed(42069)
 
-x = np.arange(0, 1, 0.05)
-y = np.arange(0, 1, 0.05)
+# tests schedulers for a given model
+def test_scheduler():
+    # define model (should probably be sent in)
+    (
+        betas_to_plot,
+        N,
+        X,
+        X_train,
+        X_test,
+        z,
+        z_train,
+        z_test,
+        centering,
+        x,
+        y,
+        z,
+    ) = read_from_cmdline()
 
-xs, ys = np.meshgrid(x, y)
+    dims = (2, 20, 20, 20, 1)
 
-X = np.dstack(np.meshgrid(x, y)).reshape(-1, 2)
+    z_train = FrankeFunction(X_train[:, 1], X_train[:, 2])
+    z_train = z_train.reshape(z_train.shape[0], 1)
 
-zs = FrankeFunction(xs, ys)
+    neural = FFNN(dims, epochs=1000)
 
-z = FrankeFunction(X[:, 0], X[:, 1]).reshape(X.shape[0], 1)
+    batch_size = X_train.shape[0]
+    rho = 0.9
+    rho2 = 0.99
+    schedulers = [
+        Constant(eta),
+        Momentum(eta),
+        Adagrad(eta, batch_size),
+        RMS_prop(eta, batch_size, rho),
+        Adam(eta, batch_size, rho, rho2),
+    ]
+    # presume we can get error_over_epochs
+    for scheduler in schedulers:
+        error_over_epochs = neural.test_fit(
+            X_train[:, 1:3], z_train, scheduler=scheduler
+        )
+        plt.plot(error_over_epochs)
+    plt.xlabel("Epochs")
+    plt.ylabel("MSE")
+    plt.title("MSE over Epochs for different schedulers")
+    plt.legend()
+    plt.show()
 
-dims = (2, 20, 1)
-np.seterr(all="raise")
+    z_pred = neural.predict(X[:, 1:3])
 
-neural = FFNN(dims, epochs=1000)
-neural.fit(X, z, scheduler=Scheduler(0.01))
-z_pred = neural.predict(X)
-print(z_pred)
+    pred_map = z_pred.reshape(z.shape)
 
-pred_map = z_pred.reshape(zs.shape)
+    return pred_map
+
 
 # ------------ PLOTTING 3D -----------------------
 fig = plt.figure(figsize=plt.figaspect(0.3))
