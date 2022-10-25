@@ -7,36 +7,26 @@ from utils import *
 
 np.random.seed(42069)
 
-# get data
-(
-    betas_to_plot,
-    N,
-    X,
-    X_train,
-    X_test,
-    z,
-    z_train,
-    z_test,
-    centering,
-    x,
-    y,
-    z,
-) = read_from_cmdline()
+x = np.arange(0, 1, 0.05)
+y = np.arange(0, 1, 0.05)
 
-# approximation of terrain (2D plot)
+xs, ys = np.meshgrid(x, y)
 
-dims = (2, 20, 20, 20, 1)
+X = np.dstack(np.meshgrid(x, y)).reshape(-1, 2)
 
-z_train = FrankeFunction(X_train[:, 1], X_train[:, 2])
-z_train = z_train.reshape(z_train.shape[0], 1)
-print(f"{X_train[:, 1:3]=}")
+zs = FrankeFunction(xs, ys)
+
+z = FrankeFunction(X[:, 0], X[:, 1]).reshape(X.shape[0], 1)
+
+dims = (2, 20, 1)
+np.seterr(all="raise")
 
 neural = FFNN(dims, epochs=1000)
-neural.fit(X_train[:, 1:3], z_train, scheduler=Scheduler(0.3))
-z_pred = neural.predict(X[:, 1:3])
+neural.fit(X, z, scheduler=Scheduler(0.01))
+z_pred = neural.predict(X)
 print(z_pred)
 
-pred_map = z_pred.reshape(z.shape)
+pred_map = z_pred.reshape(zs.shape)
 
 # ------------ PLOTTING 3D -----------------------
 fig = plt.figure(figsize=plt.figaspect(0.3))
@@ -44,7 +34,7 @@ fig = plt.figure(figsize=plt.figaspect(0.3))
 # Subplot for terrain
 ax = fig.add_subplot(121, projection="3d")
 # Plot the surface.
-surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+surf = ax.plot_surface(xs, ys, zs, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.zaxis.set_major_locator(LinearLocator(10))
 ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
 ax.set_title("Scaled terrain", size=24)
@@ -56,8 +46,8 @@ ax.set_title("Scaled terrain", size=24)
 ax = fig.add_subplot(122, projection="3d")
 # Plot the surface.
 surf = ax.plot_surface(
-    x,
-    y,
+    xs,
+    ys,
     pred_map,
     cmap=cm.coolwarm,
     linewidth=0,
@@ -65,6 +55,6 @@ surf = ax.plot_surface(
 )
 ax.zaxis.set_major_locator(LinearLocator(10))
 ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
-ax.set_title(f"Polynomial fit of scaled terrain, N = {N}", size=24)
+ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
 fig.colorbar(surf, shrink=0.5, aspect=5)
 plt.show()

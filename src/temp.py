@@ -1,8 +1,9 @@
 from utils import *
 from autograd import grad, elementwise_grad
 import autograd.numpy as np
+import matplotlib.pyplot as plt
 
-dims = (4, 3, 5, 4, 3)
+dims = (2, 10, 10, 10, 1)
 np.random.seed(0)
 
 
@@ -33,23 +34,45 @@ def CostOLS(X, target):
 # print(deri(beta))
 # print(X @ beta)
 
-neural = FFNN(dims, epochs=4000)
+neural = FFNN(dims, epochs=5000)
 
 X = np.array(
     [
-        [0.83, 0.541, 0.455, 0.4124],
-        [0.414, 0.4351, 0.4156, 0.8888],
-        [0.111, 0.312, 0.77, 0.93],
+        [0.5, 0.5],
+        [0.3, 0.5],
+        [0.2, 0.5],
+        [0.1, 0.5],
+        [0.5, 0.3],
+        [0.3, 0.3],
+        [0.2, 0.3],
+        [0.1, 0.3],
     ]
 )
 
-target = np.array([[3, 2, 4], [3, 2, 5], [0, 2, 5]])
-
+target = (X[:, 0] ** 2 + X[:, 1] ** 3).reshape(X.shape[0], 1)
+# np.seterr(all="raise")
+learnings = np.logspace(-5, 2, 10)
+print(learnings[5])
 print(f"{neural.predict(X)=}")
-neural.fit(X, target, scheduler=Scheduler(0.01))
+neural.fit(X, target, scheduler=Scheduler(learnings[5]))
 print(f"{neural.predict(X)=}")
 print(f"{target=}")
+print("-" * 30)
 print(f"{neural.predict(X) - target=}")
+
+error = np.zeros(learnings.shape)
+for i in range(len(learnings)):
+    neural = FFNN(dims, epochs=2000)
+    neural.fit(X, target, scheduler=Scheduler(learnings[i]))
+
+    error[i] = MSE(target, neural.predict(X))
+
+plt.plot(error)
+plt.xlabel("iterations")
+plt.ylabel("mse")
+plt.show()
+
+print(error)
 
 # neural.fit(X, target)
 

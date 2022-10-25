@@ -352,6 +352,7 @@ def CostOLS(target):
 
     return func
 
+
 def CostLogReg(target):
     """Return a function valued only at X, so
     that it may be easily differentiated
@@ -363,10 +364,23 @@ def CostLogReg(target):
     return func
 
 
-
 # Activation functions
 def sigmoid(x):
-    return 1.0 / (1 + np.exp(-x))
+    try:
+        return 1.0 / (1 + np.exp(-x))
+    except FloatingPointError:
+        return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+
+def derivate(func):
+    if func.__name__ == "sigmoid":
+        def derivative(x):
+            return sigmoid(x) * (1 - sigmoid(x))
+        return derivative
+
+
+    else:
+        return elementwise_grad(func)
 
 
 def RELU(x: np.ndarray):
@@ -526,8 +540,8 @@ class FFNN:
     # def scale_X(
 
     def backpropagate(self, X, t, scheduler):
-        out_derivative = elementwise_grad(self.output_func)
-        hidden_derivative = elementwise_grad(self.hidden_func)
+        out_derivative = derivate(self.output_func)
+        hidden_derivative = derivate(self.hidden_func)
         update_list = list()
 
         for i in range(len(self.weights) - 1, -1, -1):
@@ -546,7 +560,6 @@ class FFNN:
                     self.weights[i + 1][1:, :] @ delta_matrix.T
                 ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
                 # print(f"Hidden: {delta_matrix=}")
-
 
             # gradient accumulation
             gradient_weights_matrix = np.zeros(
@@ -572,7 +585,9 @@ class FFNN:
             gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             update_matrix = np.vstack(
                 [
-                    (scheduler.update_eta() * delta_accumulated).reshape(1, delta_accumulated.shape[0]),
+                    (scheduler.update_eta() * delta_accumulated).reshape(
+                        1, delta_accumulated.shape[0]
+                    ),
                     # np.ones(delta_accumulated.shape).reshape(1, delta_accumulated.shape[0]),
                     scheduler.update_eta() * gradient_weights,
                 ]
@@ -581,6 +596,7 @@ class FFNN:
             update_list.insert(0, update_matrix)
 
         self.update_w_and_b(update_list)
+
 
 # class Momentum(scheduler):
 #
