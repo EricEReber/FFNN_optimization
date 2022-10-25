@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import autograd.numpy as np
-from autograd import grad
+from autograd import grad, elementwise_grad
 from random import random, seed
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.linear_model import LinearRegression
@@ -342,9 +342,45 @@ def find_best_lambda(X, z, model, lambdas, N, K):
     return best_lambda, best_MSE, best_polynomial
 
 
+def CostOLS(target):
+    """Return a function valued only at X, so
+    that it may be easily differentiated
+    """
+
+    def func(X):
+        return (1.0 / target.shape[0]) * np.sum((target - X) ** 2)
+
+    return func
+
+
+def CostLogReg(target):
+    """Return a function valued only at X, so
+    that it may be easily differentiated
+    """
+
+    def func(X):
+        pass
+
+    return func
+
+
 # Activation functions
 def sigmoid(x):
-    return 1.0 / (1 + np.exp(-x))
+    try:
+        return 1.0 / (1 + np.exp(-x))
+    except FloatingPointError:
+        return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+
+def derivate(func):
+    if func.__name__ == "sigmoid":
+        def derivative(x):
+            return sigmoid(x) * (1 - sigmoid(x))
+        return derivative
+
+
+    else:
+        return elementwise_grad(func)
 
 
 def RELU(x: np.ndarray):
@@ -355,64 +391,8 @@ def LRELU(x: np.ndarray, delta: float):
     return np.where(x > np.zeros(x.shape), x, delta * x)
 
 
-class FFNN:
-    """
-    Feed Forward Neural Network
-
-    Attributes:
-        dimensions (list[int]): A list of positive integers, which defines our layers. The first number
-        is the input layer, and how many nodes it has. The last number is our output layer. The numbers
-        in between define how many hidden layers we have, and how many nodes they have.
-
-        act_funcs (list[Callable]): A list of activation functions, one for each weight array
-
-        weights (str): A list of numpy arrays, containing our weights
-    """
-
-    def __init__(
-        self,
-        dimensions: list[int],
-        *,
-        hidden_func: Callable = sigmoid,
-        output_func: Callable = lambda x: x,
-    ):
-        self.weights = list()
-
-        self.dimensions = dimensions
-
-        self.hidden_func = hidden_func
-        self.output_func = output_func
-
-        for i in range(len(dimensions) - 1):
-            # weight_array = np.random.randn(dimensions[i+1],dimensions[i]+1)
-            weight_array = np.ones((dimensions[i + 1], dimensions[i] + 1)) * (-1)
-            weight_array[:, 0] = np.ones(dimensions[i + 1])
-            print(weight_array)
-            self.weights.append(weight_array)
-
-    def feedforward(self, x: np.ndarray):
-        z = np.insert(x, 0, 1)
-        for i in range(len(self.weights)):
-            if i < len(self.weights) - 1:
-                z = self.hidden_func(self.weights[i] @ z)
-                z = np.insert(z, 0, 1)
-            else:
-                z = self.output_func(self.weights[i] @ z)
-        return z
-
-    def predict(self, x: np.ndarray):
-        """
-        Return a prediction vector for each coloumn in x
-
-        Parameters:
-            x (np.ndarray): An p x n array where p is the number of nodes in the
-            input layer and n is the number of vectors in our batch
-        """
-        return self.feedforward(x)
-
 
 # ------------------- Gradient Descent Optimizing Methods -------------------#
-
 
 # abstract class for schedulers
 class Scheduler:
@@ -541,54 +521,239 @@ class Adam(Scheduler):
         self.prev_rho = 1
         self.prev_rho2 = 1
 
+class FFNN:
+    """
+    Feed Forward Neural Network
+
+    Attributes:
+        dimensions (list[int]): A list of positive integers, which defines our layers. The first number
+        is the input layer, and how many nodes it has. The last number is our output layer. The numbers
+        in between define how many hidden layers we have, and how many nodes they have.
+
+        hidden_func (Callable): The activation function for the hidden layers
+
+        output_func (Callable): The activation function for the output layer
+
+        weights (list): A list of numpy arrays, containing our weights
+    """
+
+    def __init__(
+        self,
+        dimensions: tuple[int],
+        *,
+        hidden_func: Callable = sigmoid,
+        output_func: Callable = lambda x: x,
+        cost_func: Callable = CostOLS,
+        epochs: int = 1000,
+    ):
+        self.weights = list()
+        self.a_matrices = list()
+        self.dimensions = dimensions
+        self.hidden_func = hidden_func
+        self.output_func = output_func
+        self.cost_func = cost_func
+        self.epochs = epochs
+        self.z_matrices = list()
+
+        m = max(dimensions[1:-1])
+        n = len(dimensions[1:-1])
+
+        for i in range(len(dimensions) - 1):
+            # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
+            weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
+            weight_array[0, :] = np.random.randn(dimensions[i + 1]) * 0.01
+            # weight_array[0, :] = np.ones(dimensions[i + 1])
+            self.weights.append(weight_array)
+
+    def accuracy(self, a: np.ndarray, target: np.ndarray):
+        """
+        Returns accuracy of prediction a^L, returned from predict() method
+
+        :param a: prediction
+        :param target: real values
+        :return: ratio of correct predictions to total predictions
+        """
+        return np.average((target == a))
+
+    def feedforward(self, X: np.ndarray):
+        """
+        Return a prediction vector for each row in X
+
+        Parameters:
+            X (np.ndarray): The design matrix, with n rows of p features each
+
+        Returns:
+            z (np.ndarray): A prediction vector (row) for each row in our design matrix
+        """
+
+        # reset matrices
+        self.a_matrices = list()
+        self.z_matrices = list()
+
+        # if X is just a vector, make it into a design matrix
+        if len(X.shape) == 1:
+            X = X.reshape((1, X.shape[0]))
+
+        # put a coloumn of ones as the first coloumn of the design matrix, so that
+        # we have a bias term
+        X = np.hstack([np.ones((X.shape[0], 1)), X])
+
+        # a^0, the nodes in the input layer (one a^0 for each row in X)
+        a = X
+        self.a_matrices.append(a)
+        self.z_matrices.append(a)
+
+        # the feed forward part
+        for i in range(len(self.weights)):
+            if i < len(self.weights) - 1:
+                z = a @ self.weights[i]
+                self.z_matrices.append(z)
+                a = self.hidden_func(z)
+                a = np.hstack([np.ones((a.shape[0], 1)), a])
+                self.a_matrices.append(a)
+            else:
+                # a^L, the nodes in our output layer
+                z = a @ self.weights[i]
+                a = self.output_func(z)
+                self.a_matrices.append(a)
+                self.z_matrices.append(z)
+
+        # this will be a^L
+        return a
+
+    def predict(self, X: np.ndarray):
+        """
+        Return a prediction vector for each row in X
+
+        Parameters:
+            X (np.ndarray): The design matrix, with n rows of p features each
+
+        Returns:
+            z (np.ndarray): A prediction vector (row) for each row in our design matrix
+        """
+
+        return self.feedforward(X)
+
+    def fit(
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        *,
+        scheduler: Scheduler = Scheduler(0.01),
+        batches: int = 1,
+    ):
+        i = 0
+        for e in range(self.epochs):
+            i += 1
+            if i % 20 == 0:
+                print(i)
+                pass
+            self.feedforward(X)
+            self.backpropagate(X, t, scheduler)
+            # print(self.predict(X))
+
+    def update_w_and_b(self, update_list):
+        """Updates weights and biases using a list of arrays that matches
+        self.weights
+        """
+        for i in range(len(self.weights)):
+            self.weights[i] -= update_list[i]
+
+    # def scale_X(
+
+    def backpropagate(self, X, t, scheduler):
+        out_derivative = derivate(self.output_func)
+        hidden_derivative = derivate(self.hidden_func)
+        update_list = list()
+
+        for i in range(len(self.weights) - 1, -1, -1):
+
+            # creating the delta terms
+            if i == len(self.weights) - 1:
+                cost_func_derivative = grad(self.cost_func(t))
+                delta_matrix = out_derivative(
+                    self.z_matrices[i + 1]
+                ) * cost_func_derivative(self.a_matrices[i + 1])
+
+                # print(f"Output: {delta_matrix=}")
+
+            else:
+                delta_matrix = (
+                    self.weights[i + 1][1:, :] @ delta_matrix.T
+                ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
+                # print(f"Hidden: {delta_matrix=}")
+
+            # gradient accumulation
+            gradient_weights_matrix = np.zeros(
+                (
+                    self.a_matrices[i][:, 1:].shape[0],
+                    self.a_matrices[i][:, 1:].shape[1],
+                    delta_matrix.shape[1],
+                )
+            )
+            if i == 1:
+                # print("output")
+                pass
+
+            for j in range(len(delta_matrix)):
+                gradient_weights_matrix[j, :, :] = np.outer(
+                    self.a_matrices[i][j, 1:], delta_matrix[j, :]
+                )
+            # print(f"{self.a_matrices[i]=}")
+
+            gradient_weights = np.sum(gradient_weights_matrix, axis=0)
+            delta_accumulated = np.sum(delta_matrix, axis=0)
+
+            gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
+            update_matrix = np.vstack(
+                [
+                    scheduler.update_change(delta_accumulated.reshape(1, delta_accumulated.shape[0])),
+                    scheduler.update_change(gradient_weights_matrix)
+                ]
+            )
+            # print(f"{update_matrix=}")
+            update_list.insert(0, update_matrix)
+
+        self.update_w_and_b(update_list)
+
+
+# class Momentum(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+#
+# class Adagrad(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+#
+# class Rms_prop(scheduler):
+#
+#     def update_eta(self, eta: float):
+#         return eta
+
 
 def gradient_descent_linreg(
     cost_func,
     X,
-    betas,
+    X_train,
+    X_test,
+    beta,
     target,
-    *,
-    scheduler=Scheduler(1),
-    n_iterations=1000,
+    *args,
+    scheduler_class=Scheduler,
 ):
+    scheduler = scheduler_class(args)
 
     ols_grad = grad(cost_func, 1)
 
-    for iter in range(n_iterations):
-        eta = scheduler.update_eta()
-        betas -= eta * ols_grad(X, betas, target)
+    eta = scheduler.update_eta()
+    beta -= eta * ols_grad(X_train, beta, target)
 
-    return betas
-
-
-def gradient_step(
-    cost_func,
-    act_func,
-    weights,
-    input,
-    target,
-    is_output: bool,
-    *args,
-    scheduler=Scheduler(1),
-    previous_delta,
-    previous_weights,
-):
-    # presumes batch sent in, weights sliced
-    # input is z_previous
-
-    a = weights @ input
-
-    act_func_derivative = grad(act_func, 0)
-    if is_output:
-        cost_func_derivative = grad(cost_func, 0)
-        delta = act_func_derivative(a) * cost_func_derivative(input, weights, target)
-    else:
-        delta = act_func_derivative(a) * previous_delta * previous_weights
-
-    eta = scheduler.update_eta(gradient)
-    weights -= eta * delta
-
-    return weights, delta
+    z_pred = X @ beta
+    z_pred_train = X_train @ beta
+    z_pred_test = X_test @ beta
+    return beta, z_pred_train, z_pred_test, z_pred
 
 
 def read_from_cmdline():
