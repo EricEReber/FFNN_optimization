@@ -443,7 +443,7 @@ class Adagrad(Scheduler):
         self.change = np.multiply(ginverse, gradient)
         return self.change
 
-    def reset_giter(self):
+    def reset(self):
         self.giter = None
 
 
@@ -470,7 +470,7 @@ class RMS_prop(Scheduler):
         self.change = np.multiply(ginverse, gradient)
         return self.change
 
-    def reset_giter(self):
+    def reset(self):
         self.giter = None
 
 
@@ -514,7 +514,7 @@ class Adam(Scheduler):
         self.change = np.multiply(ginverse, stew)
         return self.change
 
-    def reset_gradient():
+    def reset():
         self.giter = None
         self.prev_grad = None
         self.prev_rho = 1
@@ -540,12 +540,9 @@ class FFNN:
     def __init__(
         self,
         dimensions: tuple[int],
-        scheduler_class,
-        *args, # arguments for the scheduler
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
         cost_func: Callable = CostOLS,
-        epochs: int = 1000,
     ):
         self.weights = list()
         self.schedulers_weight = list()
@@ -555,7 +552,6 @@ class FFNN:
         self.hidden_func = hidden_func
         self.output_func = output_func
         self.cost_func = cost_func
-        self.epochs = epochs
         self.z_matrices = list()
 
         m = max(dimensions[1:-1])
@@ -568,8 +564,6 @@ class FFNN:
 
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
-            self.schedulers_weight.append(scheduler_class(*args))
-            self.schedulers_bias.append(scheduler_class(*args))
 
     def accuracy(self, a: np.ndarray, target: np.ndarray):
         """
@@ -644,38 +638,79 @@ class FFNN:
         self,
         X: np.ndarray,
         t: np.ndarray,
-        *,
+        scheduler_class,
+        *args,  # arguments for the scheduler
         batches: int = 1,
+        epochs: int = 1000,
     ):
-        error_over_epochs = np.zeros(self.epochs)
+        error_over_epochs = np.zeros(epochs)
+        chunksize = X.shape[0] // batches
+        X, t = resample(X, t)
 
-        i = 0
-        for e in range(self.epochs):
-            i += 1
-            if i % 20 == 0:
-                print(i)
-                pass
-            self.feedforward(X)
-            self.backpropagate(X, t)
+        self.schedulers_weight = list()
+        self.schedulers_bias = list()
+
+        for i in range(len(self.weights)):
+            self.schedulers_weight.append(scheduler_class(*args))
+            self.schedulers_bias.append(scheduler_class(*args))
+
+        print(scheduler_class.__name__)
+        for e in range(epochs):
+            length = 40
+            progression = e / epochs
+            num_equals = int(progression*length)
+            num_not = length - num_equals
+            arrow = ">" if num_equals > 0 else ""
+            bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
+            print(f"{bar} {round(progression*100, 4)}%           ", end="\r")
+
+            for i in range(batches):
+                # print(f"Batch: {i}")
+                if i == batches - 1:
+                    # if we are on the last, take all thats left
+                    X_batch = X[i * chunksize :, :]
+                    t_batch = t[i * chunksize :, :]
+                else:
+                    X_batch = X[i * chunksize : (i + 1) * chunksize, :]
+                    t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
+
+                self.feedforward(X_batch)
+                self.backpropagate(X_batch, t_batch)
+
+                if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
+                    self.schedulers_weight[0], Adagrad
+                ):
+                    for scheduler in self.schedulers_weight:
+                        scheduler.reset()
+
+                    for scheduler in self.schedulers_bias:
+                        scheduler.reset()
             error_over_epochs[e] = MSE(t, self.predict(X))
 
+        print(f"[========================================] 100%     ", end="\r")
+        print()
         return error_over_epochs
 
-    def fit(
-        self,
-        X: np.ndarray,
-        t: np.ndarray,
-        *,
-        batches: int = 1,
-    ):
-        i = 0
-        for e in range(self.epochs):
-            i += 1
-            if i % 20 == 0:
-                print(i)
-                pass
-            self.feedforward(X)
-            self.backpropagate(X, t)
+    # def fit(
+    #     self,
+    #     X: np.ndarray,
+    #     t: np.ndarray,
+    #     scheduler_class,
+    #     *args,  # arguments for the scheduler
+    #     batches: int = 1,
+    # ):
+    #
+    #     for i in range(len(self.weights)):
+    #         self.schedulers_weight.append(scheduler_class(*args))
+    #         self.schedulers_bias.append(scheduler_class(*args))
+    #
+    #     i = 0
+    #     for e in range(self.epochs):
+            # i += 1
+            # if i % 20 == 0:
+            #     print(i)
+            #     pass
+
 
     def update_w_and_b(self, update_list):
         """Updates weights and biases using a list of arrays that matches

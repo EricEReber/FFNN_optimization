@@ -41,9 +41,8 @@ def test_scheduler():
     z_train = FrankeFunction(X_train[:, 1], X_train[:, 2])
     z_train = z_train.reshape(z_train.shape[0], 1)
 
-
     eta = 0.001
-    batch_size = X_train.shape[0]
+    batch_size = X_train.shape[0] // 10
     momentum = 0.5
     rho = 0.1
     rho2 = 0.4
@@ -64,11 +63,9 @@ def test_scheduler():
     ]
     # presume we can get error_over_epochs
     for i in range(len(schedulers)):
-        neural = FFNN(dims, schedulers[i], *params[i], epochs=1000)
+        neural = FFNN(dims)
         error_over_epochs = neural.test_fit(
-            X_train[:, 1:3], z_train
-            # dummy_x,
-            # dummy_t,
+            X_train[:, 1:3], z_train, schedulers[i], *params[i], batches=10
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
         plt.legend()
