@@ -53,19 +53,25 @@ def test_scheduler():
     rms_params = [eta, batch_size, rho]
     adam_params = [eta, batch_size, rho, rho2]
 
-    params = [constant_params, momentum_params, adagrad_params, rms_params, adam_params]
+    params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
+    params = [rms_params]
     schedulers = [
-        Constant,
-        Momentum,
-        Adagrad,
+        # Momentum,
+        # Adagrad,
         RMS_prop,
-        Adam,
+        # Adam,
+        # Constant,
     ]
     # presume we can get error_over_epochs
     for i in range(len(schedulers)):
         neural = FFNN(dims)
         error_over_epochs = neural.test_fit(
-            X_train[:, 1:3], z_train, schedulers[i], *params[i], batches=10
+            X_train[:, 1:3],
+            z_train,
+            schedulers[i],
+            *params[i],
+            batches=10,
+            epochs=3000,
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
         plt.legend()
@@ -78,19 +84,18 @@ def test_scheduler():
 
     pred_map = z_pred.reshape(z.shape)
 
-    return pred_map
+    return pred_map, x, y, z
 
 
-test_scheduler()
+pred_map, x, y, z = test_scheduler()
 
-"""
 # ------------ PLOTTING 3D -----------------------
 fig = plt.figure(figsize=plt.figaspect(0.3))
 
 # Subplot for terrain
 ax = fig.add_subplot(121, projection="3d")
 # Plot the surface.
-surf = ax.plot_surface(xs, ys, zs, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.zaxis.set_major_locator(LinearLocator(10))
 ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
 ax.set_title("Scaled terrain", size=24)
@@ -102,8 +107,8 @@ ax.set_title("Scaled terrain", size=24)
 ax = fig.add_subplot(122, projection="3d")
 # Plot the surface.
 surf = ax.plot_surface(
-    xs,
-    ys,
+    x,
+    y,
     pred_map,
     cmap=cm.coolwarm,
     linewidth=0,
@@ -114,4 +119,3 @@ ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
 ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
 fig.colorbar(surf, shrink=0.5, aspect=5)
 plt.show()
-"""
