@@ -656,14 +656,6 @@ class FFNN:
 
         print(scheduler_class.__name__)
         for e in range(epochs):
-            length = 40
-            progression = e / epochs
-            num_equals = int(progression*length)
-            num_not = length - num_equals
-            arrow = ">" if num_equals > 0 else ""
-            bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
-            print(f"{bar} {round(progression*100, 4)}%           ", end="\r")
-
             for i in range(batches):
                 # print(f"Batch: {i}")
                 if i == batches - 1:
@@ -685,10 +677,18 @@ class FFNN:
 
                     for scheduler in self.schedulers_bias:
                         scheduler.reset()
-            error_over_epochs[e] = MSE(t, self.predict(X))
+            error = MSE(t, self.predict(X))
+            error_over_epochs[e] = error
 
-        print(f"[========================================] 100%     ", end="\r")
-        print()
+            length = 40
+            progression = e / epochs
+            num_equals = int(progression*length)
+            num_not = length - num_equals
+            arrow = ">" if num_equals > 0 else ""
+            bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
+            print(f"  {bar} {round(progression*100, 4)}% Loss: {round(error, 4)}   ", end="\r")
+
+        print(f"  [========================================] 100% Loss: {round(error, 4)}    ")
         return error_over_epochs
 
     # def fit(
