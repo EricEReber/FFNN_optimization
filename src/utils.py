@@ -378,6 +378,18 @@ def derivate(func):
         def derivative(x):
             return sigmoid(x) * (1 - sigmoid(x))
 
+    elif func.__name__ == "RELU":
+
+        def derivative(x):
+            return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+    elif func.__name__ == "LRELU":
+
+        def derivative(x):
+            return np.where(
+                x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
+            )
+
         return derivative
 
     else:
@@ -822,18 +834,20 @@ class FFNN:
 
 def fmt(value, N=4):
     import math
+
     if value > 0:
         v = value
     elif value < 0:
-        v = -10*value
+        v = -10 * value
     else:
         v = 1
-    n = 1+math.floor(math.log10(v))
-    if n>=N-1:
+    n = 1 + math.floor(math.log10(v))
+    if n >= N - 1:
         return str(round(value))
         # or overflow
         # return '!'*N
     return f"{value:.{N-n-1}f}"
+
 
 # todo: update this function
 def gradient_descent_linreg(
