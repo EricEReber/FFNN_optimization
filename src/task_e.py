@@ -4,6 +4,12 @@ task b (and task g): plot terrain, approximate terrain with OLS (own implementat
 """
 # Our own library of functions
 from utils import *
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+
 
 np.random.seed(42069)
 
@@ -25,7 +31,22 @@ def test_scheduler():
         z,
     ) = read_from_cmdline()
 
-    dims = (2, 20, 20, 20, 1)
+    iris = datasets.load_iris()
+
+    X = iris.data[:100, :2]
+    z = iris.target[:100]
+
+    print(z)
+
+    x_train, x_test, z_train, z_test = train_test_split(X, z)
+
+    scaler = StandardScaler()
+    scaler.fit(x_train)
+
+    x_train_sc = scaler.transform(x_train)
+    x_test_sc = scaler.transform(x_test)
+
+    dims = (2, 1)
 
     # dims = (4, 3, 2, 2)
 
@@ -36,40 +57,41 @@ def test_scheduler():
             [0.441, 0.123, 0.321, 0.71],
         ]
     )
-    dummy_t = np.array([[1, 2, 3], [1, 2, 3]]).T
+    dummy_t = np.array([[1], [1], [0]])
 
     z_train = z_train.reshape(z_train.shape[0], 1)
 
-    eta = 0.001
-    batch_size = X_train.shape[0] // 10
-    momentum = 0.5
-    rho = 0.1
-    rho2 = 0.4
+    eta = 0.01
+    # batch_size = X_train.shape[0] // 10
+    # momentum = 0.5
+    # rho = 0.1
+    # rho2 = 0.4
 
     constant_params = [eta]
-    momentum_params = [eta, momentum]
-    adagrad_params = [eta, batch_size]
-    rms_params = [eta, batch_size, rho]
-    adam_params = [eta, batch_size, rho, rho2]
+    # momentum_params = [eta, momentum]
+    # adagrad_params = [eta, batch_size]
+    # rms_params = [eta, batch_size, rho]
+    # adam_params = [eta, batch_size, rho, rho2]
 
-    params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
-    params = [rms_params]
+    # params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
+    params = [constant_params]
+    # params = [rms_params]
     schedulers = [
         # Momentum,
         # Adagrad,
-        RMS_prop,
+        # RMS_prop,
         # Adam,
-        # Constant,
+        Constant,
     ]
     # presume we can get error_over_epochs
     for i in range(len(schedulers)):
-        neural = FFNN(dims)
+        neural = FFNN(dims, output_func=sigmoid, cost_func=CostLogReg)
         error_over_epochs = neural.test_fit(
-            X_train[:, 1:3],
-            z_train,
+            x_train_sc,  # X_train[:, 1:3],
+            z_train,  # z_train,
             schedulers[i],
             *params[i],
-            batches=10,
+            batches=1,
             epochs=10000,
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
@@ -79,42 +101,13 @@ def test_scheduler():
     plt.title("MSE over Epochs for different schedulers")
     plt.show()
 
-    z_pred = neural.predict(X[:, 1:3])
+    z_pred = neural.predict(x_test_sc)
+    print(z_pred.T)
+    print(z_test)
 
-    pred_map = z_pred.reshape(z.shape)
+    # pred_map = z_pred.reshape(z.shape)
 
-    return pred_map, x, y, z
+    return x, y, z
 
 
-pred_map, x, y, z = test_scheduler()
-
-# ------------ PLOTTING 3D -----------------------
-fig = plt.figure(figsize=plt.figaspect(0.3))
-
-# Subplot for terrain
-ax = fig.add_subplot(121, projection="3d")
-# Plot the surface.
-surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.zaxis.set_major_locator(LinearLocator(10))
-ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
-ax.set_title("Scaled terrain", size=24)
-# Add a color bar which maps values to colors.
-# fig.colorbar(surf_real, shrink=0.5, aspect=5)
-
-# Subplot for the prediction
-# Plot the surface.
-ax = fig.add_subplot(122, projection="3d")
-# Plot the surface.
-surf = ax.plot_surface(
-    x,
-    y,
-    pred_map,
-    cmap=cm.coolwarm,
-    linewidth=0,
-    antialiased=False,
-)
-ax.zaxis.set_major_locator(LinearLocator(10))
-ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
-ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.show()
+test_scheduler()

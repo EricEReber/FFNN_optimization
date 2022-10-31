@@ -359,7 +359,7 @@ def CostLogReg(target):
     """
 
     def func(X):
-        return (1.0 / target.shape[0]) * np.sum(
+        return -(1.0 / target.shape[0]) * np.sum(
             (target * np.log(X)) + ((1 - X) * np.log(1 - X))
         )
 
@@ -377,22 +377,26 @@ def sigmoid(x):
 def derivate(func):
     if func.__name__ == "sigmoid":
 
-        def derivative(x):
+        def func(x):
             return sigmoid(x) * (1 - sigmoid(x))
+
+        return func
 
     elif func.__name__ == "RELU":
 
-        def derivative(x):
+        def func(x):
             return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+        return func
 
     elif func.__name__ == "LRELU":
 
-        def derivative(x):
+        def func(x):
             return np.where(
                 x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
             )
 
-        return derivative
+        return func
 
     else:
         return elementwise_grad(func)
@@ -693,6 +697,9 @@ class FFNN:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
 
+        # if self.output_func.__name__ == "sigmoid":
+        #   return np.where(self.feedforward(X) > 0.5, 1, 0)
+        # else:
         return self.feedforward(X)
 
     def fit(
@@ -875,6 +882,9 @@ def gradient_descent_linreg(
     return beta, z_pred_train, z_pred_test, z_pred
 
 
+# ---------------------------------------------------------------------------------- OTHER METHODS
+
+# ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
     argv = sys.argv[1:]
 
