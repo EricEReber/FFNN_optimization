@@ -374,10 +374,11 @@ def sigmoid(x):
 
 def derivate(func):
     if func.__name__ == "sigmoid":
+
         def derivative(x):
             return sigmoid(x) * (1 - sigmoid(x))
-        return derivative
 
+        return derivative
 
     else:
         return elementwise_grad(func)
@@ -389,7 +390,6 @@ def RELU(x: np.ndarray):
 
 def LRELU(x: np.ndarray, delta: float):
     return np.where(x > np.zeros(x.shape), x, delta * x)
-
 
 
 # ------------------- Gradient Descent Optimizing Methods -------------------#
@@ -419,48 +419,46 @@ class Momentum(Scheduler):
         self.change = 0
 
     def update_change(self, gradient):
-        self.change = self.eta * self.gradient + self.momentum * self.change
+        self.change = self.eta * gradient + self.momentum * self.change
         return self.change
 
 
 class Adagrad(Scheduler):
     def __init__(self, eta, batch_size):
         super().__init__(eta)
-        # self.gradients = np.zeros((self.gradient.shape[0]))
-        self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        self.giter = None
         self.batch_size = batch_size
         self.change = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not self.giter:
-            self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        if not isinstance(self.giter, np.ndarray):
+            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
 
         gradient = (1 / self.batch_size) * gradient
         self.giter += gradient @ gradient.T
 
-        ginverse = np.c_[eta / (delta + np.sqrt(np.diagonal(self.giter)))]
+        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(self.giter)))]
         self.change = np.multiply(ginverse, gradient)
         return self.change
 
-    def reset_giter(self):
+    def reset(self):
         self.giter = None
 
 
 class RMS_prop(Scheduler):
     def __init__(self, eta, batch_size, rho):
         super().__init__(eta)
-        # self.gradients = np.zeros((self.gradient.shape[0]))
         self.batch_size = batch_size
         self.rho = rho
-        self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        self.giter = None
         self.change = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not self.giter:
+        if not isinstance(self.giter, np.ndarray):
             self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
 
         gradient = (1 / self.batch_size) * gradient
@@ -468,11 +466,11 @@ class RMS_prop(Scheduler):
         self.giter += gradient @ gradient.T
 
         gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
-        ginverse = np.c_[eta / (delta + np.sqrt(np.diagonal(gnew)))]
+        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
         self.change = np.multiply(ginverse, gradient)
         return self.change
 
-    def reset_giter(self):
+    def reset(self):
         self.giter = None
 
 
@@ -491,13 +489,12 @@ class Adam(Scheduler):
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not self.giter:
-            self.giter = np.zeros((self.gradient.shape[0], self.gradient.shape[0]))
+        if not isinstance(self.giter, np.ndarray):
+            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
 
-        if not self.prev_grad:
-            self.prev_grad = np.zeros((gradient.shape[0]))
+        if not isinstance(self.prev_grad, np.ndarray):
+            self.prev_grad = np.zeros(gradient.shape)
 
-        self.prev_grad += self.gradients
         gradient = (1 / self.batch_size) * gradient
 
         self.prev_giter = self.giter
@@ -507,19 +504,22 @@ class Adam(Scheduler):
         stew /= 1 - (self.rho2 * self.prev_rho2)
         self.prev_rho2 *= self.rho2
 
+        self.prev_grad += gradient
+
         gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
         gnew /= 1 - (self.rho * self.prev_rho)
         self.prev_rho *= self.rho
 
-        ginverse = np.c_[eta / (delta + np.sqrt(np.diagonal(gnew)))]
-        self.change = np.multiply(ginverse, self.stew)
+        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
+        self.change = np.multiply(ginverse, stew)
         return self.change
 
-    def reset_gradient():
+    def reset():
         self.giter = None
         self.prev_grad = None
         self.prev_rho = 1
         self.prev_rho2 = 1
+
 
 class FFNN:
     """
@@ -534,36 +534,83 @@ class FFNN:
 
         output_func (Callable): The activation function for the output layer
 
+        cost_func (Callable): Our cost function
+
+        checkpoint_file (string): A file path where our weights will be saved
+
         weights (list): A list of numpy arrays, containing our weights
     """
 
     def __init__(
         self,
         dimensions: tuple[int],
-        *,
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
         cost_func: Callable = CostOLS,
-        epochs: int = 1000,
+        checkpoint_file: str = None,
     ):
         self.weights = list()
+        self.schedulers_weight = list()
+        self.schedulers_bias = list()
         self.a_matrices = list()
         self.dimensions = dimensions
         self.hidden_func = hidden_func
         self.output_func = output_func
         self.cost_func = cost_func
-        self.epochs = epochs
         self.z_matrices = list()
-
-        m = max(dimensions[1:-1])
-        n = len(dimensions[1:-1])
+        self.checkpoint_file = checkpoint_file
 
         for i in range(len(dimensions) - 1):
             # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
             weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
             weight_array[0, :] = np.random.randn(dimensions[i + 1]) * 0.01
+
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
+
+    def write(self, path: str):
+        """Write weights and biases to file
+        Parameters:
+            path (str): The path to the file to be written to
+        """
+        print(f"Writing weights to file \"{path}\"")
+        np.set_printoptions(threshold=np.inf)
+        with open(path, "w") as file:
+            text = str(self.dimensions) + "\n"
+            for weight in self.weights:
+                text += str(weight.shape) + "\n"
+                array_str = np.array2string(weight, max_line_width=1e8, separator=",")
+                text += array_str + "\n"
+            file.write(text)
+        # default value
+        np.set_printoptions(threshold=1000)
+
+    def read(self, path: str):
+        """Read weights and biases from file. This overwrites the weights and biases for the calling instance,
+        and may well change the dimensions completely if the saved dimensions are not the same as the current
+        ones.
+        Parameters:
+            path (str): The path to the file to be read from
+        """
+        print(f"Reading weights to file \"{path}\"")
+        self.weights = list()
+        with open(path, "r") as file:
+            self.dimensions = eval(file.readline())
+            while True:
+                shape_string = file.readline()
+                if not shape_string:
+                    # we have reached EOF
+                    break
+                shape = eval(shape_string)
+                string = ""
+                for i in range(shape[0]):
+                    string += file.readline()
+                python_array = eval(string)
+                numpy_array = np.array(python_array, dtype="float64")
+                self.weights.append(numpy_array)
+
+
+
 
     def accuracy(self, a: np.ndarray, target: np.ndarray):
         """
@@ -582,7 +629,7 @@ class FFNN:
         Parameters:
             X (np.ndarray): The design matrix, with n rows of p features each
 
-        Returns:
+            Returns:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
 
@@ -638,19 +685,69 @@ class FFNN:
         self,
         X: np.ndarray,
         t: np.ndarray,
-        *,
-        scheduler: Scheduler = Scheduler(0.01),
+        scheduler_class,
+        *args,  # arguments for the scheduler
         batches: int = 1,
+        epochs: int = 1000,
+        lam: float = 0,
     ):
-        i = 0
-        for e in range(self.epochs):
-            i += 1
-            if i % 20 == 0:
-                print(i)
-                pass
-            self.feedforward(X)
-            self.backpropagate(X, t, scheduler)
-            # print(self.predict(X))
+        error_over_epochs = np.zeros(epochs)
+        chunksize = X.shape[0] // batches
+        X, t = resample(X, t)
+
+        checkpoint_length = epochs // 10
+        checkpoint_num = 0
+
+        self.schedulers_weight = list()
+        self.schedulers_bias = list()
+
+        for i in range(len(self.weights)):
+            self.schedulers_weight.append(scheduler_class(*args))
+            self.schedulers_bias.append(scheduler_class(*args))
+
+        print(scheduler_class.__name__)
+        try:
+            for e in range(epochs):
+                for i in range(batches):
+                    # print(f"Batch: {i}")
+                    if i == batches - 1:
+                        # if we are on the last, take all thats left
+                        X_batch = X[i * chunksize :, :]
+                        t_batch = t[i * chunksize :, :]
+                    else:
+                        X_batch = X[i * chunksize : (i + 1) * chunksize, :]
+                        t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
+
+                    self.feedforward(X_batch)
+                    self.backpropagate(X_batch, t_batch, lam)
+
+                    if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
+                        self.schedulers_weight[0], Adagrad
+                    ):
+                        for scheduler in self.schedulers_weight:
+                            scheduler.reset()
+
+                        for scheduler in self.schedulers_bias:
+                            scheduler.reset()
+                error = MSE(t, self.predict(X))
+
+                error_over_epochs[e] = error
+                progression = e / epochs
+
+                self._progress_bar(progression, error)
+
+                if (e % checkpoint_length == 0 and self.checkpoint_file and e) or e == epochs-1:
+                    checkpoint_num += 1
+                    print(f"{checkpoint_num}/10: Checkpoint reached" + " "*60)
+                    self.write(self.checkpoint_file)
+
+
+
+        except KeyboardInterrupt:
+            pass
+
+        print(f"  [========================================] 100% Loss: {error}    ")
+        return error_over_epochs
 
     def update_w_and_b(self, update_list):
         """Updates weights and biases using a list of arrays that matches
@@ -661,7 +758,7 @@ class FFNN:
 
     # def scale_X(
 
-    def backpropagate(self, X, t, scheduler):
+    def backpropagate(self, X, t, lam):
         out_derivative = derivate(self.output_func)
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
@@ -675,15 +772,11 @@ class FFNN:
                     self.z_matrices[i + 1]
                 ) * cost_func_derivative(self.a_matrices[i + 1])
 
-                # print(f"Output: {delta_matrix=}")
-
             else:
                 delta_matrix = (
                     self.weights[i + 1][1:, :] @ delta_matrix.T
                 ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
-                # print(f"Hidden: {delta_matrix=}")
 
-            # gradient accumulation
             gradient_weights_matrix = np.zeros(
                 (
                     self.a_matrices[i][:, 1:].shape[0],
@@ -691,24 +784,24 @@ class FFNN:
                     delta_matrix.shape[1],
                 )
             )
-            if i == 1:
-                # print("output")
-                pass
 
             for j in range(len(delta_matrix)):
                 gradient_weights_matrix[j, :, :] = np.outer(
                     self.a_matrices[i][j, 1:], delta_matrix[j, :]
                 )
-            # print(f"{self.a_matrices[i]=}")
 
             gradient_weights = np.sum(gradient_weights_matrix, axis=0)
             delta_accumulated = np.sum(delta_matrix, axis=0)
 
             gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
+            gradient_weights += self.weights[i][1:, :] * lam
+
             update_matrix = np.vstack(
                 [
-                    scheduler.update_change(delta_accumulated.reshape(1, delta_accumulated.shape[0])),
-                    scheduler.update_change(gradient_weights_matrix)
+                    self.schedulers_bias[i].update_change(
+                        delta_accumulated.reshape(1, delta_accumulated.shape[0])
+                    ),
+                    self.schedulers_weight[i].update_change(gradient_weights),
                 ]
             )
             # print(f"{update_matrix=}")
@@ -716,23 +809,33 @@ class FFNN:
 
         self.update_w_and_b(update_list)
 
-
-# class Momentum(scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
-#
-# class Adagrad(scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
-#
-# class Rms_prop(scheduler):
-#
-#     def update_eta(self, eta: float):
-#         return eta
+    def _progress_bar(self, progression, error):
+        length = 40
+        num_equals = int(progression*length)
+        num_not = length - num_equals
+        arrow = ">" if num_equals > 0 else ""
+        bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
+        error_print = fmt(error, N=5)
+        perc_print = fmt(progression*100, N=5)
+        print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
 
 
+def fmt(value, N=4):
+    import math
+    if value > 0:
+        v = value
+    elif value < 0:
+        v = -10*value
+    else:
+        v = 1
+    n = 1+math.floor(math.log10(v))
+    if n>=N-1:
+        return str(round(value))
+        # or overflow
+        # return '!'*N
+    return f"{value:.{N-n-1}f}"
+
+# todo: update this function
 def gradient_descent_linreg(
     cost_func,
     X,
