@@ -655,42 +655,45 @@ class FFNN:
             self.schedulers_bias.append(scheduler_class(*args))
 
         print(scheduler_class.__name__)
-        for e in range(epochs):
-            for i in range(batches):
-                # print(f"Batch: {i}")
-                if i == batches - 1:
-                    # if we are on the last, take all thats left
-                    X_batch = X[i * chunksize :, :]
-                    t_batch = t[i * chunksize :, :]
-                else:
-                    X_batch = X[i * chunksize : (i + 1) * chunksize, :]
-                    t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
+        try:
+            for e in range(epochs):
+                for i in range(batches):
+                    # print(f"Batch: {i}")
+                    if i == batches - 1:
+                        # if we are on the last, take all thats left
+                        X_batch = X[i * chunksize :, :]
+                        t_batch = t[i * chunksize :, :]
+                    else:
+                        X_batch = X[i * chunksize : (i + 1) * chunksize, :]
+                        t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
 
-                self.feedforward(X_batch)
-                self.backpropagate(X_batch, t_batch)
+                    self.feedforward(X_batch)
+                    self.backpropagate(X_batch, t_batch)
 
-                if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
-                    self.schedulers_weight[0], Adagrad
-                ):
-                    for scheduler in self.schedulers_weight:
-                        scheduler.reset()
+                    if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
+                        self.schedulers_weight[0], Adagrad
+                    ):
+                        for scheduler in self.schedulers_weight:
+                            scheduler.reset()
 
-                    for scheduler in self.schedulers_bias:
-                        scheduler.reset()
-            error = MSE(t, self.predict(X))
-            error_over_epochs[e] = error
+                        for scheduler in self.schedulers_bias:
+                            scheduler.reset()
+                error = MSE(t, self.predict(X))
+                error_over_epochs[e] = error
 
-            length = 40
-            progression = e / epochs
-            num_equals = int(progression*length)
-            num_not = length - num_equals
-            arrow = ">" if num_equals > 0 else ""
-            bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
-            error_print = fmt(error, N=5)
-            perc_print = fmt(progression*100, N=5)
-            print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
+                length = 40
+                progression = e / epochs
+                num_equals = int(progression*length)
+                num_not = length - num_equals
+                arrow = ">" if num_equals > 0 else ""
+                bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
+                error_print = fmt(error, N=5)
+                perc_print = fmt(progression*100, N=5)
+                print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
+        except KeyboardInterrupt:
+            pass
 
-        print(f"  [========================================] 100% Loss: {round(error, 4)}    ")
+        print(f"  [========================================] 100% Loss: {error_print}    ")
         return error_over_epochs
 
     # def fit(
