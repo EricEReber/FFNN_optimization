@@ -38,10 +38,9 @@ def test_scheduler():
     )
     dummy_t = np.array([[1, 2, 3], [1, 2, 3]]).T
 
-    z_train = FrankeFunction(X_train[:, 1], X_train[:, 2])
     z_train = z_train.reshape(z_train.shape[0], 1)
 
-    eta = 0.005
+    eta = 0.001
     batch_size = X_train.shape[0] // 10
     momentum = 0.5
     rho = 0.1
@@ -71,7 +70,7 @@ def test_scheduler():
             schedulers[i],
             *params[i],
             batches=10,
-            epochs=5000,
+            epochs=10000,
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
         plt.legend()
