@@ -359,7 +359,9 @@ def CostLogReg(target):
     """
 
     def func(X):
-        pass
+        return (1.0 / target.shape[0]) * np.sum(
+            (target * np.log(X)) + ((1 - X) * np.log(1 - X))
+        )
 
     return func
 
