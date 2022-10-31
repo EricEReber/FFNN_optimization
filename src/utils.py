@@ -534,6 +534,10 @@ class FFNN:
 
         output_func (Callable): The activation function for the output layer
 
+        cost_func (Callable): Our cost function
+
+        checkpoint_file (string): A file path where our weights will be saved
+
         weights (list): A list of numpy arrays, containing our weights
     """
 
@@ -543,6 +547,7 @@ class FFNN:
         hidden_func: Callable = sigmoid,
         output_func: Callable = lambda x: x,
         cost_func: Callable = CostOLS,
+        checkpoint_file: str = None,
     ):
         self.weights = list()
         self.schedulers_weight = list()
@@ -553,9 +558,7 @@ class FFNN:
         self.output_func = output_func
         self.cost_func = cost_func
         self.z_matrices = list()
-
-        m = max(dimensions[1:-1])
-        n = len(dimensions[1:-1])
+        self.checkpoint_file = checkpoint_file
 
         for i in range(len(dimensions) - 1):
             # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
@@ -564,6 +567,50 @@ class FFNN:
 
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
+
+    def write(self, path: str):
+        """Write weights and biases to file
+        Parameters:
+            path (str): The path to the file to be written to
+        """
+        print(f"Writing weights to file \"{path}\"")
+        np.set_printoptions(threshold=np.inf)
+        with open(path, "w") as file:
+            text = str(self.dimensions) + "\n"
+            for weight in self.weights:
+                text += str(weight.shape) + "\n"
+                array_str = np.array2string(weight, max_line_width=1e8, separator=",")
+                text += array_str + "\n"
+            file.write(text)
+        # default value
+        np.set_printoptions(threshold=1000)
+
+    def read(self, path: str):
+        """Read weights and biases from file. This overwrites the weights and biases for the calling instance,
+        and may well change the dimensions completely if the saved dimensions are not the same as the current
+        ones.
+        Parameters:
+            path (str): The path to the file to be read from
+        """
+        print(f"Reading weights to file \"{path}\"")
+        self.weights = list()
+        with open(path, "r") as file:
+            self.dimensions = eval(file.readline())
+            while True:
+                shape_string = file.readline()
+                if not shape_string:
+                    # we have reached EOF
+                    break
+                shape = eval(shape_string)
+                string = ""
+                for i in range(shape[0]):
+                    string += file.readline()
+                python_array = eval(string)
+                numpy_array = np.array(python_array, dtype="float64")
+                self.weights.append(numpy_array)
+
+
+
 
     def accuracy(self, a: np.ndarray, target: np.ndarray):
         """
@@ -634,7 +681,7 @@ class FFNN:
 
         return self.feedforward(X)
 
-    def test_fit(
+    def fit(
         self,
         X: np.ndarray,
         t: np.ndarray,
@@ -646,6 +693,9 @@ class FFNN:
         error_over_epochs = np.zeros(epochs)
         chunksize = X.shape[0] // batches
         X, t = resample(X, t)
+
+        checkpoint_length = epochs // 10
+        checkpoint_num = 0
 
         self.schedulers_weight = list()
         self.schedulers_bias = list()
@@ -679,43 +729,24 @@ class FFNN:
                         for scheduler in self.schedulers_bias:
                             scheduler.reset()
                 error = MSE(t, self.predict(X))
-                error_over_epochs[e] = error
 
-                length = 40
+                error_over_epochs[e] = error
                 progression = e / epochs
-                num_equals = int(progression*length)
-                num_not = length - num_equals
-                arrow = ">" if num_equals > 0 else ""
-                bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
-                error_print = fmt(error, N=5)
-                perc_print = fmt(progression*100, N=5)
-                print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
+
+                self._progress_bar(progression, error)
+
+                if (e % checkpoint_length == 0 and self.checkpoint_file and e) or e == epochs-1:
+                    checkpoint_num += 1
+                    print(f"{checkpoint_num}/10: Checkpoint reached" + " "*60)
+                    self.write(self.checkpoint_file)
+
+
+
         except KeyboardInterrupt:
             pass
 
-        print(f"  [========================================] 100% Loss: {error_print}    ")
+        print(f"  [========================================] 100% Loss: {error}    ")
         return error_over_epochs
-
-    # def fit(
-    #     self,
-    #     X: np.ndarray,
-    #     t: np.ndarray,
-    #     scheduler_class,
-    #     *args,  # arguments for the scheduler
-    #     batches: int = 1,
-    # ):
-    #
-    #     for i in range(len(self.weights)):
-    #         self.schedulers_weight.append(scheduler_class(*args))
-    #         self.schedulers_bias.append(scheduler_class(*args))
-    #
-    #     i = 0
-    #     for e in range(self.epochs):
-            # i += 1
-            # if i % 20 == 0:
-            #     print(i)
-            #     pass
-
 
     def update_w_and_b(self, update_list):
         """Updates weights and biases using a list of arrays that matches
@@ -783,6 +814,18 @@ class FFNN:
             update_list.insert(0, update_matrix)
 
         self.update_w_and_b(update_list)
+
+    def _progress_bar(self, progression, error):
+        length = 40
+        num_equals = int(progression*length)
+        num_not = length - num_equals
+        arrow = ">" if num_equals > 0 else ""
+        bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
+        error_print = fmt(error, N=5)
+        perc_print = fmt(progression*100, N=5)
+        print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
+
+
 def fmt(value, N=4):
     import math
     if value > 0:

@@ -25,7 +25,7 @@ def test_scheduler():
         z,
     ) = read_from_cmdline()
 
-    dims = (2, 20, 20, 20, 1)
+    dims = (2, 40, 40, 1)
 
     # dims = (4, 3, 2, 2)
 
@@ -43,8 +43,8 @@ def test_scheduler():
     eta = 0.001
     batch_size = X_train.shape[0] // 10
     momentum = 0.5
-    rho = 0.1
-    rho2 = 0.4
+    rho = 0.95
+    rho2 = 0.9
 
     constant_params = [eta]
     momentum_params = [eta, momentum]
@@ -63,17 +63,19 @@ def test_scheduler():
     ]
     # presume we can get error_over_epochs
     for i in range(len(schedulers)):
-        neural = FFNN(dims)
-        error_over_epochs = neural.test_fit(
+        neural = FFNN(dims, checkpoint_file="weights")
+        neural.read("weights")
+        error_over_epochs = neural.fit(
             X_train[:, 1:3],
             z_train,
             schedulers[i],
             *params[i],
             batches=10,
-            epochs=10000,
+            epochs=1000,
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
         plt.legend()
+    neural.write("weights")
     plt.xlabel("Epochs")
     plt.ylabel("MSE")
     plt.title("MSE over Epochs for different schedulers")
