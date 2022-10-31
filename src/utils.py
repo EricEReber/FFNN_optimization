@@ -689,6 +689,7 @@ class FFNN:
         *args,  # arguments for the scheduler
         batches: int = 1,
         epochs: int = 1000,
+        lam: float = 0,
     ):
         error_over_epochs = np.zeros(epochs)
         chunksize = X.shape[0] // batches
@@ -718,7 +719,7 @@ class FFNN:
                         t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
 
                     self.feedforward(X_batch)
-                    self.backpropagate(X_batch, t_batch)
+                    self.backpropagate(X_batch, t_batch, lam)
 
                     if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
                         self.schedulers_weight[0], Adagrad
@@ -757,7 +758,7 @@ class FFNN:
 
     # def scale_X(
 
-    def backpropagate(self, X, t):
+    def backpropagate(self, X, t, lam):
         out_derivative = derivate(self.output_func)
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
@@ -771,15 +772,11 @@ class FFNN:
                     self.z_matrices[i + 1]
                 ) * cost_func_derivative(self.a_matrices[i + 1])
 
-                # print(f"Output: {delta_matrix=}")
-
             else:
                 delta_matrix = (
                     self.weights[i + 1][1:, :] @ delta_matrix.T
                 ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
-                # print(f"Hidden: {delta_matrix=}")
 
-            # gradient accumulation
             gradient_weights_matrix = np.zeros(
                 (
                     self.a_matrices[i][:, 1:].shape[0],
@@ -787,20 +784,17 @@ class FFNN:
                     delta_matrix.shape[1],
                 )
             )
-            if i == 1:
-                # print("output")
-                pass
 
             for j in range(len(delta_matrix)):
                 gradient_weights_matrix[j, :, :] = np.outer(
                     self.a_matrices[i][j, 1:], delta_matrix[j, :]
                 )
-            # print(f"{self.a_matrices[i]=}")
 
             gradient_weights = np.sum(gradient_weights_matrix, axis=0)
             delta_accumulated = np.sum(delta_matrix, axis=0)
 
             gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
+            gradient_weights += self.weights[i][1:, :] * lam
 
             update_matrix = np.vstack(
                 [
