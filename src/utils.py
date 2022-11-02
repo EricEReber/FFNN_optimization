@@ -449,28 +449,29 @@ class Momentum(Scheduler):
 class Adagrad(Scheduler):
     def __init__(self, eta, batch_size):
         super().__init__(eta)
-        self.giter = None
+        self.G_t = None
         self.batch_size = batch_size
         self.change = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        if self.G_t is None:
+            self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
 
-        gradient = (1 / self.batch_size) * gradient
-        self.giter += gradient @ gradient.T
+        gradient = gradient / self.batch_size
 
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(self.giter)))]
-        self.change = np.multiply(ginverse, gradient)
+        self.G_t += gradient @ gradient.T
+
+        G_t_inverse = 1 / (delta + np.sqrt(np.diagonal(self.G_t)))
+        self.change = self.eta * gradient * G_t_inverse
         return self.change
 
     def reset(self):
-        self.giter = None
+        self.G_t = None
 
 
-class RMS_prop(Scheduler):
+class RMS_prop2(Scheduler):
     def __init__(self, eta, batch_size, rho):
         super().__init__(eta)
         self.batch_size = batch_size
@@ -497,51 +498,61 @@ class RMS_prop(Scheduler):
         self.giter = None
 
 
+class RMS_prop(Scheduler):
+    def __init__(self, eta, batch_size, rho):
+        super().__init__(eta)
+        self.batch_size = batch_size
+        self.rho = rho
+        self.second = 0.0
+
+    def update_change(self, gradient):
+        delta = 1e-8  # avoid division ny zero
+        gradient = gradient / self.batch_size
+        self.second = self.rho * self.second + (1 - self.rho) * gradient * gradient
+        self.change = self.eta * gradient / (np.sqrt(self.second + delta))
+        return self.change
+
+    def reset(self):
+        self.second = 0.0
+
+
 class Adam(Scheduler):
     def __init__(self, eta, batch_size, rho, rho2):
         super().__init__(eta)
         self.rho = rho
-        self.prev_rho = 0
         self.rho2 = rho2
-        self.prev_rho2 = 0
-        self.prev_grad = None
-        self.giter = None
-        self.change = 0
+
         self.batch_size = batch_size
+
+        self.rho_t = rho
+        self.rho2_t = rho2
+
+        self.moment = 0
+        self.second = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        gradient = gradient / self.batch_size
 
-        if not isinstance(self.prev_grad, np.ndarray):
-            self.prev_grad = np.zeros(gradient.shape)
+        self.moment = self.rho * self.moment + (1 - self.rho) * gradient
+        self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
-        gradient = (1 / self.batch_size) * gradient
+        self.rho_t *= self.rho_t
+        self.rho2_t *= self.rho2_t
 
-        self.prev_giter = self.giter
-        self.giter += gradient @ gradient.T
+        self.moment = self.moment / (1 - self.rho_t)
+        self.second = self.second / (1 - self.rho2_t)
 
-        stew = self.rho2 * self.prev_grad + (1 - self.rho2) * gradient
-        stew /= 1 - (self.rho2 * self.prev_rho2)
-        self.prev_rho2 *= self.rho2
+        self.change = self.eta * self.moment / (np.sqrt(self.second + delta))
 
-        self.prev_grad += gradient
-
-        gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
-        gnew /= 1 - (self.rho * self.prev_rho)
-        self.prev_rho *= self.rho
-
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
-        self.change = np.multiply(ginverse, stew)
         return self.change
 
     def reset():
-        self.giter = None
-        self.prev_grad = None
-        self.prev_rho = 1
-        self.prev_rho2 = 1
+        self.rho_t = self.rho
+        self.rho2_t = self.rho2
+        self.moment = 0
+        self.second = 0
 
 
 class FFNN:
@@ -701,6 +712,8 @@ class FFNN:
                 np.ones(predict.shape),
                 np.zeros(predict.shape),
             )
+        else:
+            return predict
 
     def fit(
         self,

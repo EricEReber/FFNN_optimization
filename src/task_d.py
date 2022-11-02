@@ -26,10 +26,12 @@ scaler.fit(X_train)
 X_train_sc = scaler.transform(X_train)
 X_test_sc = scaler.transform(X_test)
 
-dims = (30, 30, 1)
+dims = (30, 20, 1)
 
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
+batches = 1
+batch_size = X.shape[0] // batches
 
 eta = 0.003
 
@@ -44,7 +46,7 @@ train_errors, test_errors = neural.fit(
     z_train,
     Constant,
     eta,
-    batches=1,
+    batches=batches,
     # epochs=10000,
     epochs=100000,
     X_test=X_test_sc,

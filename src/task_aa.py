@@ -25,7 +25,7 @@ def test_scheduler():
         z,
     ) = read_from_cmdline()
 
-    dims = (2, 40, 40, 1)
+    dims = (2, 100, 100, 1)
 
     # dims = (4, 3, 2, 2)
 
@@ -39,8 +39,9 @@ def test_scheduler():
     dummy_t = np.array([[1, 2, 3], [1, 2, 3]]).T
 
     z_train = z_train.reshape(z_train.shape[0], 1)
+    z_test = z_test.reshape(z_test.shape[0], 1)
 
-    eta = 0.001
+    eta = 0.005
     batch_size = X_train.shape[0] // 10
     momentum = 0.5
     rho = 0.95
@@ -53,29 +54,32 @@ def test_scheduler():
     adam_params = [eta, batch_size, rho, rho2]
 
     params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
-    params = [rms_params]
+    params = [adam_params]
+    # params = [constant_params]
     schedulers = [
         # Momentum,
         # Adagrad,
-        RMS_prop,
-        # Adam,
+        # RMS_prop2,
+        Adam,
         # Constant,
     ]
     # presume we can get error_over_epochs
     for i in range(len(schedulers)):
-        neural = FFNN(dims, checkpoint_file="weights")
-        neural.read("weights")
-        error_over_epochs = neural.fit(
+        neural = FFNN(dims)
+        # neural.read("weights")
+        error_over_epochs, _ = neural.fit(
             X_train[:, 1:3],
             z_train,
             schedulers[i],
             *params[i],
             batches=10,
-            epochs=1000,
+            epochs=10000,
+            # X_test=X_test[:, 1:3],
+            # t_test=z_test,
         )
         plt.plot(error_over_epochs, label=f"{schedulers[i]}")
         plt.legend()
-    neural.write("weights")
+    # neural.write("weights")
     plt.xlabel("Epochs")
     plt.ylabel("MSE")
     plt.title("MSE over Epochs for different schedulers")
