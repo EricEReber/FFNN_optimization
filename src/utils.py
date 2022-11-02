@@ -13,6 +13,7 @@ from typing import Tuple, Callable
 from imageio import imread
 import sys
 import argparse
+import re
 
 
 def FrankeFunction(x, y):
@@ -359,7 +360,9 @@ def CostLogReg(target):
     """
 
     def func(X):
-        pass
+        return -(1.0 / target.shape[0]) * np.sum(
+            (target * np.log(X)) + ((1 - X) * np.log(1 - X))
+        )
 
     return func
 
@@ -375,10 +378,26 @@ def sigmoid(x):
 def derivate(func):
     if func.__name__ == "sigmoid":
 
-        def derivative(x):
+        def func(x):
             return sigmoid(x) * (1 - sigmoid(x))
 
-        return derivative
+        return func
+
+    elif func.__name__ == "RELU":
+
+        def func(x):
+            return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+        return func
+
+    elif func.__name__ == "LRELU":
+
+        def func(x):
+            return np.where(
+                x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
+            )
+
+        return func
 
     else:
         return elementwise_grad(func)
@@ -390,6 +409,10 @@ def RELU(x: np.ndarray):
 
 def LRELU(x: np.ndarray, delta: float):
     return np.where(x > np.zeros(x.shape), x, delta * x)
+
+
+def accuracy(prediction: np.ndarray, target: np.ndarray):
+    return np.average((target == prediction))
 
 
 # ------------------- Gradient Descent Optimizing Methods -------------------#
@@ -426,28 +449,29 @@ class Momentum(Scheduler):
 class Adagrad(Scheduler):
     def __init__(self, eta, batch_size):
         super().__init__(eta)
-        self.giter = None
+        self.G_t = None
         self.batch_size = batch_size
         self.change = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        if self.G_t is None:
+            self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
 
-        gradient = (1 / self.batch_size) * gradient
-        self.giter += gradient @ gradient.T
+        gradient = gradient / self.batch_size
 
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(self.giter)))]
-        self.change = np.multiply(ginverse, gradient)
+        self.G_t += gradient @ gradient.T
+
+        G_t_inverse = 1 / (delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1))))
+        self.change = self.eta * gradient * G_t_inverse
         return self.change
 
     def reset(self):
-        self.giter = None
+        self.G_t = None
 
 
-class RMS_prop(Scheduler):
+class RMS_prop2(Scheduler):
     def __init__(self, eta, batch_size, rho):
         super().__init__(eta)
         self.batch_size = batch_size
@@ -474,51 +498,61 @@ class RMS_prop(Scheduler):
         self.giter = None
 
 
+class RMS_prop(Scheduler):
+    def __init__(self, eta, batch_size, rho):
+        super().__init__(eta)
+        self.batch_size = batch_size
+        self.rho = rho
+        self.second = 0.0
+
+    def update_change(self, gradient):
+        delta = 1e-8  # avoid division ny zero
+        gradient = gradient / self.batch_size
+        self.second = self.rho * self.second + (1 - self.rho) * gradient * gradient
+        self.change = self.eta * gradient / (np.sqrt(self.second + delta))
+        return self.change
+
+    def reset(self):
+        self.second = 0.0
+
+
 class Adam(Scheduler):
     def __init__(self, eta, batch_size, rho, rho2):
         super().__init__(eta)
         self.rho = rho
-        self.prev_rho = 0
         self.rho2 = rho2
-        self.prev_rho2 = 0
-        self.prev_grad = None
-        self.giter = None
-        self.change = 0
+
         self.batch_size = batch_size
+
+        self.rho_t = rho
+        self.rho2_t = rho2
+
+        self.moment = 0
+        self.second = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
+        gradient = gradient / self.batch_size
 
-        if not isinstance(self.prev_grad, np.ndarray):
-            self.prev_grad = np.zeros(gradient.shape)
+        self.moment = self.rho * self.moment + (1 - self.rho) * gradient
+        self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
-        gradient = (1 / self.batch_size) * gradient
+        self.rho_t *= self.rho_t
+        self.rho2_t *= self.rho2_t
 
-        self.prev_giter = self.giter
-        self.giter += gradient @ gradient.T
+        self.moment = self.moment / (1 - self.rho_t)
+        self.second = self.second / (1 - self.rho2_t)
 
-        stew = self.rho2 * self.prev_grad + (1 - self.rho2) * gradient
-        stew /= 1 - (self.rho2 * self.prev_rho2)
-        self.prev_rho2 *= self.rho2
+        self.change = self.eta * self.moment / (np.sqrt(self.second + delta))
 
-        self.prev_grad += gradient
-
-        gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
-        gnew /= 1 - (self.rho * self.prev_rho)
-        self.prev_rho *= self.rho
-
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
-        self.change = np.multiply(ginverse, stew)
         return self.change
 
     def reset():
-        self.giter = None
-        self.prev_grad = None
-        self.prev_rho = 1
-        self.prev_rho2 = 1
+        self.rho_t = self.rho
+        self.rho2_t = self.rho2
+        self.moment = 0
+        self.second = 0
 
 
 class FFNN:
@@ -573,7 +607,7 @@ class FFNN:
         Parameters:
             path (str): The path to the file to be written to
         """
-        print(f"Writing weights to file \"{path}\"")
+        print(f'Writing weights to file "{path}"')
         np.set_printoptions(threshold=np.inf)
         with open(path, "w") as file:
             text = str(self.dimensions) + "\n"
@@ -592,7 +626,7 @@ class FFNN:
         Parameters:
             path (str): The path to the file to be read from
         """
-        print(f"Reading weights to file \"{path}\"")
+        print(f'Reading weights to file "{path}"')
         self.weights = list()
         with open(path, "r") as file:
             self.dimensions = eval(file.readline())
@@ -608,19 +642,6 @@ class FFNN:
                 python_array = eval(string)
                 numpy_array = np.array(python_array, dtype="float64")
                 self.weights.append(numpy_array)
-
-
-
-
-    def accuracy(self, a: np.ndarray, target: np.ndarray):
-        """
-        Returns accuracy of prediction a^L, returned from predict() method
-
-        :param a: prediction
-        :param target: real values
-        :return: ratio of correct predictions to total predictions
-        """
-        return np.average((target == a))
 
     def feedforward(self, X: np.ndarray):
         """
@@ -668,7 +689,7 @@ class FFNN:
         # this will be a^L
         return a
 
-    def predict(self, X: np.ndarray):
+    def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
         Return a prediction vector for each row in X
 
@@ -679,7 +700,20 @@ class FFNN:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
         """
 
-        return self.feedforward(X)
+        # if self.output_func.__name__ == "sigmoid":
+        #   return np.where(self.feedforward(X) > 0.5, 1, 0)
+        # else:
+        predict = self.feedforward(X)
+        if raw:
+            return predict
+        elif self.cost_func.__name__ == "CostLogReg":
+            return np.where(
+                predict > np.ones(predict.shape) * threshold,
+                np.ones(predict.shape),
+                np.zeros(predict.shape),
+            )
+        else:
+            return predict
 
     def fit(
         self,
@@ -690,8 +724,11 @@ class FFNN:
         batches: int = 1,
         epochs: int = 1000,
         lam: float = 0,
+        X_test: np.ndarray = None,
+        t_test: np.ndarray = None,
     ):
-        error_over_epochs = np.zeros(epochs)
+        train_errors = np.zeros(epochs)
+        test_errors = np.zeros(epochs)
         chunksize = X.shape[0] // batches
         X, t = resample(X, t)
 
@@ -700,6 +737,11 @@ class FFNN:
 
         self.schedulers_weight = list()
         self.schedulers_bias = list()
+
+        # this function returns a function valued only at X
+        cost_function_train = self.cost_func(t)
+        if X_test is not None and t_test is not None:
+            cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
             self.schedulers_weight.append(scheduler_class(*args))
@@ -729,25 +771,54 @@ class FFNN:
 
                         for scheduler in self.schedulers_bias:
                             scheduler.reset()
-                error = MSE(t, self.predict(X))
+                train_error = cost_function_train(self.predict(X, raw=True))
+                if X_test is not None and t_test is not None:
+                    test_error = cost_function_test(self.predict(X_test, raw=True))
+                else:
+                    test_error = 0
 
-                error_over_epochs[e] = error
+                train_acc = None
+                test_acc = None
+                if self.cost_func.__name__ == "CostLogReg":
+                    train_acc = accuracy(self.predict(X, raw=False), t)
+                    if X_test is not None and t_test is not None:
+                        test_acc = accuracy(self.predict(X_test, raw=False), t_test)
+
+                train_errors[e] = train_error
+                test_errors[e] = test_error
                 progression = e / epochs
 
-                self._progress_bar(progression, error)
+                length = self._progress_bar(
+                    progression,
+                    train_error=train_error,
+                    test_error=test_error,
+                    train_acc=train_acc,
+                    test_acc=test_acc,
+                )
 
-                if (e % checkpoint_length == 0 and self.checkpoint_file and e) or e == epochs-1:
+                if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
+                    e == epochs - 1 and self.checkpoint_file
+                ):
                     checkpoint_num += 1
-                    print(f"{checkpoint_num}/10: Checkpoint reached" + " "*60)
+                    print()
+                    print(" " * length, end="\r")
+                    print(f"{checkpoint_num}/10: Checkpoint reached")
                     self.write(self.checkpoint_file)
-
-
 
         except KeyboardInterrupt:
             pass
 
-        print(f"  [========================================] 100% Loss: {error}    ")
-        return error_over_epochs
+        print(" " * length, end="\r")
+        self._progress_bar(
+            1,
+            train_error=train_error,
+            test_error=test_error,
+            train_acc=train_acc,
+            test_acc=test_acc,
+        )
+        print()
+
+        return train_errors, test_errors
 
     def update_w_and_b(self, update_list):
         """Updates weights and biases using a list of arrays that matches
@@ -809,31 +880,39 @@ class FFNN:
 
         self.update_w_and_b(update_list)
 
-    def _progress_bar(self, progression, error):
+    def _progress_bar(self, progression, **kwargs):
         length = 40
-        num_equals = int(progression*length)
+        num_equals = int(progression * length)
         num_not = length - num_equals
         arrow = ">" if num_equals > 0 else ""
-        bar = "[" + "=" * (num_equals-1) + arrow + "-" * num_not + "]" 
-        error_print = fmt(error, N=5)
-        perc_print = fmt(progression*100, N=5)
-        print(f"  {bar} {perc_print}% Loss: {error_print}   ", end="\r")
+        bar = "[" + "=" * (num_equals - 1) + arrow + "-" * num_not + "]"
+        perc_print = fmt(progression * 100, N=5)
+        line = f"  {bar} {perc_print}% "
+
+        for key in kwargs:
+            if kwargs[key]:
+                value = fmt(kwargs[key], N=4)
+                line += f"| {key}: {value} "
+        print(line, end="\r")
+        return len(line)
 
 
 def fmt(value, N=4):
     import math
+
     if value > 0:
         v = value
     elif value < 0:
-        v = -10*value
+        v = -10 * value
     else:
         v = 1
-    n = 1+math.floor(math.log10(v))
-    if n>=N-1:
+    n = 1 + math.floor(math.log10(v))
+    if n >= N - 1:
         return str(round(value))
         # or overflow
         # return '!'*N
     return f"{value:.{N-n-1}f}"
+
 
 # todo: update this function
 def gradient_descent_linreg(
@@ -859,6 +938,9 @@ def gradient_descent_linreg(
     return beta, z_pred_train, z_pred_test, z_pred
 
 
+# ---------------------------------------------------------------------------------- OTHER METHODS
+
+# ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
     argv = sys.argv[1:]
 
