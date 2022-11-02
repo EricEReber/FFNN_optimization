@@ -71,57 +71,57 @@ dims = (X.shape[1], 1)
 
 # hyperparameters to be gridsearched
 eta = np.logspace(-4, -1, 6)
-lam = np.logspace(-4, -1, 6)
+lam = np.logspace(-4, -1, 3)
 lam[-1] = 0
 
 # gridsearch eta, lambda
 loss_heatmap = np.zeros((eta.shape[0], lam.shape[0]))
-for i in range(eta.shape[0]):
-    for j in range(lam.shape[0]):
-        neural = FFNN(dims, checkpoint_file=f"write{i}{j}")
-        # neural.read(f"write{i}{j}")
-        error_over_epochs = neural.fit(
-            X_train, z_train, Constant, eta[i], lam=lam[j], epochs=8000
+for y in range(eta.shape[0]):
+    for x in range(lam.shape[0]):
+        neural = FFNN(dims, checkpoint_file=f"weight{y}{x}")
+        # neural.read(f"weight{y}{x}")
+        error_over_epochs, _ = neural.fit(
+            X_train, z_train, Constant, eta[y], lam=lam[x], epochs=3000
         )
-        loss_heatmap[i, j] = np.min(error_over_epochs)
+        loss_heatmap[y, x] = np.min(error_over_epochs)
 
 # select optimal eta, lambda
-i, j = (
-    loss_heatmap.argmin() % loss_heatmap.shape[1],
+y, x = (
     loss_heatmap.argmin() // loss_heatmap.shape[1],
+    loss_heatmap.argmin() % loss_heatmap.shape[1],
 )
-min_eta = eta[j]
-min_lam = lam[i]
+min_eta = eta[y]
+min_lam = lam[x]
 
 # plot heatmap
-ax = sns.heatmap(loss_heatmap, xticklabels=eta, yticklabels=lam, annot=True)
+ax = sns.heatmap(loss_heatmap, xticklabels=lam, yticklabels=eta, annot=True)
 ax.add_patch(
     Rectangle(
-        (i, j), width=1, height=1, fill=False, edgecolor="crimson", lw=4, clip_on=False
+        (x, y), width=1, height=1, fill=False, edgecolor="crimson", lw=4, clip_on=False
     )
 )
 plt.title("Loss for eta, lambda grid")
 plt.xlabel("eta")
 plt.ylabel("lambda")
-plt.show()
+# plt.show()
 
 # now on to scheduler specific parameters
-batch_size = [X_train.shape[0] // i for i in np.linspace(1, X_train.shape[0], 5)]
-momentum = [i for i in np.linspace(0, 1, 5)]
+batch_size = [X_train.shape[0] // i for i in np.linspace(1, X_train.shape[0], 10)]
+momentum = [i for i in np.linspace(0, 0.9, 10)]
 rho = 0.9
 rho2 = 0.999
 
 momentum_params = [min_eta, momentum]
 adagrad_params = [min_eta, batch_size]
 rms_params = [min_eta, batch_size, rho]
-# adam_params = [min_eta, batch_size, rho, rho2]
+adam_params = [min_eta, batch_size, rho, rho2]
 
-params = [momentum_params, adagrad_params, rms_params]
+params = [momentum_params, adagrad_params, rms_params, adam_params]
 schedulers = [
     Momentum,
     Adagrad,
     RMS_prop,
-    # Adam,
+    Adam,
 ]
 
 # presume we can get error_over_epochs
@@ -129,30 +129,35 @@ for i in range(len(schedulers)):
     loss_search = np.zeros(len(params[i][1]))
     for k in range(len(params[i][1])):
         neural = FFNN(dims, checkpoint_file=f"loss_search{i}{k}")
+        # neural.read(f"loss_search{i}{k}")
         test_params = params[i][:]
         test_params[1] = params[i][1][k]
-        error_over_epochs = neural.fit(
+        error_over_epochs, _ = neural.fit(
             X_train,
             z_train,
             schedulers[i],
             *test_params,
             batches=10,
-            epochs=5000,
+            epochs=3000,
             lam=min_lam,
         )
         loss_search[k] = np.min(error_over_epochs)
     params[i][1] = params[i][1][np.argmin(loss_search)]
 
+print(params)
+
+raise ValueError
 # presume we can get error_over_epochs
 for i in range(len(schedulers)):
     neural = FFNN(dims, checkpoint_file=f"comparison{i}")
-    error_over_epochs = neural.fit(
+    # neural.read(f"comparison{i}")
+    error_over_epochs, _ = neural.fit(
         X_train,
         z_train,
         schedulers[i],
         *params[i],
         batches=10,
-        epochs=5000,
+        epochs=3000,
         lam=min_lam,
     )
     plt.plot(error_over_epochs, label=f"{schedulers[i]}")
