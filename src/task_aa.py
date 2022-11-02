@@ -7,26 +7,92 @@ from utils import *
 
 np.random.seed(42069)
 
-x = np.arange(0, 1, 0.05)
-y = np.arange(0, 1, 0.05)
+# tests schedulers for a given model
+def test_scheduler():
+    # define model (should probably be sent in)
+    (
+        betas_to_plot,
+        N,
+        X,
+        X_train,
+        X_test,
+        z,
+        z_train,
+        z_test,
+        centering,
+        x,
+        y,
+        z,
+    ) = read_from_cmdline()
 
-xs, ys = np.meshgrid(x, y)
+    dims = (2, 100, 100, 1)
 
-X = np.dstack(np.meshgrid(x, y)).reshape(-1, 2)
+    # dims = (4, 3, 2, 2)
 
-zs = FrankeFunction(xs, ys)
+    dummy_x = np.array(
+        [
+            [0.134, 0.91827, 0.1982, 0.34654],
+            [0.7246, 0.8887, 0.1513, 0.97716],
+            [0.441, 0.123, 0.321, 0.71],
+        ]
+    )
+    dummy_t = np.array([[1, 2, 3], [1, 2, 3]]).T
 
-z = FrankeFunction(X[:, 0], X[:, 1]).reshape(X.shape[0], 1)
+    z_train = z_train.reshape(z_train.shape[0], 1)
+    z_test = z_test.reshape(z_test.shape[0], 1)
 
-dims = (2, 20, 1)
-np.seterr(all="raise")
+    eta = 0.005
+    batch_size = X_train.shape[0] // 10
+    momentum = 0.5
+    rho = 0.95
+    rho2 = 0.9
 
-neural = FFNN(dims, epochs=1000)
-neural.fit(X, z, scheduler=Scheduler(0.01))
-z_pred = neural.predict(X)
-print(z_pred)
+    constant_params = [eta]
+    momentum_params = [eta, momentum]
+    adagrad_params = [eta, batch_size]
+    rms_params = [eta, batch_size, rho]
+    adam_params = [eta, batch_size, rho, rho2]
 
-pred_map = z_pred.reshape(zs.shape)
+    params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
+    params = [adam_params]
+    # params = [constant_params]
+    schedulers = [
+        # Momentum,
+        # Adagrad,
+        # RMS_prop2,
+        Adam,
+        # Constant,
+    ]
+    # presume we can get error_over_epochs
+    for i in range(len(schedulers)):
+        neural = FFNN(dims)
+        # neural.read("weights")
+        error_over_epochs, _ = neural.fit(
+            X_train[:, 1:3],
+            z_train,
+            schedulers[i],
+            *params[i],
+            batches=10,
+            epochs=10000,
+            # X_test=X_test[:, 1:3],
+            # t_test=z_test,
+        )
+        plt.plot(error_over_epochs, label=f"{schedulers[i]}")
+        plt.legend()
+    # neural.write("weights")
+    plt.xlabel("Epochs")
+    plt.ylabel("MSE")
+    plt.title("MSE over Epochs for different schedulers")
+    plt.show()
+
+    z_pred = neural.predict(X[:, 1:3])
+
+    pred_map = z_pred.reshape(z.shape)
+
+    return pred_map, x, y, z
+
+
+pred_map, x, y, z = test_scheduler()
 
 # ------------ PLOTTING 3D -----------------------
 fig = plt.figure(figsize=plt.figaspect(0.3))
@@ -34,7 +100,7 @@ fig = plt.figure(figsize=plt.figaspect(0.3))
 # Subplot for terrain
 ax = fig.add_subplot(121, projection="3d")
 # Plot the surface.
-surf = ax.plot_surface(xs, ys, zs, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.zaxis.set_major_locator(LinearLocator(10))
 ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
 ax.set_title("Scaled terrain", size=24)
@@ -46,8 +112,8 @@ ax.set_title("Scaled terrain", size=24)
 ax = fig.add_subplot(122, projection="3d")
 # Plot the surface.
 surf = ax.plot_surface(
-    xs,
-    ys,
+    x,
+    y,
     pred_map,
     cmap=cm.coolwarm,
     linewidth=0,

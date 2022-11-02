@@ -361,7 +361,7 @@ def CostLogReg(target):
 
     def func(X):
         return -(1.0 / target.shape[0]) * np.sum(
-            (target * np.log(X)) + ((1 - X) * np.log(1 - X))
+            (target * np.log(X + 10e-10)) + ((1 - target) * np.log(1 - X + 10e-10))
         )
 
     return func
@@ -550,7 +550,7 @@ class Adam(Scheduler):
 
         return self.change
 
-    def reset():
+    def reset(self):
         self.rho_t = self.rho
         self.rho2_t = self.rho2
         self.moment = 0
@@ -765,8 +765,10 @@ class FFNN:
                     self.feedforward(X_batch)
                     self.backpropagate(X_batch, t_batch, lam)
 
-                    if isinstance(self.schedulers_weight[0], RMS_prop) or isinstance(
-                        self.schedulers_weight[0], Adagrad
+                    if (
+                        isinstance(self.schedulers_weight[0], RMS_prop)
+                        or isinstance(self.schedulers_weight[0], Adam)
+                        or isinstance(self.schedulers_weight[0], Adagrad)
                     ):
                         for scheduler in self.schedulers_weight:
                             scheduler.reset()

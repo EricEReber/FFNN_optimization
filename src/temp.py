@@ -7,21 +7,6 @@ dims = (2, 10, 10, 10, 1)
 np.random.seed(0)
 
 
-def sigmoid(x):
-    return 1.0 / (1 + np.exp(-x))
-
-
-def nothing(x):
-    return x
-
-
-def CostOLS(X, target):
-    def func(beta):
-        return (1.0 / target.shape[0]) * np.sum((target - X @ beta) ** 2)
-
-    return func
-
-
 # beta = np.array([0.5, 0.5], dtype="float64")
 # target = np.array([[1], [2]], dtype="float64")
 # X = np.array([[1, 1], [2, 2]], dtype="float64")
@@ -34,7 +19,7 @@ def CostOLS(X, target):
 # print(deri(beta))
 # print(X @ beta)
 
-neural = FFNN(dims, epochs=5000)
+neural = FFNN(dims, epochs=1)
 
 X = np.array(
     [
