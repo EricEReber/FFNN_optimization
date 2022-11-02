@@ -18,9 +18,6 @@ cancer = datasets.load_breast_cancer()
 X = cancer.data
 z = cancer.target
 
-# print(X)
-# print(z)
-
 X_train, X_test, z_train, z_test = train_test_split(X, z)
 
 scaler = StandardScaler()
@@ -29,17 +26,19 @@ scaler.fit(X_train)
 X_train_sc = scaler.transform(X_train)
 X_test_sc = scaler.transform(X_test)
 
-dims = (30, 200, 1)
+dims = (30, 30, 1)
 
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-eta = 0.001
+eta = 0.003
 
 neural = FFNN(
-    dims, output_func=sigmoid, cost_func=CostLogReg, checkpoint_file="cancerweights"
+    dims,
+    output_func=sigmoid,
+    cost_func=CostLogReg,  # checkpoint_file="cancerweights20"
 )
-neural.read("cancerweights")
+# neural.read("cancerweights20")
 train_errors, test_errors = neural.fit(
     X_train_sc,
     z_train,
@@ -47,7 +46,7 @@ train_errors, test_errors = neural.fit(
     eta,
     batches=1,
     # epochs=10000,
-    epochs=10000,
+    epochs=100000,
     X_test=X_test_sc,
     t_test=z_test,
 )
