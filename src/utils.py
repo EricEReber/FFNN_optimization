@@ -463,7 +463,9 @@ class Adagrad(Scheduler):
 
         self.G_t += gradient @ gradient.T
 
-        G_t_inverse = 1 / (delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1))))
+        G_t_inverse = 1 / (
+            delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
+        )
         self.change = self.eta * gradient * G_t_inverse
         return self.change
 
@@ -1050,3 +1052,25 @@ def read_from_cmdline():
         y,
         z,
     )
+
+
+def plot_decision_boundary(X, t, classifier):
+    # Plot the decision boundary. For that, we will assign a color to each
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+
+    h = 0.02  # step size in the mesh
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+    Z = classifier.predict(np.c_[xx.ravel(), yy.ravel()])
+    plt.figure(figsize=(8, 6))
+
+    # Put the result into a color plot
+    Z = Z.reshape(xx.shape)
+    plt.contourf(xx, yy, Z, alpha=0.2, cmap="Paired")
+    plt.scatter(X[:, 0], X[:, 1], c=t, s=20.0, cmap="Paired")
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.title("Decision regions")
+    plt.xlabel("x0")
+    plt.ylabel("x1")
+    plt.show()
