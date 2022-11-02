@@ -463,7 +463,7 @@ class Adagrad(Scheduler):
 
         self.G_t += gradient @ gradient.T
 
-        G_t_inverse = 1 / (delta + np.sqrt(np.diagonal(self.G_t)))
+        G_t_inverse = 1 / (delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1))))
         self.change = self.eta * gradient * G_t_inverse
         return self.change
 
