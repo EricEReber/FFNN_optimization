@@ -13,7 +13,6 @@ from typing import Tuple, Callable
 from imageio import imread
 import sys
 import argparse
-import re
 
 
 def FrankeFunction(x, y):
@@ -55,96 +54,6 @@ def MSE(y_data, y_model):
     return np.sum((y_data - y_model) ** 2) / n
 
 
-def OLS(X_train: np.ndarray, z_train: np.ndarray):
-    beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
-    return beta
-
-
-def ridge(X_train, z_train, lam):
-    L = X_train.shape[1]
-    beta = np.linalg.pinv(X_train.T @ X_train + lam * np.eye(L)) @ X_train.T @ z_train
-    return beta
-
-
-def bootstrap(
-    X: np.ndarray,
-    X_train: np.ndarray,
-    X_test: np.ndarray,
-    z_train: np.ndarray,
-    z_test: np.ndarray,
-    bootstraps: int,
-    *,
-    centering: bool = False,
-    model: Callable = OLS,
-    lam: float = 0,
-):
-    z_preds_train = np.empty((z_train.shape[0], bootstraps))
-    z_preds_test = np.empty((z_test.shape[0], bootstraps))
-
-    # non resampled train
-    _, z_pred_train, _, _ = evaluate_model(
-        X, X_train, X_test, z_train, model, lam=lam, centering=centering
-    )
-
-    for i in range(bootstraps):
-        X_, z_ = resample(X_train, z_train)
-        _, _, z_pred_test, _ = evaluate_model(
-            X, X_, X_test, z_, model, lam=lam, centering=centering
-        )
-        # z_preds_train[:, i] = z_pred_train
-        z_preds_test[:, i] = z_pred_test
-
-    return z_preds_test, z_pred_train
-
-
-def crossval(
-    X: np.ndarray,
-    z: np.ndarray,
-    K: int,
-    *,
-    centering: bool = False,
-    model=OLS,
-    lam: float = 0,
-):
-    chunksize = X.shape[0] // K
-
-    errors = np.zeros(K)
-    X, z = resample(X, z)
-
-    for k in range(K):
-        if k == K - 1:
-            # if we are on the last, take all thats left
-            X_test = X[k * chunksize :, :]
-            z_test = z[k * chunksize :]
-        else:
-            X_test = X[k * chunksize : (k + 1) * chunksize, :]
-            z_test = z[k * chunksize : (k + 1) * chunksize :]
-
-        X_train = np.delete(
-            X,
-            [i for i in range(k * chunksize, k * chunksize + X_test.shape[0])],
-            axis=0,
-        )
-        z_train = np.delete(
-            z,
-            [i for i in range(k * chunksize, k * chunksize + z_test.shape[0])],
-            axis=0,
-        )
-
-        _, _, z_pred_test, _ = evaluate_model(
-            X,
-            X_train,
-            X_test,
-            z_train,
-            model,
-            lam=lam,
-            centering=centering,
-        )
-        errors[k] = MSE(z_test, z_pred_test)
-
-    return np.mean(errors)
-
-
 def bias_variance(z_test: np.ndarray, z_preds_test: np.ndarray):
     MSEs, _ = scores(z_test, z_preds_test)
     error = np.mean(MSEs)
@@ -163,82 +72,6 @@ def preprocess(x: np.ndarray, y: np.ndarray, z: np.ndarray, N, test_size):
     X_train, X_test, z_train, z_test = train_test_split(X, zflat, test_size=test_size)
 
     return X, X_train, X_test, z_train, z_test
-
-
-def evaluate_model(
-    X,
-    X_train,
-    X_test,
-    z_train,
-    model,
-    *,
-    lam: float = 0,
-    centering: bool = False,
-):
-    if isinstance(model, Callable):
-        intercept = 0
-        if centering:
-            X_train = X_train[:, 1:]
-            X_test = X_test[:, 1:]
-            X = X[:, 1:]
-            z_train_mean = np.mean(z_train, axis=0)
-            X_train_mean = np.mean(X_train, axis=0)
-
-            if model.__name__ == "OLS":
-                beta = model((X_train - X_train_mean), (z_train - z_train_mean))
-
-            elif model.__name__ == "ridge":
-                beta = model((X_train - X_train_mean), (z_train - z_train_mean), lam)
-
-            intercept = z_train_mean - X_train_mean @ beta
-
-        else:
-            if model.__name__ == "OLS":
-                beta = model(X_train, z_train)
-
-            elif model.__name__ == "ridge":
-                beta = model(
-                    X_train,
-                    z_train,
-                    lam,
-                )
-        # intercept is zero if no centering
-        z_pred_train = X_train @ beta + intercept
-        z_pred_test = X_test @ beta + intercept
-        z_pred = X @ beta + intercept
-
-    # presumed scikit model
-    else:
-        intercept = 0
-        if centering:
-            # if width is 1, simply return the intercept
-            if X_train.shape[1] == 1:
-                beta = np.zeros(1)
-                intercept = np.mean(z_train, axis=0)
-                z_pred_train = np.ones(X_train.shape[0]) * intercept
-                z_pred_test = np.ones(X_test.shape[0]) * intercept
-                z_pred = np.ones(X.shape[0]) * intercept
-
-                return beta, z_pred_train, z_pred_test, z_pred
-
-            X_train = X_train[:, 1:]
-            X_test = X_test[:, 1:]
-            X = X[:, 1:]
-            z_train_mean = np.mean(z_train, axis=0)
-            X_train_mean = np.mean(X_train, axis=0)
-
-            model.fit((X_train - X_train_mean), (z_train - z_train_mean))
-            beta = model.coef_
-            intercept = np.mean(z_train_mean - X_train_mean @ beta)
-        else:
-            model.fit(X_train, z_train)
-
-        beta = model.coef_
-        z_pred = model.predict(X) + intercept
-        z_pred_train = model.predict(X_train) + intercept
-        z_pred_test = model.predict(X_test) + intercept
-
-    return beta, z_pred_train, z_pred_test, z_pred
 
 
 def minmax_dataset(X, X_train, X_test, z, z_train, z_test):
@@ -266,46 +99,6 @@ def minmax_dataset(X, X_train, X_test, z, z_train, z_test):
     return X, X_train, X_test, z, z_train, z_test
 
 
-def linreg_to_N(
-    X: np.ndarray,
-    X_train: np.ndarray,
-    X_test: np.ndarray,
-    z_train: np.ndarray,
-    z_test: np.ndarray,
-    N: int,
-    *,
-    centering: bool = False,
-    model: Callable = OLS,
-    lam: float = 0,
-):
-    L = X_train.shape[1]
-
-    betas = np.zeros((L, N + 1))
-    z_preds_train = np.empty((z_train.shape[0], N + 1))
-    z_preds_test = np.empty((z_test.shape[0], N + 1))
-    z_preds = np.empty((X.shape[0], N + 1))
-
-    for n in range(N + 1):
-        print(n)
-        l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
-        beta, z_pred_train, z_pred_test, z_pred = evaluate_model(
-            X[:, :l],
-            X_train[:, :l],
-            X_test[:, :l],
-            z_train,
-            model,
-            lam=lam,
-            centering=centering,
-        )
-
-        betas[0 : len(beta), n] = beta
-        z_preds_test[:, n] = z_pred_test
-        z_preds_train[:, n] = z_pred_train
-        z_preds[:, n] = z_pred
-
-    return betas, z_preds_train, z_preds_test, z_preds
-
-
 def scores(z, z_preds):
     N = z_preds.shape[1]
     MSEs = np.zeros((N))
@@ -316,31 +109,6 @@ def scores(z, z_preds):
         R2s[n] = R2(z, z_preds[:, n])
 
     return MSEs, R2s
-
-
-def find_best_lambda(X, z, model, lambdas, N, K):
-    kfolds = KFold(n_splits=K, shuffle=True)
-    model = GridSearchCV(
-        estimator=model,
-        param_grid={"alpha": list(lambdas)},
-        scoring="neg_mean_squared_error",
-        cv=kfolds,
-    )
-    best_polynomial = 0
-    best_lambda = 0
-    best_MSE = 10**10
-
-    for n in range(N + 1):
-        print(n)
-        l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
-        model.fit(X[:, :l], z)
-
-        if -model.best_score_ < best_MSE:
-            best_MSE = -model.best_score_
-            best_lambda = model.best_params_["alpha"]
-            best_polynomial = n
-
-    return best_lambda, best_MSE, best_polynomial
 
 
 def CostOLS(target):
@@ -393,6 +161,7 @@ def derivate(func):
     elif func.__name__ == "LRELU":
 
         def func(x):
+            delta = 10e-4
             return np.where(
                 x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
             )
@@ -407,7 +176,8 @@ def RELU(x: np.ndarray):
     return np.where(x > np.zeros(x.shape), x, np.zeros(x.shape))
 
 
-def LRELU(x: np.ndarray, delta: float):
+def LRELU(x: np.ndarray):
+    delta = 10e-4
     return np.where(x > np.zeros(x.shape), x, delta * x)
 
 
@@ -473,33 +243,6 @@ class Adagrad(Scheduler):
 
     def reset(self):
         self.G_t = None
-
-
-class RMS_prop2(Scheduler):
-    def __init__(self, eta, rho, batch_size):
-        super().__init__(eta)
-        self.batch_size = batch_size
-        self.rho = rho
-        self.giter = None
-        self.change = 0
-
-    def update_change(self, gradient):
-        delta = 1e-8  # avoid division ny zero
-
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
-
-        gradient = (1 / self.batch_size) * gradient
-        self.prev_giter = self.giter
-        self.giter += gradient @ gradient.T
-
-        gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
-        self.change = np.multiply(ginverse, gradient)
-        return self.change
-
-    def reset(self):
-        self.giter = None
 
 
 class RMS_prop(Scheduler):
@@ -943,8 +686,6 @@ def gradient_descent_linreg(
     z_pred_test = X_test @ beta
     return beta, z_pred_train, z_pred_test, z_pred
 
-
-# ---------------------------------------------------------------------------------- OTHER METHODS
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
