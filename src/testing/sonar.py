@@ -4,7 +4,7 @@ np.random.seed(42069)
 
 
 inputs = 60
-data = np.genfromtxt("../data/sonar.csv", delimiter=",")
+data = np.genfromtxt("../../data/sonar.csv", delimiter=",")
 
 data = resample(data)
 X = data[:, :inputs]

@@ -4,7 +4,7 @@ np.random.seed(42069)
 
 
 inputs = 34
-data = np.genfromtxt("../data/ionosphere.csv", delimiter=",")
+data = np.genfromtxt("../../data/ionosphere.csv", delimiter=",")
 
 data = resample(data)
 X = data[:, :inputs]
