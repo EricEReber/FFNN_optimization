@@ -49,9 +49,9 @@ def test_scheduler():
 
     constant_params = [eta]
     momentum_params = [eta, momentum]
-    adagrad_params = [eta, batch_size]
-    rms_params = [eta, batch_size, rho]
-    adam_params = [eta, batch_size, rho, rho2]
+    adagrad_params = [eta]
+    rms_params = [eta, rho]
+    adam_params = [eta, rho, rho2]
 
     params = [momentum_params, adagrad_params, rms_params, adam_params, constant_params]
     params = [adam_params]

@@ -428,7 +428,8 @@ class Scheduler:
 
 
 class Constant(Scheduler):
-    def __init__(self, eta):
+    # take in batch size for unity but dont use it
+    def __init__(self, eta, batch_size):
         super().__init__(eta)
 
     def update_change(self, gradient):
@@ -436,7 +437,8 @@ class Constant(Scheduler):
 
 
 class Momentum(Scheduler):
-    def __init__(self, eta: float, momentum: float):
+    # take in batch size for unity but dont use it
+    def __init__(self, eta: float, momentum: float, batch_size):
         super().__init__(eta)
         self.momentum = momentum
         self.change = 0
@@ -474,7 +476,7 @@ class Adagrad(Scheduler):
 
 
 class RMS_prop2(Scheduler):
-    def __init__(self, eta, batch_size, rho):
+    def __init__(self, eta, rho, batch_size):
         super().__init__(eta)
         self.batch_size = batch_size
         self.rho = rho
@@ -501,7 +503,7 @@ class RMS_prop2(Scheduler):
 
 
 class RMS_prop(Scheduler):
-    def __init__(self, eta, batch_size, rho):
+    def __init__(self, eta, rho, batch_size):
         super().__init__(eta)
         self.batch_size = batch_size
         self.rho = rho
@@ -519,7 +521,7 @@ class RMS_prop(Scheduler):
 
 
 class Adam(Scheduler):
-    def __init__(self, eta, batch_size, rho, rho2):
+    def __init__(self, eta, rho, rho2, batch_size):
         super().__init__(eta)
         self.rho = rho
         self.rho2 = rho2
@@ -722,7 +724,7 @@ class FFNN:
         X: np.ndarray,
         t: np.ndarray,
         scheduler_class,
-        *args,  # arguments for the scheduler
+        *args,  # arguments for the scheduler (sans batchsize)
         batches: int = 1,
         epochs: int = 1000,
         lam: float = 0,
@@ -746,8 +748,8 @@ class FFNN:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
-            self.schedulers_weight.append(scheduler_class(*args))
-            self.schedulers_bias.append(scheduler_class(*args))
+            self.schedulers_weight.append(scheduler_class(*args, chunksize))
+            self.schedulers_bias.append(scheduler_class(*args, chunksize))
 
         print(scheduler_class.__name__)
         try:

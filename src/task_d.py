@@ -51,7 +51,6 @@ train_errors, test_errors = neural.fit(
     Adam,
     # Constant,
     eta,
-    batch_size,
     rho1,
     rho2,
     batches=batches,
