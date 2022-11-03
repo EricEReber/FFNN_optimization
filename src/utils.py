@@ -666,30 +666,6 @@ def fmt(value, N=4):
     return f"{value:.{N-n-1}f}"
 
 
-# todo: update this function
-def gradient_descent_linreg(
-    cost_func,
-    X,
-    X_train,
-    X_test,
-    beta,
-    target,
-    *args,
-    scheduler_class=Scheduler,
-):
-    scheduler = scheduler_class(args)
-
-    ols_grad = grad(cost_func, 1)
-
-    eta = scheduler.update_eta()
-    beta -= eta * ols_grad(X_train, beta, target)
-
-    z_pred = X @ beta
-    z_pred_train = X_train @ beta
-    z_pred_test = X_test @ beta
-    return beta, z_pred_train, z_pred_test, z_pred
-
-
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
     argv = sys.argv[1:]
