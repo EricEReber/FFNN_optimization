@@ -32,13 +32,17 @@ t_train = t_train.reshape(t_train.shape[0], 1)
 t_test = t_test.reshape(t_test.shape[0], 1)
 
 eta = 0.01
+rho = 0.9
+rho2 = 0.99
 
 neural = FFNN(dims, output_func=sigmoid, cost_func=CostLogReg)
 test_errors, train_errors = neural.fit(
     X_train_sc,
     t_train,
-    Constant,
+    Adam,
     eta,
+    rho,
+    rho2,
     batches=1,
     epochs=10000,
     X_test=X_test_sc,

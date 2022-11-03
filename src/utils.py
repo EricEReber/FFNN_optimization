@@ -474,8 +474,10 @@ class FFNN:
         X_test: np.ndarray = None,
         t_test: np.ndarray = None,
     ):
-        train_errors = np.zeros(epochs)
-        test_errors = np.zeros(epochs)
+        train_errors = np.empty(epochs)
+        train_errors.fill(np.nan) # makes for better plots if we cancel early
+        test_errors = np.empty(epochs)
+        test_errors.fill(np.nan)
         chunksize = X.shape[0] // batches
         X, t = resample(X, t)
 
@@ -555,6 +557,7 @@ class FFNN:
                     self.write(self.checkpoint_file)
 
         except KeyboardInterrupt:
+            # allows for stopping training at any point and seeing the result
             pass
 
         print(" " * length, end="\r")
