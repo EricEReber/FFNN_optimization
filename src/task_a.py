@@ -103,51 +103,67 @@ ax.add_patch(
 plt.title("Loss for eta, lambda grid")
 plt.xlabel("eta")
 plt.ylabel("lambda")
-# plt.show()
+plt.show()
 
 # now on to scheduler specific parameters
-batch_size = [X_train.shape[0] // i for i in np.linspace(1, X_train.shape[0], 10)]
+batch_sizes = [
+    X_train.shape[0] // i for i in np.linspace(1, X_train.shape[0], 10, dtype=int)
+]
 momentum = [i for i in np.linspace(0, 0.9, 10)]
 rho = 0.9
 rho2 = 0.999
 
-momentum_params = [min_eta, momentum]
-adagrad_params = [min_eta, batch_size]
-rms_params = [min_eta, batch_size, rho]
-adam_params = [min_eta, batch_size, rho, rho2]
+constant_params = [min_eta]
 
-params = [momentum_params, adagrad_params, rms_params, adam_params]
+optimal_batch = 0
+batch_size_search = np.zeros(len(batch_sizes))
+for i in range(len(batch_sizes)):
+    neural = FFNN(dims, checkpoint_file=f"batch_size_search{i}")
+    # neural.read(f"batch_size_search{i}")
+    error_over_epochs, _ = neural.fit(
+        X_train,
+        z_train,
+        Constant,
+        *constant_params,
+        batches=batch_sizes[i],
+        epochs=3000,
+        lam=min_lam,
+    )
+    batch_size_search[i] = np.min(error_over_epochs)
+optimal_batch = batch_sizes[np.argmin(batch_size_search)]
+
+optimal_momentum = 0
+momentum_search = np.zeros(len(momentum))
+for i in range(len(momentum)):
+    neural = FFNN(dims, checkpoint_file=f"momentum_search{i}")
+    # neural.read(f"momentum_search{i}")
+    momentum_params = [min_eta, momentum[i]]
+    error_over_epochs, _ = neural.fit(
+        X_train,
+        z_train,
+        Momentum,
+        *momentum_params,
+        batches=optimal_batch,
+        epochs=3000,
+        lam=min_lam,
+    )
+    momentum_search[i] = np.min(error_over_epochs)
+optimal_momentum = momentum[np.argmin(momentum_search)]
+
+adagrad_params = [min_eta]
+momentum_params = [min_eta, optimal_momentum]
+rms_params = [min_eta, rho]
+adam_params = [min_eta, rho, rho2]
+
+params = [constant_params, momentum_params, adagrad_params, rms_params, adam_params]
 schedulers = [
+    Constant,
     Momentum,
     Adagrad,
     RMS_prop,
     Adam,
 ]
 
-# presume we can get error_over_epochs
-for i in range(len(schedulers)):
-    loss_search = np.zeros(len(params[i][1]))
-    for k in range(len(params[i][1])):
-        neural = FFNN(dims, checkpoint_file=f"loss_search{i}{k}")
-        # neural.read(f"loss_search{i}{k}")
-        test_params = params[i][:]
-        test_params[1] = params[i][1][k]
-        error_over_epochs, _ = neural.fit(
-            X_train,
-            z_train,
-            schedulers[i],
-            *test_params,
-            batches=10,
-            epochs=3000,
-            lam=min_lam,
-        )
-        loss_search[k] = np.min(error_over_epochs)
-    params[i][1] = params[i][1][np.argmin(loss_search)]
-
-print(params)
-
-raise ValueError
-# presume we can get error_over_epochs
 for i in range(len(schedulers)):
     neural = FFNN(dims, checkpoint_file=f"comparison{i}")
     # neural.read(f"comparison{i}")
@@ -156,7 +172,7 @@ for i in range(len(schedulers)):
         z_train,
         schedulers[i],
         *params[i],
-        batches=10,
+        batches=optimal_batch,
         epochs=3000,
         lam=min_lam,
     )
