@@ -135,12 +135,23 @@ def CostLogReg(target):
     return func
 
 
+def CostCrossEntropy(target):
+    def func(X):
+        return -(1.0 / target.size) * np.sum(target * np.log(X + 10e-10))
+
+    return func
+
+
 # Activation functions
 def sigmoid(x):
     try:
         return 1.0 / (1 + np.exp(-x))
     except FloatingPointError:
         return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+
+def softmax(x):
+    return np.exp(x) / np.sum(np.exp(x), axis=1, keepdims=True)
 
 
 def derivate(func):
@@ -453,7 +464,7 @@ class FFNN:
         predict = self.feedforward(X)
         if raw:
             return predict
-        elif self.cost_func.__name__ == "CostLogReg":
+        elif self.cost_func.__name__ == "CostLogReg" or self.cost_func.__name__ == "CostCrossEntropy":
             return np.where(
                 predict > np.ones(predict.shape) * threshold,
                 np.ones(predict.shape),
@@ -475,7 +486,7 @@ class FFNN:
         t_test: np.ndarray = None,
     ):
         train_errors = np.empty(epochs)
-        train_errors.fill(np.nan) # makes for better plots if we cancel early
+        train_errors.fill(np.nan)  # makes for better plots if we cancel early
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
         chunksize = X.shape[0] // batches
@@ -530,8 +541,14 @@ class FFNN:
 
                 train_acc = None
                 test_acc = None
-                if self.cost_func.__name__ == "CostLogReg":
+                if (
+                    self.cost_func.__name__ == "CostLogReg"
+                    or self.cost_func.__name__ == "CostCrossEntropy"
+                ):
                     train_acc = accuracy(self.predict(X, raw=False), t)
+                    # print(self.predict(X, raw=False))
+                    # print(self.predict(X))
+                    # print(train_acc)
                     if X_test is not None and t_test is not None:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
 
@@ -590,10 +607,13 @@ class FFNN:
 
             # creating the delta terms
             if i == len(self.weights) - 1:
-                cost_func_derivative = grad(self.cost_func(t))
-                delta_matrix = out_derivative(
-                    self.z_matrices[i + 1]
-                ) * cost_func_derivative(self.a_matrices[i + 1])
+                if self.output_func.__name__ == "softmax":
+                    delta_matrix = self.a_matrices[i + 1] - t
+                else:
+                    cost_func_derivative = grad(self.cost_func(t))
+                    delta_matrix = out_derivative(
+                        self.z_matrices[i + 1]
+                    ) * cost_func_derivative(self.a_matrices[i + 1])
 
             else:
                 delta_matrix = (
