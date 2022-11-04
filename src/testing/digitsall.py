@@ -13,10 +13,14 @@ digits = load_digits()
 X = digits.data
 t_int = digits.target
 
-X_fives = np.hstack([X, t_int.reshape(t_int.shape[0], 1)])
+X_nines = np.hstack([X, t_int.reshape(t_int.shape[0], 1)])
+X_twos = np.hstack([X, t_int.reshape(t_int.shape[0], 1)])
 
-X_fives = X_fives[X_fives[:, 64] == 2, :][:, :64]
+X_twos = X_twos[X_twos[:, 64] == 2, :][:, :64]
 
+X_nines = X_nines[X_nines[:, 64] == 9, :][:, :64]
+
+# one hot encoding
 t = np.zeros((t_int.size, 10))
 t[np.arange(t_int.size), t_int] = 1
 
@@ -39,7 +43,7 @@ rho2 = 0.99
 sched = Adam
 params = [eta, rho, rho2]
 
-dims = (inputs, 10, 10)
+dims = (inputs, 64, 10)
 neural = FFNN(
     dims,
     output_func=softmax,
@@ -57,7 +61,9 @@ train_errors, test_errors = neural.fit(
 )
 
 
-print(neural.predict(X_fives))
+np.set_printoptions(threshold=np.inf)
+print(neural.predict(X_twos))
+print(neural.predict(X_nines))
 
 plt.plot(train_errors, label="Train")
 plt.plot(test_errors, label="Train")

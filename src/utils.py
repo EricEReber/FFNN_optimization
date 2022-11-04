@@ -151,7 +151,8 @@ def sigmoid(x):
 
 
 def softmax(x):
-    return np.exp(x) / np.sum(np.exp(x), axis=1, keepdims=True)
+    x = x - np.max(x, axis=-1, keepdims=True)
+    return np.exp(x) / (np.sum(np.exp(x), axis=-1, keepdims=True) + 10e-10)
 
 
 def derivate(func):
