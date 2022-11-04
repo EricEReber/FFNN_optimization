@@ -25,7 +25,7 @@ def FrankeFunction(x, y):
 
 # debug function
 def SkrankeFunction(x, y):
-    return 0 + 1 * x + 2 * y + 3 * x**2 + 4 * x * y + 5 * y**2
+    return 3 * x + 8 * y + 4 * x**2 - 4 * x * y - 5 * y**2
 
 
 def create_X(x, y, n):
