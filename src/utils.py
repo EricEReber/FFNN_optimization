@@ -1,4 +1,5 @@
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -11,6 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils import resample
 from typing import Tuple, Callable
 from imageio import imread
+import seaborn as sns
 import sys
 import argparse
 
@@ -214,7 +216,7 @@ class Momentum(Scheduler):
         self.change = 0
 
     def update_change(self, gradient):
-        self.change = self.eta * gradient + self.momentum * self.change
+        self.change = self.momentum * self.change + self.eta * gradient
         return self.change
 
 
@@ -349,12 +351,143 @@ class FFNN:
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
 
+    def optimize_scheduler(
+        self, X, t, scheduler, eta, lam, *args, batches=1, epochs=1000
+    ):
+
+        if scheduler is not Momentum:
+            loss_heatmap = np.zeros((eta.shape[0], lam.shape[0]))
+            for y in range(eta.shape[0]):
+                for x in range(lam.shape[0]):
+                    params = [eta[y]] + [*args][0]
+                    error_over_epochs, _ = self.fit(
+                        X,
+                        t,
+                        scheduler,
+                        *params,
+                        batches=batches,
+                        epochs=epochs,
+                        lam=lam[x],
+                    )
+                    loss_heatmap[y, x] = np.min(error_over_epochs)
+
+            # select optimal eta, lambda
+            y, x = (
+                loss_heatmap.argmin() // loss_heatmap.shape[1],
+                loss_heatmap.argmin() % loss_heatmap.shape[1],
+            )
+            optimal_eta = eta[y]
+            optimal_lambda = lam[x]
+
+            optimal_params = [optimal_eta] + [*args][0]
+            batch_sizes = np.linspace(1, X.shape[0]//2, 5, dtype=int)
+
+            optimal_batch = 0
+            batch_size_search = np.zeros(len(batch_sizes))
+            for i in range(len(batch_sizes)):
+                # neural.read(f"batch_size_search{i}")
+                error_over_epochs, _ = self.fit(
+                    X,
+                    t,
+                    scheduler,
+                    *optimal_params,
+                    batches=batch_sizes[i],
+                    epochs=epochs,
+                    lam=optimal_lambda,
+                )
+                # todo would be interesting to see how much time / how fast it happens
+                batch_size_search[i] = np.min(error_over_epochs)
+            minimal_error = np.min(batch_size_search)
+            optimal_batch = batch_sizes[np.argmin(batch_size_search)]
+
+            plotting_data = [loss_heatmap, batch_size_search]
+
+            # if plot_batch:
+            #     plt.plot(batch_size_search)
+            #     plt.title("batch size vs error", fontsize=22)
+            #     plt.xlabel("batch size", fontsize=18)
+            #     plt.ylabel("error", fontsize=18)
+            #     plt.show()
+
+            return (
+                optimal_params,
+                optimal_lambda,
+                optimal_batch,
+                minimal_error,
+                plotting_data,
+            )
+        else:
+            return self.optimize_momentum(
+                X, t, eta, lam, *args, batches=batches, epochs=epochs
+            )
+
+    def optimize_momentum(self, X, t, eta, lam, momentums, batches=1, epochs=1000):
+
+        loss_heatmap = np.zeros((eta.shape[0], lam.shape[0], len(momentums)))
+        for y in range(eta.shape[0]):
+            for x in range(lam.shape[0]):
+                for z in range(len(momentums)):
+                    params = [eta[y], momentums[z]]
+                    error_over_epochs, _ = self.fit(
+                        X,
+                        t,
+                        Momentum,
+                        *params,
+                        batches=batches,
+                        epochs=epochs,
+                        lam=lam[x],
+                    )
+                    loss_heatmap[y, x, z] = np.min(error_over_epochs)
+
+        y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+        optimal_eta = eta[y]
+        optimal_lambda = lam[x]
+        optimal_momentum = momentums[z]
+
+        optimal_params = [optimal_eta, optimal_momentum]
+        batch_sizes = np.linspace(1, X.shape[0]//2, 5, dtype=int)
+
+        optimal_batch = 0
+        batch_size_search = np.zeros(len(batch_sizes))
+        for i in range(len(batch_sizes)):
+            # neural.read(f"batch_size_search{i}")
+            error_over_epochs, _ = self.fit(
+                X,
+                t,
+                Momentum,
+                *optimal_params,
+                batches=batch_sizes[i],
+                epochs=epochs,
+                lam=optimal_lambda,
+            )
+            # todo would be interesting to see how much time / how fast it happens
+            batch_size_search[i] = np.min(error_over_epochs)
+        minimal_error = np.min(batch_size_search)
+        optimal_batch = batch_sizes[np.argmin(batch_size_search)]
+
+        plotting_data = [loss_heatmap[:, :, z], batch_size_search]
+
+        # if plot_batch:
+        #     plt.plot(batch_size_search)
+        #     plt.title("batch size vs error", fontsize=22)
+        #     plt.xlabel("batch size", fontsize=18)
+        #     plt.ylabel("error", fontsize=18)
+        #     plt.show()
+
+        return (
+            optimal_params,
+            optimal_lambda,
+            optimal_batch,
+            minimal_error,
+            plotting_data,
+        )
+
     def write(self, path: str):
         """Write weights and biases to file
         Parameters:
             path (str): The path to the file to be written to
         """
-        print(f'Writing weights to file "{path}"')
+        # print(f'Writing weights to file "{path}"')
         np.set_printoptions(threshold=np.inf)
         with open(path, "w") as file:
             text = str(self.dimensions) + "\n"
@@ -475,7 +608,7 @@ class FFNN:
         t_test: np.ndarray = None,
     ):
         train_errors = np.empty(epochs)
-        train_errors.fill(np.nan) # makes for better plots if we cancel early
+        train_errors.fill(np.nan)  # makes for better plots if we cancel early
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
         chunksize = X.shape[0] // batches
@@ -554,7 +687,7 @@ class FFNN:
                     print()
                     print(" " * length, end="\r")
                     print(f"{checkpoint_num}/10: Checkpoint reached")
-                    self.write(self.checkpoint_file)
+                self.write(self.checkpoint_file)
 
         except KeyboardInterrupt:
             # allows for stopping training at any point and seeing the result
