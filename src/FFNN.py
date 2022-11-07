@@ -142,8 +142,10 @@ class FFNN:
                         or self.cost_func.__name__ == "CostCrossEntropy"
                 ):
                     train_acc = accuracy(self.predict(X, raw=False), t)
+                    train_accs[e] = train_acc
                     if X_test is not None and t_test is not None:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
+                        test_accs[e] = test_acc
 
                 train_errors[e] = train_error
                 test_errors[e] = test_error
@@ -180,7 +182,7 @@ class FFNN:
         )
         print()
 
-        return train_errors, test_errors
+        return train_errors, test_errors, train_accs, test_accs
 
     def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
