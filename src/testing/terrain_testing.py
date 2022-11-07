@@ -20,7 +20,7 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-eta = 0.001
+eta = 0.0001
 momentum = 0.5
 rho = 0.9
 rho2 = 0.99
@@ -29,7 +29,7 @@ sched = Adam
 params = [eta, rho, rho2]
 
 dims = (2, 100, 100, 1)
-neural = FFNN(dims, checkpoint_file="weights")
+neural = FFNN(dims, checkpoint_file="weights", hidden_func=RELU)
 # neural.read("weights")
 train_errors, test_errors = neural.fit(
     X_train[:, 1:3],
