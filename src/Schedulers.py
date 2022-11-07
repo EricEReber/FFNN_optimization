@@ -1,15 +1,21 @@
 from utils import *
 
+
 class Scheduler:
     """
     Abstract class for Schedulers
     """
+
     def __init__(self, eta):
         self.eta = eta
 
     # should be overwritten
     def update_change(self, gradient):
         raise NotImplementedError
+
+    # overwritten if needed
+    def reset(self):
+        pass
 
 
 class Constant(Scheduler):
@@ -32,6 +38,9 @@ class Momentum(Scheduler):
         self.change = self.momentum * self.change + self.eta * gradient
         return self.change
 
+    def reset(self):
+        self.change = 0
+
 
 class Adagrad(Scheduler):
     def __init__(self, eta, batch_size):
@@ -51,7 +60,7 @@ class Adagrad(Scheduler):
         self.G_t += gradient @ gradient.T
 
         G_t_inverse = 1 / (
-                delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
+            delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
         )
         self.change = self.eta * gradient * G_t_inverse
         return self.change
