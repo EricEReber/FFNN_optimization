@@ -364,7 +364,19 @@ class FFNN:
             self.weights.append(weight_array)
 
     def optimize_scheduler(
-        self, X, t, scheduler, eta, lam, *args, batches=1, epochs=1000
+        # todo change to test_score instead of train
+        # todo select minimal error at the end of training, not min all time as this leads to strange results
+        self,
+        X,
+        t,
+        X_test,
+        t_test,
+        scheduler,
+        eta,
+        lam,
+        *args,
+        batches=1,
+        epochs=1000,
     ):
 
         if scheduler is not Momentum:
@@ -372,7 +384,7 @@ class FFNN:
             for y in range(eta.shape[0]):
                 for x in range(lam.shape[0]):
                     params = [eta[y]] + [*args][0]
-                    error_over_epochs, _ = self.fit(
+                    _, test_error = self.fit(
                         X,
                         t,
                         scheduler,
@@ -380,8 +392,10 @@ class FFNN:
                         batches=batches,
                         epochs=epochs,
                         lam=lam[x],
+                        X_test=X_test,
+                        t_test=t_test,
                     )
-                    loss_heatmap[y, x] = np.min(error_over_epochs)
+                    loss_heatmap[y, x] = test_error[-1]
 
             # select optimal eta, lambda
             y, x = (
@@ -392,13 +406,13 @@ class FFNN:
             optimal_lambda = lam[x]
 
             optimal_params = [optimal_eta] + [*args][0]
-            batch_sizes = np.linspace(1, X.shape[0]//2, 5, dtype=int)
+            batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
             optimal_batch = 0
             batch_size_search = np.zeros(len(batch_sizes))
             for i in range(len(batch_sizes)):
                 # neural.read(f"batch_size_search{i}")
-                error_over_epochs, _ = self.fit(
+                _, test_error = self.fit(
                     X,
                     t,
                     scheduler,
@@ -406,9 +420,11 @@ class FFNN:
                     batches=batch_sizes[i],
                     epochs=epochs,
                     lam=optimal_lambda,
+                    X_test=X_test,
+                    t_test=t_test,
                 )
                 # todo would be interesting to see how much time / how fast it happens
-                batch_size_search[i] = np.min(error_over_epochs)
+                batch_size_search[i] = test_error[-1]
             minimal_error = np.min(batch_size_search)
             optimal_batch = batch_sizes[np.argmin(batch_size_search)]
 
@@ -430,17 +446,20 @@ class FFNN:
             )
         else:
             return self.optimize_momentum(
-                X, t, eta, lam, *args, batches=batches, epochs=epochs
+                X, t, X_test, t_test, eta, lam, *args, batches=batches, epochs=epochs
             )
 
-    def optimize_momentum(self, X, t, eta, lam, momentums, batches=1, epochs=1000):
-
+    def optimize_momentum(
+        self, X, t, X_test, t_test, eta, lam, momentums, batches=1, epochs=1000
+    ):
+        # todo change to test_score instead of train
+        # todo select minimal error at the end of training, not min all time as this leads to strange results
         loss_heatmap = np.zeros((eta.shape[0], lam.shape[0], len(momentums)))
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    error_over_epochs, _ = self.fit(
+                    _, test_error = self.fit(
                         X,
                         t,
                         Momentum,
@@ -448,8 +467,10 @@ class FFNN:
                         batches=batches,
                         epochs=epochs,
                         lam=lam[x],
+                        X_test=X_test,
+                        t_test=t_test,
                     )
-                    loss_heatmap[y, x, z] = np.min(error_over_epochs)
+                    loss_heatmap[y, x, z] = test_error[-1]
 
         y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
         optimal_eta = eta[y]
@@ -457,13 +478,13 @@ class FFNN:
         optimal_momentum = momentums[z]
 
         optimal_params = [optimal_eta, optimal_momentum]
-        batch_sizes = np.linspace(1, X.shape[0]//2, 5, dtype=int)
+        batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
         optimal_batch = 0
         batch_size_search = np.zeros(len(batch_sizes))
         for i in range(len(batch_sizes)):
             # neural.read(f"batch_size_search{i}")
-            error_over_epochs, _ = self.fit(
+            _, test_error = self.fit(
                 X,
                 t,
                 Momentum,
@@ -471,9 +492,11 @@ class FFNN:
                 batches=batch_sizes[i],
                 epochs=epochs,
                 lam=optimal_lambda,
+                X_test=X_test,
+                t_test=t_test,
             )
             # todo would be interesting to see how much time / how fast it happens
-            batch_size_search[i] = np.min(error_over_epochs)
+            batch_size_search[i] = test_error[-1]
         minimal_error = np.min(batch_size_search)
         optimal_batch = batch_sizes[np.argmin(batch_size_search)]
 
@@ -598,7 +621,10 @@ class FFNN:
         predict = self.feedforward(X)
         if raw:
             return predict
-        elif self.cost_func.__name__ == "CostLogReg" or self.cost_func.__name__ == "CostCrossEntropy":
+        elif (
+            self.cost_func.__name__ == "CostLogReg"
+            or self.cost_func.__name__ == "CostCrossEntropy"
+        ):
             return np.where(
                 predict > np.ones(predict.shape) * threshold,
                 np.ones(predict.shape),
@@ -667,6 +693,7 @@ class FFNN:
 
                         for scheduler in self.schedulers_bias:
                             scheduler.reset()
+
                 train_error = cost_function_train(self.predict(X, raw=True))
                 if X_test is not None and t_test is not None:
                     test_error = cost_function_test(self.predict(X_test, raw=True))

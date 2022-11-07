@@ -23,11 +23,13 @@ np.random.seed(42069)
     z,
 ) = read_from_cmdline()
 z_train = z_train.reshape(z_train.shape[0], 1)
+z_test = z_test.reshape(z_test.shape[0], 1)
 
-epochs = 10
+epochs = 20
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
+# dims = (2, 20, 1)
 
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
@@ -43,7 +45,13 @@ adagrad_params = []
 rms_params = [rho]
 adam_params = [rho, rho2]
 
-params_list = [constant_params, momentum_params, adagrad_params, rms_params, adam_params]
+params_list = [
+    constant_params,
+    momentum_params,
+    adagrad_params,
+    rms_params,
+    adam_params,
+]
 optimal_params_list = []
 
 optimal_eta = np.zeros(len(schedulers))
@@ -54,7 +62,7 @@ minimal_errors = np.zeros(len(schedulers))
 neural = FFNN(dims, checkpoint_file=f"test_task_a")
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
-    plt.suptitle("Loss for eta, lambda grid", fontsize=22)
+    plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
     (
         optimal_params,
         optimal_lambda,
@@ -62,7 +70,15 @@ for i in range(len(schedulers)):
         minimal_error,
         plotting_data,
     ) = neural.optimize_scheduler(
-        X_train, z_train, schedulers[i], eta, lam, params_list[i], epochs=epochs,
+        X_train,
+        z_train,
+        X_test,
+        z_test,
+        schedulers[i],
+        eta,
+        lam,
+        params_list[i],
+        epochs=epochs // 2,
     )
 
     optimal_eta[i] = optimal_params[0]
@@ -94,16 +110,18 @@ for i in range(len(schedulers)):
         f"{schedulers[i].__name__} \n {optimal_eta[i]=}\n {optimal_lambdas[i]=} \n {optimal_batches[i]=}\n{minimal_errors[i]=}"
     )
     # neural.read(f"comparison{i}")
-    error_over_epochs, _ = neural.fit(
-        X_train,
+    _, test_error = neural.fit(
+        X_train[:, 1:3],
         z_train,
         schedulers[i],
         *optimal_params_list[i],
         batches=optimal_batches[i],
         epochs=epochs,
         lam=optimal_lambdas[i],
+        X_test=X_test,
+        t_test=z_test,
     )
-    plt.plot(error_over_epochs, label=f"{schedulers[i].__name__}")
+    plt.plot(test_error, label=f"{schedulers[i].__name__}")
     plt.legend(loc=(1.04, 0))
 plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
