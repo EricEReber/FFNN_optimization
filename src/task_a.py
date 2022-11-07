@@ -27,11 +27,11 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-epochs = 200
+epochs = 20
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
-# dims = (2, 20, 1)
+# dims = (2, 20, 20, 1)
 
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
@@ -41,9 +41,11 @@ rho2 = 0.999
 
 batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 schedulers = [Constant, Momentum, Adagrad, RMS_prop, Adam]
+# schedulers = [Constant, Momentum, AdagradMomentum]
 
 constant_params = []
 momentum_params = np.linspace(0, 1, 5)
+adagrad_momentum_params = np.linspace(0, 1, 5)
 adagrad_params = []
 rms_params = [rho]
 adam_params = [rho, rho2]
@@ -55,6 +57,7 @@ params_list = [
     rms_params,
     adam_params,
 ]
+# params_list = [constant_params, momentum_params, adagrad_momentum_params]
 optimal_params_list = []
 
 optimal_eta = np.zeros(len(schedulers))
@@ -73,8 +76,10 @@ for i in range(len(schedulers)):
         minimal_error,
         plotting_data,
     ) = neural.optimize_scheduler(
+        # X_train[:, 1:3],
         X_train,
         z_train,
+        # X_test[:, 1:3],
         X_test,
         z_test,
         schedulers[i],
@@ -82,6 +87,7 @@ for i in range(len(schedulers)):
         lam,
         batch_sizes,
         params_list[i],
+        batches=X.shape[0]//8,
         epochs=epochs // 2,
     )
 
@@ -115,14 +121,17 @@ for i in range(len(schedulers)):
     )
     # neural.read(f"comparison{i}")
     neural = FFNN(dims)
-    _, test_error = neural.fit(
+    _, test_error, _, _ = neural.fit(
+        # X_train[:, 1:3],
         X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        batches=optimal_batches[i],
+        # batches=optimal_batches[i],
+        batches=X.shape[0]//8,
         epochs=epochs,
         lam=optimal_lambdas[i],
+        # X_test=X_test[:, 1:3],
         X_test=X_test,
         t_test=z_test,
     )
