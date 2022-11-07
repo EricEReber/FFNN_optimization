@@ -78,7 +78,13 @@ class FFNN:
         train_errors.fill(np.nan)  # makes for better plots if we cancel early
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
-        chunksize = X.shape[0] // batches
+
+        train_accs = np.empty(epochs)
+        train_accs.fill(np.nan)  # makes for better plots if we cancel early
+        test_accs = np.empty(epochs)
+        test_accs.np.fill(np.nan)
+
+        batch_size = X.shape[0] // batches
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
@@ -93,8 +99,8 @@ class FFNN:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
-            self.schedulers_weight.append(scheduler_class(*args, chunksize))
-            self.schedulers_bias.append(scheduler_class(*args, chunksize))
+            self.schedulers_weight.append(scheduler_class(*args, batch_size))
+            self.schedulers_bias.append(scheduler_class(*args, batch_size))
 
         print(scheduler_class.__name__)
         try:
@@ -103,11 +109,11 @@ class FFNN:
                     # print(f"Batch: {i}")
                     if i == batches - 1:
                         # if we are on the last, take all thats left
-                        X_batch = X[i * chunksize :, :]
-                        t_batch = t[i * chunksize :, :]
+                        X_batch = X[i * batch_size :, :]
+                        t_batch = t[i * batch_size :, :]
                     else:
-                        X_batch = X[i * chunksize : (i + 1) * chunksize, :]
-                        t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
+                        X_batch = X[i * batch_size : (i + 1) * batch_size, :]
+                        t_batch = t[i * batch_size : (i + 1) * batch_size :, :]
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
