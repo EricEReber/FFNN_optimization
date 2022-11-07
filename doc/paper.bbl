@@ -17,8 +17,15 @@ Goodfellow, I., Bengio, Y., and Courville, A. (2016).
 \newblock MIT Press.
 \newblock http://www.deeplearningbook.org.
 
-\bibitem[Hjort-Jensen, 2022]{morten}
-Hjort-Jensen, M. (2022).
+\bibitem[Hjort-Jensen, 2022a]{mortensched}
+Hjort-Jensen, M. (2022a).
+\newblock Week 39: Optimization and gradient methods.
+\newblock On the WWW.
+\newblock URL
+  \verb+https://compphysics.github.io/MachineLearning/doc/pub/week39/html/week39.html+.
+
+\bibitem[Hjort-Jensen, 2022b]{morten}
+Hjort-Jensen, M. (2022b).
 \newblock Week 40: Neural networks.
 \newblock On the WWW.
 \newblock URL
