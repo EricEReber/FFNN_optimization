@@ -25,7 +25,7 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-epochs = 20
+epochs = 200
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
@@ -59,7 +59,7 @@ optimal_lambdas = np.zeros(len(schedulers))
 optimal_batches = np.zeros(len(schedulers), dtype=int)
 minimal_errors = np.zeros(len(schedulers))
 
-neural = FFNN(dims, checkpoint_file=f"test_task_a")
+neural = FFNN(dims)
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
@@ -110,8 +110,9 @@ for i in range(len(schedulers)):
         f"{schedulers[i].__name__} \n {optimal_eta[i]=}\n {optimal_lambdas[i]=} \n {optimal_batches[i]=}\n{minimal_errors[i]=}"
     )
     # neural.read(f"comparison{i}")
+    neural = FFNN(dims)
     _, test_error = neural.fit(
-        X_train[:, 1:3],
+        X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],

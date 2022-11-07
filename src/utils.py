@@ -355,10 +355,20 @@ class FFNN:
         self.z_matrices = list()
         self.checkpoint_file = checkpoint_file
 
-        for i in range(len(dimensions) - 1):
+        for i in range(len(self.dimensions) - 1):
             # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
-            weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
-            weight_array[0, :] = np.random.randn(dimensions[i + 1]) * 0.01
+            weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
+            weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
+
+            # weight_array[0, :] = np.ones(dimensions[i + 1])
+            self.weights.append(weight_array)
+
+    def reset_weights(self):
+        self.weights = list()
+        for i in range(len(self.dimensions) - 1):
+            # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
+            weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
+            weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
 
             # weight_array[0, :] = np.ones(dimensions[i + 1])
             self.weights.append(weight_array)
@@ -396,6 +406,7 @@ class FFNN:
                         t_test=t_test,
                     )
                     loss_heatmap[y, x] = test_error[-1]
+                    self.reset_weights()
 
             # select optimal eta, lambda
             y, x = (
@@ -423,6 +434,7 @@ class FFNN:
                     X_test=X_test,
                     t_test=t_test,
                 )
+                self.reset_weights()
                 # todo would be interesting to see how much time / how fast it happens
                 batch_size_search[i] = test_error[-1]
             minimal_error = np.min(batch_size_search)
@@ -471,6 +483,7 @@ class FFNN:
                         t_test=t_test,
                     )
                     loss_heatmap[y, x, z] = test_error[-1]
+                    self.reset_weights()
 
         y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
         optimal_eta = eta[y]
@@ -495,6 +508,8 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
+            self.reset_weights()
+
             # todo would be interesting to see how much time / how fast it happens
             batch_size_search[i] = test_error[-1]
         minimal_error = np.min(batch_size_search)
@@ -732,7 +747,7 @@ class FFNN:
                     print()
                     print(" " * length, end="\r")
                     print(f"{checkpoint_num}/10: Checkpoint reached")
-                self.write(self.checkpoint_file)
+                    self.write(self.checkpoint_file)
 
         except KeyboardInterrupt:
             # allows for stopping training at any point and seeing the result
