@@ -69,6 +69,35 @@ class Adagrad(Scheduler):
         self.G_t = None
 
 
+class AdagradMomentum(Scheduler):
+    def __init__(self, eta, momentum, batch_size):
+        super().__init__(eta)
+        self.G_t = None
+        self.batch_size = batch_size
+        self.momentum = momentum
+        self.change = 0
+
+    def update_change(self, gradient):
+        delta = 1e-8  # avoid division ny zero
+
+        if self.G_t is None:
+            self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
+
+        gradient = gradient / self.batch_size
+
+        self.G_t += gradient @ gradient.T
+
+        G_t_inverse = 1 / (
+            delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
+        )
+        self.change = self.change * self.momentum + self.eta * gradient * G_t_inverse
+        return self.change
+
+    def reset(self):
+        self.G_t = None
+        self.change = 0
+
+
 class RMS_prop(Scheduler):
     def __init__(self, eta, rho, batch_size):
         super().__init__(eta)
