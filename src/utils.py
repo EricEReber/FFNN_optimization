@@ -779,7 +779,7 @@ class FFNN:
             else:
                 delta_matrix = (
                     self.weights[i + 1][1:, :] @ delta_matrix.T
-                ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
+                ).T * hidden_derivative(self.z_matrices[i + 1])
 
             gradient_weights_matrix = np.zeros(
                 (
