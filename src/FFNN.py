@@ -82,7 +82,7 @@ class FFNN:
         train_accs = np.empty(epochs)
         train_accs.fill(np.nan)  # makes for better plots if we cancel early
         test_accs = np.empty(epochs)
-        test_accs.np.fill(np.nan)
+        test_accs.fill(np.nan)
 
         batch_size = X.shape[0] // batches
         X, t = resample(X, t)
@@ -118,16 +118,11 @@ class FFNN:
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
 
-                    if (
-                            isinstance(self.schedulers_weight[0], RMS_prop)
-                            or isinstance(self.schedulers_weight[0], Adam)
-                            or isinstance(self.schedulers_weight[0], Adagrad)
-                    ):
-                        for scheduler in self.schedulers_weight:
-                            scheduler.reset()
+                    for scheduler in self.schedulers_weight:
+                        scheduler.reset()
 
-                        for scheduler in self.schedulers_bias:
-                            scheduler.reset()
+                    for scheduler in self.schedulers_bias:
+                        scheduler.reset()
 
                 train_error = cost_function_train(self.predict(X, raw=True))
                 if X_test is not None and t_test is not None:
