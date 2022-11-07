@@ -5,6 +5,8 @@ import seaborn as sns
 
 from matplotlib.patches import Rectangle
 from utils import *
+from Schedulers import *
+from FFNN import FFNN
 
 np.random.seed(42069)
 
@@ -37,6 +39,7 @@ lam[0] = 0
 rho = 0.9
 rho2 = 0.999
 
+batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 schedulers = [Constant, Momentum, Adagrad, RMS_prop, Adam]
 
 constant_params = []
@@ -77,6 +80,7 @@ for i in range(len(schedulers)):
         schedulers[i],
         eta,
         lam,
+        batch_sizes,
         params_list[i],
         epochs=epochs // 2,
     )
@@ -124,6 +128,10 @@ for i in range(len(schedulers)):
     )
     plt.plot(test_error, label=f"{schedulers[i].__name__}")
     plt.legend(loc=(1.04, 0))
+best_MSE_analytically = np.zeros(epochs)
+best_MSE_analytically[:] = 0.003027
+plt.plot(best_MSE_analytically)
+plt.legend(loc=(1.04, 0))
 plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
 plt.title("MSE over Epochs for different schedulers", fontsize=22)
