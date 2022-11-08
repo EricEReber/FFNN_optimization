@@ -119,11 +119,10 @@ class Adam(Scheduler):
         self.moment = self.rho * self.moment + (1 - self.rho) * gradient
         self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
-        self.moment = self.moment / (1 - self.rho**self.n_epochs)
-        print(self.rho2**self.n_epochs)
-        self.second = self.second / (1 - self.rho2**self.n_epochs)
+        moment_corrected = self.moment / (1 - self.rho**self.n_epochs)
+        second_corrected = self.second / (1 - self.rho2**self.n_epochs)
 
-        return self.eta * self.moment / (np.sqrt(self.second + delta))
+        return self.eta * moment_corrected / (np.sqrt(second_corrected + delta))
 
     def reset(self):
         self.n_epochs += 1
