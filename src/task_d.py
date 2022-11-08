@@ -4,6 +4,8 @@ task b (and task g): plot terrain, approximate terrain with OLS (own implementat
 """
 # Our own library of functions
 from utils import *
+from Schedulers import *
+from FFNN import FFNN
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -21,45 +23,44 @@ z = cancer.target
 
 X_train, X_test, z_train, z_test = train_test_split(X, z)
 
-
 scaler = StandardScaler()
 scaler.fit(X_train)
 
 X_train_sc = scaler.transform(X_train)
 X_test_sc = scaler.transform(X_test)
 
-# dims = (30, 20, 20, 1)
-dims = (30, 30, 30, 1)
 
-rho1 = 0.99
-rho2 = 0.90
+# parameters
+neural_dims = (30, 20, 20, 1)
+logreg_dims = (30, 1)
+eta = 0.0004
+rho = 0.90
+rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
-batches = 5
+batches = 10
 batch_size = X.shape[0] // batches
 
+neural = FFNN(neural_dims, hidden_func=LRELU, output_func=sigmoid, cost_func=CostLogReg)
 
-eta = 0.0001
+momentum = 0.5
 
-neural = FFNN(
-    dims, output_func=sigmoid, cost_func=CostLogReg, checkpoint_file="cancerweights30"
-)
-# neural.read("cancerweights20")
-train_errors, test_errors = neural.fit(
+sched = Momentum
+params = [eta, momentum]
+# params = [eta]
+
+scores = neural.fit(
     X_train_sc,
     z_train,
-    Adam,
-    # Constant,
-    eta,
-    rho1,
-    rho2,
+    sched,
+    *params,
     batches=batches,
-    # epochs=10000,
-    epochs=10000,
+    epochs=1000,
     X_test=X_test_sc,
     t_test=z_test,
-    # lam=10e-3,
 )
+train_errors = scores["train_error"]
+test_errors = scores["test_error"]
 plt.plot(train_errors, label="train")
 plt.plot(test_errors, label="test")
 plt.legend()
