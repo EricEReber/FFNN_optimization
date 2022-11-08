@@ -2,6 +2,7 @@ import numpy as np
 from Schedulers import *
 from utils import *
 
+
 class FFNN:
     """
     Feed Forward Neural Network
@@ -23,12 +24,13 @@ class FFNN:
     """
 
     def __init__(
-            self,
-            dimensions: tuple[int],
-            hidden_func: Callable = sigmoid,
-            output_func: Callable = lambda x: x,
-            cost_func: Callable = CostOLS,
-            checkpoint_file: str = None,
+        self,
+        dimensions: tuple[int],
+        hidden_func: Callable = sigmoid,
+        output_func: Callable = lambda x: x,
+        cost_func: Callable = CostOLS,
+        checkpoint_file: str = None,
+        seed: int = None,
     ):
         self.weights = list()
         self.schedulers_weight = list()
@@ -40,25 +42,29 @@ class FFNN:
         self.output_func = output_func
         self.cost_func = cost_func
         self.checkpoint_file = checkpoint_file
+        self.seed = seed
 
         for i in range(len(self.dimensions) - 1):
-            np.random.seed(42069)
-            weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
+            if self.seed is not None:
+                np.random.seed(self.seed)
+            weight_array = np.random.randn(
+                self.dimensions[i] + 1, self.dimensions[i + 1]
+            )
             weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
 
             self.weights.append(weight_array)
 
     def fit(
-            self,
-            X: np.ndarray,
-            t: np.ndarray,
-            scheduler_class,
-            *args,  # arguments for the scheduler (sans batchsize)
-            batches: int = 1,
-            epochs: int = 1000,
-            lam: float = 0,
-            X_test: np.ndarray = None,
-            t_test: np.ndarray = None,
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        scheduler_class,
+        *args,  # arguments for the scheduler (sans batchsize)
+        batches: int = 1,
+        epochs: int = 1000,
+        lam: float = 0,
+        X_test: np.ndarray = None,
+        t_test: np.ndarray = None,
     ):
         """
         Trains the neural network via feedforward and backpropagation
@@ -86,7 +92,8 @@ class FFNN:
         test_accs.fill(np.nan)
 
         batch_size = X.shape[0] // batches
-        np.random.seed(42069)
+        if self.seed is not None:
+            np.random.seed(self.seed)
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
@@ -135,8 +142,8 @@ class FFNN:
                 train_acc = None
                 test_acc = None
                 if (
-                        self.cost_func.__name__ == "CostLogReg"
-                        or self.cost_func.__name__ == "CostCrossEntropy"
+                    self.cost_func.__name__ == "CostLogReg"
+                    or self.cost_func.__name__ == "CostCrossEntropy"
                 ):
                     train_acc = accuracy(self.predict(X, raw=False), t)
                     train_accs[e] = train_acc
@@ -157,7 +164,7 @@ class FFNN:
                 )
 
                 if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
-                        e == epochs - 1 and self.checkpoint_file
+                    e == epochs - 1 and self.checkpoint_file
                 ):
                     checkpoint_num += 1
                     print()
@@ -179,7 +186,12 @@ class FFNN:
         )
         print()
 
-        return train_errors, test_errors, train_accs, test_accs
+        return {
+            "train_error": train_errors,
+            "test_error": test_errors,
+            "train_acc": train_accs,
+            "test_acc": test_accs,
+        }
 
     def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
@@ -199,31 +211,31 @@ class FFNN:
         if raw:
             return predict
         elif (
-                self.cost_func.__name__ == "CostLogReg"
-                or self.cost_func.__name__ == "CostCrossEntropy"
+            self.cost_func.__name__ == "CostLogReg"
+            or self.cost_func.__name__ == "CostCrossEntropy"
         ):
             return np.where(
                 predict > np.ones(predict.shape) * threshold,
                 np.ones(predict.shape),
                 np.zeros(predict.shape),
-                )
+            )
         else:
             return predict
 
     def optimize_scheduler(
-            self,
-            X: np.ndarray,
-            t: np.ndarray,
-            X_test: np.ndarray,
-            t_test: np.ndarray,
-            scheduler: Scheduler,
-            eta: list[float],
-            lam: list[float],
-            batch_sizes: list[int],
-            *args,
-            batches = 1,
-            epochs: int = 1000,
-            # classify: bool = False
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        X_test: np.ndarray,
+        t_test: np.ndarray,
+        scheduler: Scheduler,
+        eta: list[float],
+        lam: list[float],
+        batch_sizes: list[int],
+        *args,
+        batches=1,
+        epochs: int = 1000,
+        # classify: bool = False
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -255,7 +267,7 @@ class FFNN:
         #     optimal_batch = 0
         #     batch_size_search = np.zeros(len(batch_sizes))
         #     for i in range(len(batch_sizes)):
-        #         _, _, _, test_accs = self.fit(
+        #         scores = self.fit(
         #             X,
         #             t,
         #             scheduler,
@@ -266,6 +278,7 @@ class FFNN:
         #             X_test=X_test,
         #             t_test=t_test,
         #         )
+        #         test_error = scores["test_error"]
         #         self._reset_weights()
         #         batch_size_search[i] = test_error[-1]
         #     minimal_error = np.min(batch_size_search)
@@ -282,17 +295,35 @@ class FFNN:
         #     )
         if scheduler is not Momentum and scheduler is not AdagradMomentum:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler(
-                X, t, X_test, t_test, scheduler, eta, lam, *args, batches=batches, epochs=epochs
+                X,
+                t,
+                X_test,
+                t_test,
+                scheduler,
+                eta,
+                lam,
+                *args,
+                batches=batches,
+                epochs=epochs,
             )
         else:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
-                X, t, X_test, t_test, scheduler, eta, lam, *args, batches=batches, epochs=epochs
+                X,
+                t,
+                X_test,
+                t_test,
+                scheduler,
+                eta,
+                lam,
+                *args,
+                batches=batches,
+                epochs=epochs,
             )
 
         optimal_batch = 0
         batch_size_search = np.zeros(len(batch_sizes))
         for i in range(len(batch_sizes)):
-            _, test_error, _, _ = self.fit(
+            scores = self.fit(
                 X,
                 t,
                 scheduler,
@@ -303,6 +334,7 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
+            test_error = scores["test_error"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
             batch_size_search[i] = test_error[-1]
@@ -325,7 +357,6 @@ class FFNN:
             minimal_error,
             plotting_data,
         )
-
 
     def write(self, path: str):
         """Write weights and biases to file
@@ -372,10 +403,13 @@ class FFNN:
         """
         Resets weights in order to reuse FFNN object for training
         """
-        np.random.seed(42069)
+        if self.seed is not None:
+            np.random.seed(self.seed)
         self.weights = list()
         for i in range(len(self.dimensions) - 1):
-            weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
+            weight_array = np.random.randn(
+                self.dimensions[i] + 1, self.dimensions[i + 1]
+            )
             weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
 
             self.weights.append(weight_array)
@@ -445,8 +479,8 @@ class FFNN:
 
             else:
                 delta_matrix = (
-                                       self.weights[i + 1][1:, :] @ delta_matrix.T
-                               ).T * hidden_derivative(self.z_matrices[i + 1])
+                    self.weights[i + 1][1:, :] @ delta_matrix.T
+                ).T * hidden_derivative(self.z_matrices[i + 1])
 
             gradient_weights_matrix = np.zeros(
                 (
@@ -516,7 +550,7 @@ class FFNN:
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
-                _, test_error, _, _ = self.fit(
+                scores = self.fit(
                     X,
                     t,
                     scheduler,
@@ -527,6 +561,7 @@ class FFNN:
                     X_test=X_test,
                     t_test=t_test,
                 )
+                test_error = scores["test_error"]
                 loss_heatmap[y, x] = test_error[-1]
                 self.reset_weights()
 
@@ -543,7 +578,17 @@ class FFNN:
         return loss_heatmap, optimal_params, optimal_lambda
 
     def _gridsearch_momentum(
-            self, X, t, X_test, t_test, scheduler, eta, lam, momentums, batches=1, epochs=1000
+        self,
+        X,
+        t,
+        X_test,
+        t_test,
+        scheduler,
+        eta,
+        lam,
+        momentums,
+        batches=1,
+        epochs=1000,
     ):
         """
         Help function for optimize_scheduler
@@ -556,7 +601,7 @@ class FFNN:
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
                     print(params)
-                    _, test_error, _, _ = self.fit(
+                    scores = self.fit(
                         X,
                         t,
                         scheduler,
@@ -567,6 +612,7 @@ class FFNN:
                         X_test=X_test,
                         t_test=t_test,
                     )
+                    test_error = scores["test_error"]
                     loss_heatmap[y, x, z] = test_error[-1]
                     self.reset_weights()
 

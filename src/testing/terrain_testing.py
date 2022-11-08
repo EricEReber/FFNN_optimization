@@ -1,4 +1,6 @@
 from utils import *
+from Schedulers import *
+from FFNN import FFNN
 
 np.random.seed(42069)
 (
@@ -20,24 +22,27 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-eta = 0.0001
+eta = 0.00005
 momentum = 0.5
 rho = 0.9
 rho2 = 0.99
 
 sched = Adam
+# sched = Momentum
 params = [eta, rho, rho2]
+# params = [eta, momentum]
 
-dims = (2, 100, 100, 1)
+dims = (2, 80, 80, 1)
 neural = FFNN(dims, checkpoint_file="weights", hidden_func=RELU)
 # neural.read("weights")
-train_errors, test_errors = neural.fit(
+train_errors, test_errors, _, _ = neural.fit(
     X_train[:, 1:3],
     z_train,
     sched,
     *params,
-    batches=10,
+    batches=30,
     epochs=10000,
+    lam=0.08,
     X_test=X_test[:, 1:3],
     t_test=z_test,
 )
