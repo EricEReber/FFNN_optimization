@@ -109,12 +109,9 @@ class Adam(Scheduler):
         super().__init__(eta)
         self.rho = rho
         self.rho2 = rho2
-
-        self.rho_t = rho
-        self.rho2_t = rho2
-
         self.moment = 0
         self.second = 0
+        self.n_epochs = 1
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
@@ -122,16 +119,12 @@ class Adam(Scheduler):
         self.moment = self.rho * self.moment + (1 - self.rho) * gradient
         self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
-        self.rho_t *= self.rho_t
-        self.rho2_t *= self.rho2_t
-
-        self.moment = self.moment / (1 - self.rho_t)
-        self.second = self.second / (1 - self.rho2_t)
+        self.moment = self.moment / (1 - self.rho**self.n_epochs)
+        self.second = self.second / (1 - self.rho2**self.n_epochs)
 
         return self.eta * self.moment / (np.sqrt(self.second + delta))
 
     def reset(self):
-        self.rho_t = self.rho
-        self.rho2_t = self.rho2
+        self.n_epochs += 1
         self.moment = 0
         self.second = 0
