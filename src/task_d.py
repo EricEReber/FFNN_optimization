@@ -33,7 +33,7 @@ X_test_sc = scaler.transform(X_test)
 # parameters
 neural_dims = (30, 20, 20, 1)
 logreg_dims = (30, 1)
-eta = 0.0004
+eta = 0.01
 rho = 0.90
 rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
@@ -41,13 +41,14 @@ z_test = z_test.reshape(z_test.shape[0], 1)
 batches = 10
 batch_size = X.shape[0] // batches
 
-neural = FFNN(neural_dims, hidden_func=LRELU, output_func=sigmoid, cost_func=CostLogReg)
+neural = FFNN(neural_dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg)
 
 momentum = 0.5
 
-sched = Momentum
+sched = Adam
 params = [eta, momentum]
 # params = [eta]
+params = [eta, rho, rho2]
 
 scores = neural.fit(
     X_train_sc,

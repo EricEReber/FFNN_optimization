@@ -19,24 +19,20 @@ class Scheduler:
 
 
 class Constant(Scheduler):
-    def __init__(self, eta, batch_size):
+    def __init__(self, eta):
         super().__init__(eta)
-        self.batch_size = batch_size
 
     def update_change(self, gradient):
-        gradient /= self.batch_size
         return self.eta * gradient
 
 
 class Momentum(Scheduler):
-    def __init__(self, eta: float, momentum: float, batch_size):
+    def __init__(self, eta: float, momentum: float):
         super().__init__(eta)
         self.momentum = momentum
         self.change = 0
-        self.batch_size = batch_size
 
     def update_change(self, gradient):
-        gradient /= self.batch_size
         self.change = self.momentum * self.change + self.eta * gradient
         return self.change
 
@@ -45,11 +41,9 @@ class Momentum(Scheduler):
 
 
 class Adagrad(Scheduler):
-    def __init__(self, eta, batch_size):
+    def __init__(self, eta):
         super().__init__(eta)
         self.G_t = None
-        self.batch_size = batch_size
-        self.change = 0
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
@@ -57,22 +51,19 @@ class Adagrad(Scheduler):
         if self.G_t is None:
             self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
 
-        gradient = gradient / self.batch_size
-
         self.G_t += gradient @ gradient.T
 
         G_t_inverse = 1 / (
             delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
         )
-        self.change = self.eta * gradient * G_t_inverse
-        return self.change
+        return self.eta * gradient * G_t_inverse
 
     def reset(self):
         self.G_t = None
 
 
 class AdagradMomentum(Scheduler):
-    def __init__(self, eta, momentum, batch_size):
+    def __init__(self, eta, momentum):
         super().__init__(eta)
         self.G_t = None
         self.batch_size = batch_size
@@ -84,8 +75,6 @@ class AdagradMomentum(Scheduler):
 
         if self.G_t is None:
             self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
-
-        gradient = gradient / self.batch_size
 
         self.G_t += gradient @ gradient.T
 
@@ -101,7 +90,7 @@ class AdagradMomentum(Scheduler):
 
 
 class RMS_prop(Scheduler):
-    def __init__(self, eta, rho, batch_size):
+    def __init__(self, eta, rho):
         super().__init__(eta)
         self.batch_size = batch_size
         self.rho = rho
@@ -109,22 +98,18 @@ class RMS_prop(Scheduler):
 
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
-        gradient = gradient / self.batch_size
         self.second = self.rho * self.second + (1 - self.rho) * gradient * gradient
-        self.change = self.eta * gradient / (np.sqrt(self.second + delta))
-        return self.change
+        return self.eta * gradient / (np.sqrt(self.second + delta))
 
     def reset(self):
         self.second = 0.0
 
 
 class Adam(Scheduler):
-    def __init__(self, eta, rho, rho2, batch_size):
+    def __init__(self, eta, rho, rho2):
         super().__init__(eta)
         self.rho = rho
         self.rho2 = rho2
-
-        self.batch_size = batch_size
 
         self.rho_t = rho
         self.rho2_t = rho2
@@ -135,8 +120,6 @@ class Adam(Scheduler):
     def update_change(self, gradient):
         delta = 1e-8  # avoid division ny zero
 
-        gradient = gradient / self.batch_size
-
         self.moment = self.rho * self.moment + (1 - self.rho) * gradient
         self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
@@ -146,9 +129,7 @@ class Adam(Scheduler):
         self.moment = self.moment / (1 - self.rho_t)
         self.second = self.second / (1 - self.rho2_t)
 
-        self.change = self.eta * self.moment / (np.sqrt(self.second + delta))
-
-        return self.change
+        return self.eta * self.moment / (np.sqrt(self.second + delta))
 
     def reset(self):
         self.rho_t = self.rho
