@@ -27,7 +27,7 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-epochs = 20
+epochs = 200
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
@@ -87,7 +87,7 @@ for i in range(len(schedulers)):
         lam,
         batch_sizes,
         params_list[i],
-        batches=X.shape[0]//8,
+        batches=X.shape[0] // 8,
         epochs=epochs // 2,
     )
 
@@ -128,7 +128,7 @@ for i in range(len(schedulers)):
         schedulers[i],
         *optimal_params_list[i],
         # batches=optimal_batches[i],
-        batches=X.shape[0]//8,
+        batches=X.shape[0] // 8,
         epochs=epochs,
         lam=optimal_lambdas[i],
         # X_test=X_test[:, 1:3],
