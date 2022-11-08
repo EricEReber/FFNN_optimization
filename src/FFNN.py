@@ -50,7 +50,7 @@ class FFNN:
             weight_array = np.random.randn(
                 self.dimensions[i] + 1, self.dimensions[i + 1]
             )
-            weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
+            weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.1
 
             self.weights.append(weight_array)
 
