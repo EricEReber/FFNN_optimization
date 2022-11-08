@@ -29,6 +29,7 @@ class FFNN:
             output_func: Callable = lambda x: x,
             cost_func: Callable = CostOLS,
             checkpoint_file: str = None,
+            seed: int = None,
     ):
         self.weights = list()
         self.schedulers_weight = list()
@@ -40,9 +41,11 @@ class FFNN:
         self.output_func = output_func
         self.cost_func = cost_func
         self.checkpoint_file = checkpoint_file
+        self.seed = seed
 
         for i in range(len(self.dimensions) - 1):
-            np.random.seed(42069)
+            if self.seed:
+                np.random.seed(self.seed)
             weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
             weight_array[0, :] = np.random.randn(self.dimensions[i + 1]) * 0.01
 
@@ -86,7 +89,8 @@ class FFNN:
         test_accs.fill(np.nan)
 
         batch_size = X.shape[0] // batches
-        np.random.seed(42069)
+        if self.seed:
+            np.random.seed(self.seed)
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
@@ -372,7 +376,8 @@ class FFNN:
         """
         Resets weights in order to reuse FFNN object for training
         """
-        np.random.seed(42069)
+        if self.seed:
+            np.random.seed(self.seed)
         self.weights = list()
         for i in range(len(self.dimensions) - 1):
             weight_array = np.random.randn(self.dimensions[i] + 1, self.dimensions[i + 1])
