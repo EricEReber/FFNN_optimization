@@ -120,6 +120,7 @@ class Adam(Scheduler):
         self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
 
         self.moment = self.moment / (1 - self.rho**self.n_epochs)
+        print(self.rho2**self.n_epochs)
         self.second = self.second / (1 - self.rho2**self.n_epochs)
 
         return self.eta * self.moment / (np.sqrt(self.second + delta))
