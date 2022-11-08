@@ -19,22 +19,24 @@ class Scheduler:
 
 
 class Constant(Scheduler):
-    # take in batch size for unity but does not use it
     def __init__(self, eta, batch_size):
         super().__init__(eta)
+        self.batch_size = batch_size
 
     def update_change(self, gradient):
+        gradient /= self.batch_size
         return self.eta * gradient
 
 
 class Momentum(Scheduler):
-    # take in batch size for unity but does not use it
     def __init__(self, eta: float, momentum: float, batch_size):
         super().__init__(eta)
         self.momentum = momentum
         self.change = 0
+        self.batch_size = batch_size
 
     def update_change(self, gradient):
+        gradient /= self.batch_size
         self.change = self.momentum * self.change + self.eta * gradient
         return self.change
 
