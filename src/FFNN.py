@@ -127,11 +127,11 @@ class FFNN:
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
 
-                    for scheduler in self.schedulers_weight:
-                        scheduler.reset()
+                for scheduler in self.schedulers_weight:
+                    scheduler.reset()
 
-                    for scheduler in self.schedulers_bias:
-                        scheduler.reset()
+                for scheduler in self.schedulers_bias:
+                    scheduler.reset()
 
                 train_error = cost_function_train(self.predict(X, raw=True))
                 if X_test is not None and t_test is not None:
