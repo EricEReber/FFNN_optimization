@@ -91,13 +91,14 @@ class FFNN:
         test_accs = np.empty(epochs)
         test_accs.fill(np.nan)
 
-        batch_size = X.shape[0] // batches
         if self.seed is not None:
             np.random.seed(self.seed)
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
         checkpoint_num = 0
+
+        batch_size = X.shape[0] // batches
 
         self.schedulers_weight = list()
         self.schedulers_bias = list()
@@ -108,8 +109,8 @@ class FFNN:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
-            self.schedulers_weight.append(scheduler_class(*args, batch_size))
-            self.schedulers_bias.append(scheduler_class(*args, batch_size))
+            self.schedulers_weight.append(scheduler_class(*args))
+            self.schedulers_bias.append(scheduler_class(*args))
 
         print(scheduler_class.__name__)
         try:
@@ -460,10 +461,10 @@ class FFNN:
                     self.a_matrices[i][j, 1:], delta_matrix[j, :]
                 )
 
-            gradient_weights = np.sum(gradient_weights_matrix, axis=0)
-            delta_accumulated = np.sum(delta_matrix, axis=0)
+            gradient_weights = np.mean(gradient_weights_matrix, axis=0)
+            delta_accumulated = np.mean(delta_matrix, axis=0)
 
-            gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
+            # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
 
             update_matrix = np.vstack(
