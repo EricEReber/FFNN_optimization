@@ -92,7 +92,6 @@ class AdagradMomentum(Scheduler):
 class RMS_prop(Scheduler):
     def __init__(self, eta, rho):
         super().__init__(eta)
-        self.batch_size = batch_size
         self.rho = rho
         self.second = 0.0
 
