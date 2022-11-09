@@ -199,6 +199,46 @@ def accuracy(prediction: np.ndarray, target: np.ndarray):
     return np.average((target == prediction))
 
 
+def confusion(prediction: np.ndarray, target: np.ndarray):
+    # expects that both are vector of zero and one
+    # print(np.hstack([target,prediction]))
+    target = np.where(target, True, False)
+    pred = np.where(prediction, True, False)
+    not_target = np.bitwise_not(target)
+    not_pred = np.bitwise_not(pred)
+
+    true_pos = np.sum(pred * target)
+    true_neg = np.sum(not_pred * not_target)
+
+    false_pos = np.sum(pred * not_target)
+    false_neg = np.sum(not_pred * target)
+
+    false_neg_perc = false_neg / (false_neg + true_neg)
+    true_neg_perc = true_neg / (false_neg + true_neg)
+
+    true_pos_perc = true_pos / (false_pos + true_pos)
+    false_pos_perc = false_pos / (false_pos + true_pos)
+
+    return np.array([[true_neg_perc, false_pos_perc], [false_neg_perc, true_pos_perc]])
+
+def plot_confusion(prediction: np.ndarray, target: np.ndarray):
+    fontsize = 40
+    confusion_matrix = confusion(prediction, target)
+
+    sns.set(font_scale=4)
+    sns.heatmap(
+        confusion_matrix,
+        annot=True,
+        fmt=".2%",
+        cmap="Blues",
+        # annot_kws={"fontsize": fontsize},
+    )
+    # plt.xlabel("True class", fontsize=fontsize)
+    plt.xlabel("True class")
+    # plt.ylabel("Predicted class", fontsize=fontsize)
+    plt.ylabel("Predicted class")
+    plt.show()
+
 def fmt(value, N=4):
     import math
 

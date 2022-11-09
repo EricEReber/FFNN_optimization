@@ -215,11 +215,7 @@ class FFNN:
             self.cost_func.__name__ == "CostLogReg"
             or self.cost_func.__name__ == "CostCrossEntropy"
         ):
-            return np.where(
-                predict > np.ones(predict.shape) * threshold,
-                np.ones(predict.shape),
-                np.zeros(predict.shape),
-            )
+            return np.where(predict > threshold, 1, 0)
         else:
             return predict
 
