@@ -90,12 +90,13 @@
 
 \maketitle
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 \section{Abstract}
 
-We developed a Feed Forward Neural Network (FFNN) and applied it to many common datasets used for benchmarking machine learning algorithms. Furthermore, we compared our results to those attained by linear and logistic regression. To optimize our network, we explored the use of different schedulers in our gradient descent method, and compared their performance against eachother. Overall, we found that our FFNN performed well in all classification tasks we tested, attaining test accuracies between $95$ and $100$ percent for all classification problem. However, we also found that simple logistic regression performed similarly, with a much lower computational cost. For regression on terrain data, we found our neural net lacking, not being able to beat our polynomial fit from our previous project, and only attaining an MSE of 1 BILLION, which is 2000 BILLION lower than our best polynomial fit of the Franke Function. In our gradient descent, we found that SCHEDULER performed best, being 1 BILLION percent better than the average of all other methods.
+We developed a Feed Forward Neural Network (FFNN) and applied it to many common datasets used for benchmarking machine learning algorithms. Furthermore, we compared our results to those attained by linear and logistic regression. To optimize our network, we explored the use of different schedulers in our gradient descent method, and compared their performance against eachother. Overall, we found that our FFNN performed well in all classification tasks we tested, attaining test accuracies between $95$ and $100$ percent for all classification problems. However, we also found that simple logistic regression performed similarly, with a much lower computational cost. For regression on real terrain data, we found that our neural network slightly outperformed our previous polynomial fit, attaining an MSE of MONKEY, PERCENT percent lower than simple linear regression. In our gradient descent, we found that SCHEDULER performed best, being 1 BILLION percent better than the average of all other methods.
+
+%we found our neural net lacking, not being able to beat our polynomial fit from our previous project, and only attaining an MSE of 1 BILLION, which is 2000 BILLION lower than our best polynomial fit of the Franke Function. 
 
 
 % \tableofcontents
@@ -136,9 +137,9 @@ As part of the research conducted in this project, we introduce a new type of re
 
 \subsubsection{Gradient Descent}
 
-In our previous project, we have primarily dealt with problems that have an analytical solution. This means that once a model has been decided on (polynomial degree and value for lambda for example), finding the optimal solution is a deterministic process which does not require further tuning. However, for the methods we use in this project - such as Logistic Regression - no analytical solutions exist, thus we will have to turn to numerical techniques to find the ‘ideal’ solution. Our method of choice in this case is gradient descent, an optimization technique which reduces the residuals by utilizing the idea of moving downhill a convex function until a globally minimal scalar value is reached. The gradient itself is nothing more than a first order derivative of a given function, which points in the direction of the greatest change. 
+In our previous project, we have primarily dealt with problems that have an analytical solution. This means that once a model has been decided on (polynomial degree and value for lambda for example), finding the optimal solution is a deterministic process which does not require further tuning. However, for the methods we use in this project - such as Logistic Regression - no analytical solutions exist, thus we will have to turn to numerical techniques to find the 'ideal' solution. Our method of choice in this case is gradient descent, an optimization technique which reduces the residuals by utilizing the idea of moving downhill a convex function until a globally minimal scalar value is reached. The gradient itself is nothing more than a first order derivative of a given function, which points in the direction of the greatest change. 
 
-The application of gradient descent to our problems as means of finding the ideal solution implies that the parameters be initialized randomly. The most common approach is to set each parameter equal to a normal distribution with mean zero and variance equal to one, and iteratively update the parameters by calculating the gradient at each given point in the residual space \cite[preface p. x]{dds}.  For any one-layer model, the gradient function used to tune the weights will take the form of the product of the partial derivative of the cost function with respect to the activation function, and the partial derivative of the activation function with respect to the weights: 
+The application of gradient descent to our problems as means of finding the ideal solution implies that the parameters be initialized randomly. The most common approach is to set each parameter equal to a normal distribution with mean zero and variance equal to one, and iteratively update the parameters by calculating the gradient at each given point in the residual space \cite[preface p. x]{dds}. For any one-layer model, the gradient function used to tune the weights will take the form of the product of the partial derivative of the cost function with respect to the activation function, and the partial derivative of the activation function with respect to the weights: 
 
 \begin{equation}
 \frac{\partial{\cal C}}{\partial w_{jk}}  = \frac{\partial C}{\partial a_{j}}\frac{\partial a_j}{\partial w_{jk}}
@@ -229,7 +230,7 @@ We implement the FFNN as a class, using NumPy's many matrix functions. In the in
 
 The feedforward part is implemented as a simple matrix vector multiplication, followed by an elementwise application of the chosen activation function. For processing batches of inputs, the same multiplication code is used, but this time the input is the design matrix instead of a single row. Each hidden layer will now contain matrices themselves, consisting of a number of rows equivalent to the batch size and a number of columns equal to the number of nodes in this layer.
 
-The backpropagation is implemented by differentiating all the functions declared when the class is instatiated, and following the algorithm laid out in Hjort-Jensens lectures \cite{morten}. For batch backpropagation, we accumulate the gradient. In practice this means that the gradient for the weights, normally a matrix the same size as the relevant weight matrix, is now one matrix per element in our batch (in practice implemented as a NumPy array of three dimensions). At the end of the batch, we sum all the gradients for each weight matrix together and subtract this from the corresponding weight matrix.
+The backpropagation is implemented by differentiating all the functions declared when the class is instatiated, and following the algorithm laid out in Hjort-Jensens lectures \cite{morten}. For batch backpropagation, we accumulate the gradient. In practice this means that the gradient for the weights, normally a matrix the same size as the relevant weight matrix, is now one matrix per element in our batch (in practice implemented as a NumPy array of three dimensions). At the end of the batch, we average all the gradients for each weight matrix together and feed this into our scheduler calculation to determine how much our weights should change.
 
 Training a model is implemented as repeated calls to feedforward and backpropagation, once per batch per epoch. During training, one is able to specify which scheduler to use. These are implemented as a series of classes all inheriting from a base class, and are all implemented following Hjort-Jensens lectures \cite{mortensched}. For finding the optimal parameters, we implement our own gridsearch which finds the lowest error among combinations of lambda, eta, and parameters used for the scheduling.
 
@@ -249,61 +250,46 @@ To test our networks ability to classify data, we trained it on many common data
 
 Although our neural network performed well, we also found very similar results with logistic regression, at a much lower computational cost. This implies that our classification datasets were perhaps too simple, and that using Neural Networks was perhaps not needed to achieve good results.
 
-\subsubsection{Ordinary Least Squares}
-
-\subsubsection{Ridge}
-
-\begin{figure}[h]
-\centerline{\includegraphics[width=5in]{figure/frankebestlambdamse.png}}
-\caption{Test and train MSE for ridge}
-\label{frankebestlambdamse}
-\end{figure}
+% \begin{figure}[h]
+% \centerline{\includegraphics[width=5in]{figure/frankebestlambdamse.png}}
+% \caption{Test and train MSE for ridge}
+% \label{frankebestlambdamse}
+% \end{figure}
 
 
-\begin{table}
-\begin{center}
-\label{ols_mse_table_dif_data}
-\begin{tabular}{c l l l}
-Dataset & Std of noise & Best MSE & Best degree \\
-\hline
-Franke & 0 & 0.0005109 & 9\\
-Franke & 0.05 & 0.0038302 & 7 \\
-Franke & 0.10 & 0.0139833 & 7 \\
-Terrain 1 & - & 0.0142683 & 19 \\
-\hline
-\end{tabular}
-\end{center}
-\end{table}
+% \begin{table}
+% \begin{center}
+% \label{ols_mse_table_dif_data}
+% \begin{tabular}{c l l l}
+% Dataset & Std of noise & Best MSE & Best degree \\
+% \hline
+% Franke & 0 & 0.0005109 & 9\\
+% Franke & 0.05 & 0.0038302 & 7 \\
+% Franke & 0.10 & 0.0139833 & 7 \\
+% Terrain 1 & - & 0.0142683 & 19 \\
+% \hline
+% \end{tabular}
+% \end{center}
+% \end{table}
 
-\subsubsection{Ridge Regression}
-
-As our model is not overfitting, we do not expect Ridge to offer much improvement. This proves to be the case, as we see from Fig.~\ref{real1ridgedifflambdas} in the appendix. Here we see that different values of lambda have very little impact, as there are no parameters that need regularization, and no overfitting to supress. For very large values, we see that we are shrinking the parameters too much, and we see a slight increase in MSE, but overall we do not see much of an effect. We could expect to see that Ridge shows improvement at higher polynomial degrees, when OLS starts to overfit, but due to computational constraints we have not been able to push our grid search much further than 9 degrees. Using scikit's GridSearch, we find that the optimal lambda is 0, which is exactly what we would expect on a model that does not overfit, as Ridge regression with a lambda equal to 0 is equivalent with OLS. See Table~\ref{ols_vs_ridge_vs_lasso_table_real}.
-
-\subsubsection{Lasso Regression}
-
-With lasso regression, we see similar results as with Ridge. Fig.~\ref{real1lassobiasvariance} in the appendix shows little change, except for when our $\lambda$ is too high and we force all parameters to $0$. Comparing lasso to the two other methods for the real dataset has proven to be difficult, as the numerical methods for finding the best parameters are very time consuming. We have not been able to gridsearch up to polynomial degree 19, but up to degree 9 we found the best lambda to be $2.154^{-7}$ for polynomial degree 9, giving an MSE of $0.01685$.
-
-Comparing all three methods up to degree 9 for different lambdas (using the same lambda for Lasso and Ridge, just to get an overview) in Fig.~\ref{real1msecomparison} in the appendix, we see the same trend as we have been describing. Regularization offers little reward, which is to be expected when we are not overfitting.
-
-
-\begin{table*}[t]
-\caption{Best MSE for OLS, Ridge and Lasso regression on real elevation data. We only fit up to degree 9 due to computational constraints}
-\begin{center}
-\label{ols_vs_ridge_vs_lasso_table_real}
-\begin{tabular}{c | l l l}
-Regression & MSE & Degree & $\lambda$ \\
-\hline
-OLS & 0.01538 & 9 & - \\
-Ridge & 0.01538 & 9 & 0 \\
-Lasso & 0.01685 & 9 & $2.154 \cdot 10^{-7}$ \\
-\hline
-\end{tabular}
-\end{center}
-\end{table*}
+% \begin{table*}[t]
+% \caption{Best MSE for OLS, Ridge and Lasso regression on real elevation data. We only fit up to degree 9 due to computational constraints}
+% \begin{center}
+% \label{ols_vs_ridge_vs_lasso_table_real}
+% \begin{tabular}{c | l l l}
+% Regression & MSE & Degree & $\lambda$ \\
+% \hline
+% OLS & 0.01538 & 9 & - \\
+% Ridge & 0.01538 & 9 & 0 \\
+% Lasso & 0.01685 & 9 & $2.154 \cdot 10^{-7}$ \\
+% \hline
+% \end{tabular}
+% \end{center}
+% \end{table*}
 
 \section{Conclusion}
 
-In this paper we have compared Ordinary Least Squares, Ridge and Lasso regression for both synthetic and real data. We have seen the value of using resampling methods such as bootstrap and cross validation to gain valuable insights about the quality of our predictions. Using resampling methods, we have found that linear regression was well suited for approximating the synthetic Franke function, but less suited for the real elevation data. We have seen that a correctly chosen regularization parameter can allow us to push our model complexity higher than we can with OLS, and thus give us a better MSE than OLS. Looking at the real data, we have seen that regularization does not offer much value when we are not overfitting our dataset. Thus all three linear regression methods perform similarly on this dataset. 
+In this paper we have explored the use of a Feed Forward Neural Network for both regression and classification. We have studied how different schedulers, 
 
 \bibliographystyle{apalike}
 \bibliography{bibliography}
@@ -320,28 +306,6 @@ The next pages contain plots and tables that are of interest.
 Figure & Shell command (leading \texttt{python3} omitted) \\
 \hline
 \ref{frankenonoise} & \texttt{task\_b.py --noise 0 -n 25}\\
-\ref{frankebestlambdamse} & \texttt{task\_b.py --noise 0 -n 25} \footnotesize{(\it Model has been changed to ridge with lambda=$1.43 \cdot 10^{-7}$)}\\
-\ref{frankebestlambdabetas} & \texttt{task\_b.py --noise 0 -n 25} \footnotesize{(\it Model has been changed to ridge with lambda=$1.43 \cdot 10^{-7}$)}\\
-\ref{realunscaled} & \texttt{task\_b.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 19 --noscale}\\
-\ref{realunscaledmse} & \texttt{task\_b.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 19 --noscale}\\
-\ref{frankenonoisemse} & \texttt{task\_c.py --noise 0 -n 24}\\
-\ref{frankenoisemse} & \texttt{task\_c.py -n 24}\\
-\ref{frankiebiasvariance} & \texttt{task\_c.py -n 24 --step 0.1}\\
-\ref{frankiedifflambdas} & \texttt{task\_e\_biasvariance.py -n 24 --step 0.1}\\
-\ref{frankedifflambdaslasso} & \texttt{task\_f\_biasvariance.py -n 9 --step 0.15}\\
-\ref{real1ridgedifflambdas} & \texttt{task\_e\_biasvariance.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 24}\\
-\ref{frankeridgebetas} & \texttt{task\_e\_betas.py -n 24}\\
-\ref{frankenoisybeta} & \texttt{task\_c.py -n 24}\\
-\ref{frankienoisecomparison} & \texttt{noise\_plot.py}\\
-\ref{frankiehigherdatapoints} & \texttt{task\_c.py --noise 0 -n 30 --step 0.01}\\
-\ref{real1surfacecomp} & \texttt{task\_b.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 19}\\
-\ref{real1mselessdata} & \texttt{task\_c.py --file ../data/tiny\_SRTM\_data\_Norway\_1.tif -n 19}\\
-\ref{real1msetraintest} & \texttt{task\_c.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 19}\\
-\ref{realbiasvarianceOLS} & \texttt{task\_c.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 19}\\
-\ref{realOLSmse40} & \texttt{task\_b.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 40}\\
-\ref{realOLSbetaprog40} & \texttt{task\_b.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 40}\\
-\ref{frankemsebyresamplingmethod} & \texttt{task\_d.py -n 15 --step 0.02}\\
-\ref{real1msecomparison} & \texttt{task\_f\_msecomparison.py --file ../data/small\_SRTM\_data\_Norway\_1.tif -n 9}\\
 \hline
 \end{tabular}
 \end{center}
@@ -349,118 +313,10 @@ Figure & Shell command (leading \texttt{python3} omitted) \\
 
 %%%%%%%%%%% FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%5
 
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/realmsebyresamplingmethod.png}}
-\caption{Comparison between approximated MSE for different resampling methods for the real terrain data}
-\label{realmsebyresamplingmethod}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/frankiehigherdatapoints.png}}
-\caption{Franke function fitted up to polynomial degree 30, with 10000 datapoints instead of 400. As we can see, we do not overfit even at this polynomial degree when the availiable data is plentiful. The highest MSE was reached at $N=29$, and was $0.00003511$, one tenth of our best prediction with only 400 datapoints}
-\label{frankiehigherdatapoints}
-\end{figure*}
-
-\begin{figure*}
-% \begin{figure}[t]
-\centerline{\includegraphics[width=3.25in]{figure/frankienoisecomparison.png}}
-\caption{Test and train MSE for the OLS prediction of Franke function with an increasing amount of noise}
-\label{frankienoisecomparison}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/frankenoisybeta.png}}
-\caption{Beta progression for OLS}
-\label{frankenoisybeta}
-\end{figure*}
-
-\begin{figure*} 
-\centerline{\includegraphics[width=3.25in]{figure/frankiedifflambdas.png}}
-\caption{Bias, variance and test MSE plotted over polynomial degree for our Ridge prediction on the Franke function with an added stochastic noise $\epsilon \sim N(0,0.05)$, using lambdas of increasing size. Here we have reduced the number of datapoints to only 100 to force overfitting earlier.}
-\label{frankiedifflambdas}
-\end{figure*}
-
-\begin{figure*} 
-\centerline{\includegraphics[width=3.25in]{figure/frankeridgebetas.png}}
-\caption{Beta progression for different values of lambda in Ridge regression. Note the different scales on each of the plots, showing how increasing the regularization parameter shrinks the betas}
-\label{frankeridgebetas}
-\end{figure*}
-
-% \begin{figure*}
-% \centerline{\includegraphics[width=3.25in]{figure/frankeridgenoisecomparison.png}}
-% \caption{Test and train MSE for the Ridge prediction with $\lambda = 10^{-8}$ of the Franke function with an increasing amount of noise}
-% \label{frankeridgenoisecomparison}
+% \begin{figure*} 
+% \centerline{\includegraphics[width=3.25in]{figure/frankeridgebetas.png}}
+% \caption{Beta progression for different values of lambda in Ridge regression. Note the different scales on each of the plots, showing how increasing the regularization parameter shrinks the betas}
+% \label{frankeridgebetas}
 % \end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/frankedifflambdaslasso.png}}
-\caption{Bias, variance and test MSE plotted over polynomial degree for our Lasso prediction on the Franke function with an added stochastic noise $\epsilon \sim N(0,0.05)$, using lambdas of increasing size. Here we have reduced the number of datapoints to less than 100 to force overfitting earlier.}
-\label{frankedifflambdaslasso}
-\end{figure*}
-
-
-
-
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/realunscaled.png}}
-\caption{Our prediction for the real terrain using unscaled data, showing that we reach a very poor result}
-\label{realunscaled}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/realunscaledmse.png}}
-\caption{Test and train MSE for our prediction for the real terrain using unscaled data, showing that we reach a very poor result}
-\label{realunscaledmse}
-\end{figure*}
-
-
-
-
-\begin{figure*} 
-\centerline{\includegraphics[width=6.85in]{figure/real1surfacecomp.png}}
-\caption{A comparison of our best OLS prediction and actual terrain data (terrain 1), at polynomial degree 19}
-\label{real1surfacecomp}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/realOLSmse40.png}}
-\caption{Test and train MSE on our terrain, this time up to degree 40. We see only a slight decrease in MSE, down to $0.01381$, even though we double the amount of degrees. This has not been bootstrapped due to computational limitations}
-\label{realOLSmse40}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/realOLSbetaprog40.png}}
-\caption{Beta progression up to polynomial degree 40 for real terrain data, showing that the are relatively constant, implying that we are not overfitting}
-\label{realOLSbetaprog40}
-\end{figure*}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/real1mselessdata.png}}
-\caption{Test and train MSE for the OLS prediction of terrain 1, this time downscaled to only $50x100$. Here the optimal degree was 11, showing that with lower data we start to overfit more rapidly.}
-\label{real1mselessdata}
-\end{figure*}
-
-\begin{figure} 
-\centerline{\includegraphics[width=3.25in]{figure/real1ridgedifflambdas.png}}
-\caption{Bias variance tradeoff for ridge regression with different lambdas, for the real dataset}
-\label{real1ridgedifflambdas}
-\end{figure}
-
-\begin{figure} 
-\centerline{\includegraphics[width=3.25in]{figure/real1lassobiasvariance.png}}
-\caption{Bias variance tradeoff for lasso regression with different lambdas, for the real dataset}
-\label{real1lassobiasvariance}
-\end{figure}
-
-\begin{figure*}
-\centerline{\includegraphics[width=3.25in]{figure/real1msecomparison.png}}
-\caption{Comparison between OLS, Ridge and Lasso for different values of lambda, for real terrain data}
-\label{real1msecomparison}
-\end{figure*}
-
-
-
-
 
 \end{document}
