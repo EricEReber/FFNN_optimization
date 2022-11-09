@@ -47,6 +47,38 @@ def create_X(x, y, n):
     return X
 
 
+def plot_terrain(x, y, z, pred_map, *args):
+    fig = plt.figure(figsize=plt.figaspect(0.3))
+
+    # Subplot for terrain
+    ax = fig.add_subplot(121, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title("Scaled terrain", size=24)
+    # Add a color bar which maps values to colors.
+    # fig.colorbar(surf_real, shrink=0.5, aspect=5)
+
+    # Subplot for the prediction
+    # Plot the surface.
+    ax = fig.add_subplot(122, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(
+        x,
+        y,
+        pred_map,
+        cmap=cm.coolwarm,
+        linewidth=0,
+        antialiased=False,
+    )
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
+
+
 def R2(y_data, y_model):
     return 1 - np.sum((y_data - y_model) ** 2) / np.sum((y_data - np.mean(y_data)) ** 2)
 
