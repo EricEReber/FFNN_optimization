@@ -34,9 +34,20 @@ params = [eta]
 print(batches)
 
 epochs = 1000
-K = 5
+K = 7
 matrices = crossval(X, z, K)
 
+test_errors, biases, variances = neural.bootstrap(
+    20,
+    X_train,
+    z_train,
+    sched,
+    *params,
+    X_test=X_test,
+    t_test=z_test,
+    batches=batches,
+    epochs=epochs
+)
 # train_errors = np.zeros(epochs)
 # test_errors = np.zeros(epochs)
 #
@@ -94,17 +105,6 @@ matrices = crossval(X, z, K)
 #     biases[i] = bias
 #     variances[i] = variance
 #     test_errors[i] = error
-
-scores = neural.fit(
-    matrices[i][0],
-    matrices[i][1],
-    sched,
-    *params,
-    X_test=X_test,
-    t_test=z_test,
-    batches=batches,
-    epochs=epochs
-)
 
 
 plt.plot(test_errors, label="Boooootstrap test >:0")

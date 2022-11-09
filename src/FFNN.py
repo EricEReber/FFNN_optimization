@@ -144,9 +144,9 @@ class FFNN:
                 if X_test is not None and t_test is not None:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
-                    test_preds[:,e] = prediction_test.ravel()
+                    test_preds[:, e] = prediction_test.ravel()
                 else:
-                    test_error = np.nan#a
+                    test_error = np.nan  # a
 
                 train_acc = None
                 test_acc = None
@@ -203,8 +203,20 @@ class FFNN:
             "test_pred": test_preds,
         }
 
-    def boostrap(num_bootstraps, *args, **kwargs):
-        """ Bootstrap
+    def bootstrap(
+        self,
+        num_bootstraps: int,
+        X: np.ndarray,
+        t: np.ndarray,
+        scheduler_class,
+        *args,  # arguments for the scheduler (sans batchsize)
+        batches: int = 1,
+        epochs: int = 1000,
+        lam: float = 0,
+        X_test: np.ndarray = None,
+        t_test: np.ndarray = None,
+    ):
+        """Bootstrap
         Parameters:
             num_bootstraps (int): number of bootstraps
             args: positional arguments for FFNN.fit()
@@ -212,32 +224,32 @@ class FFNN:
         Returns:
             bootstrapped test error, bias, variance by epochs
         """
-        matrices = bootstrap(X_train, z_train, num_bootstraps)
+        matrices = bootstrap(X, t, num_bootstraps)
 
         test_errors = np.zeros(epochs)
-        predictions = np.zeros((X_test.shape[0], B, epochs))
+        predictions = np.zeros((X_test.shape[0], num_bootstraps, epochs))
         biases = np.zeros(epochs)
         variances = np.zeros(epochs)
 
         for i in range(len(matrices)):
-            scores = neural.fit(
+            scores = self.fit(
                 matrices[i][0],
                 matrices[i][1],
-                sched,
-                *params,
+                scheduler_class,
+                *args,
                 X_test=X_test,
-                t_test=z_test,
+                t_test=t_test,
                 batches=batches,
-                epochs=epochs
+                epochs=epochs,
             )
-            neural.reset_weights()
+            self.reset_weights()
 
             predictions[:, i, :] = scores["test_pred"]
 
         for i in range(epochs):
             if not i:
                 print(predictions[:, :, i])
-            error, bias, variance = bias_variance(z_test, predictions[:, :, i])
+            error, bias, variance = bias_variance(t_test, predictions[:, :, i])
             biases[i] = bias
             variances[i] = variance
             test_errors[i] = error
@@ -269,7 +281,6 @@ class FFNN:
         else:
             return predict
 
-    
     def write(self, path: str):
         """
         Write weights and biases to file
@@ -464,7 +475,7 @@ class FFNN:
         *args,
         batches=1,
         epochs: int = 1000,
-        classify: bool = False
+        classify: bool = False,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -497,7 +508,7 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
-                classify=classify
+                classify=classify,
             )
         else:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
@@ -511,7 +522,7 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
-                classify=classify
+                classify=classify,
             )
 
         return optimal_params, optimal_lambda, loss_heatmap
@@ -547,12 +558,23 @@ class FFNN:
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
             batches_list_search[i, :] = test_error
-        optimal_batch = batches_list[np.argmin(batches_list_search[:,-1])]
+        optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
 
         return optimal_batch, batches_list_search
 
     def _gridsearch_scheduler(
-        self, X, t, X_test, t_test, scheduler, eta, lam, *args, batches=1, epochs=1000, classify=False,
+        self,
+        X,
+        t,
+        X_test,
+        t_test,
+        scheduler,
+        eta,
+        lam,
+        *args,
+        batches=1,
+        epochs=1000,
+        classify=False,
     ):
         """
         Help function for optimize_scheduler
@@ -607,7 +629,7 @@ class FFNN:
         momentums,
         batches=1,
         epochs=1000,
-        classify=False
+        classify=False,
     ):
         """
         Help function for optimize_scheduler
