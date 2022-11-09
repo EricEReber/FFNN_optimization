@@ -27,11 +27,10 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-epochs = 20
+epochs = 2000
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
-# dims = (2, 20, 20, 1)
 
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
@@ -39,14 +38,13 @@ lam[0] = 0
 rho = 0.9
 rho2 = 0.999
 
-batches_list = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
-schedulers = [Constant, Momentum, Adagrad, RMS_prop, Adam]
-# schedulers = [Constant, Momentum]
+batches_list = np.logspace(0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int)
+schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
 
 constant_params = []
-momentum_params = np.linspace(0, 0.75, 5)
-adagrad_momentum_params = np.linspace(0, 1, 5)
+momentum_params = np.linspace(0, 0.1, 5)
 adagrad_params = []
+adagrad_momentum_params = np.linspace(0, 1, 5)
 rms_params = [rho]
 adam_params = [rho, rho2]
 
@@ -54,10 +52,10 @@ params_list = [
     constant_params,
     momentum_params,
     adagrad_params,
+    adagrad_momentum_params,
     rms_params,
     adam_params,
 ]
-# params_list = [constant_params, momentum_params, adagrad_momentum_params]
 optimal_params_list = []
 
 optimal_eta = np.zeros(len(schedulers))
@@ -70,17 +68,15 @@ for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
     optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
-        # X_train[:, 1:3],
         X_train,
         z_train,
-        # X_test[:, 1:3],
         X_test,
         z_test,
         schedulers[i],
         eta,
         lam,
         params_list[i],
-        batches=X.shape[0] // 8,
+        batches=X_train.shape[0],
         epochs=epochs // 2,
     )
 
@@ -122,30 +118,23 @@ for i in range(len(schedulers)):
     )
 
     for j in range(len(batches_list)):
-        plt.plot(batches_list_search[j, :], label=f"batch size {batches_list[j]}")
-        plt.legend()
+        plt.plot(batches_list_search[j, :], label=f"batch size {X_train.shape[0]//batches_list[j]}")
+        plt.legend(loc=(1.04, 0))
     plt.xlabel("epochs", fontsize=18)
     plt.ylabel("MSE score", fontsize=18)
-    plt.title(schedulers[i].__name__)
+    plt.title(schedulers[i].__name__, fontsize=22)
 plt.show()
 
 for i in range(len(schedulers)):
-    print(
-        f"{schedulers[i].__name__} \n {optimal_eta[i]=}\n {optimal_lambdas[i]=} \n {optimal_batches[i]=}\n{minimal_errors[i]=}"
-    )
-    # neural.read(f"comparison{i}")
     neural = FFNN(dims, seed=1337)
     scores = neural.fit(
-        # X_train[:, 1:3],
         X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        # batches=optimal_batches[i],
         batches=X.shape[0] // 8,
         epochs=epochs,
         lam=optimal_lambdas[i],
-        # X_test=X_test[:, 1:3],
         X_test=X_test,
         t_test=z_test,
     )

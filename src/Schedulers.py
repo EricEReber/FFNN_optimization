@@ -66,7 +66,6 @@ class AdagradMomentum(Scheduler):
     def __init__(self, eta, momentum):
         super().__init__(eta)
         self.G_t = None
-        self.batch_size = batch_size
         self.momentum = momentum
         self.change = 0
 
