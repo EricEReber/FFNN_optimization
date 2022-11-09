@@ -90,6 +90,8 @@ class FFNN:
         train_accs.fill(np.nan)  # makes for better plots if we cancel early
         test_accs = np.empty(epochs)
         test_accs.fill(np.nan)
+        if X_test is not None:
+            test_preds = np.zeros((X_test.shape[0], epochs))
 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -134,11 +136,17 @@ class FFNN:
                 for scheduler in self.schedulers_bias:
                     scheduler.reset()
 
-                train_error = cost_function_train(self.predict(X, raw=True))
+                prediction = self.predict(X, raw=True)
+                train_error = cost_function_train(prediction)
+                if train_error > 10e20:
+                    # if this happens, we have a problem
+                    break
                 if X_test is not None and t_test is not None:
-                    test_error = cost_function_test(self.predict(X_test, raw=True))
+                    prediction_test = self.predict(X_test, raw=True)
+                    test_error = cost_function_test(prediction_test)
+                    test_preds[:,e] = prediction_test.ravel()
                 else:
-                    test_error = 0
+                    test_error = np.nan#a
 
                 train_acc = None
                 test_acc = None
@@ -192,7 +200,49 @@ class FFNN:
             "test_error": test_errors,
             "train_acc": train_accs,
             "test_acc": test_accs,
+            "test_pred": test_preds,
         }
+
+    def boostrap(num_bootstraps, *args, **kwargs):
+        """ Bootstrap
+        Parameters:
+            num_bootstraps (int): number of bootstraps
+            args: positional arguments for FFNN.fit()
+            kwargs: keyword arguments for FFNN.fit()
+        Returns:
+            bootstrapped test error, bias, variance by epochs
+        """
+        matrices = bootstrap(X_train, z_train, num_bootstraps)
+
+        test_errors = np.zeros(epochs)
+        predictions = np.zeros((X_test.shape[0], B, epochs))
+        biases = np.zeros(epochs)
+        variances = np.zeros(epochs)
+
+        for i in range(len(matrices)):
+            scores = neural.fit(
+                matrices[i][0],
+                matrices[i][1],
+                sched,
+                *params,
+                X_test=X_test,
+                t_test=z_test,
+                batches=batches,
+                epochs=epochs
+            )
+            neural.reset_weights()
+
+            predictions[:, i, :] = scores["test_pred"]
+
+        for i in range(epochs):
+            if not i:
+                print(predictions[:, :, i])
+            error, bias, variance = bias_variance(z_test, predictions[:, :, i])
+            biases[i] = bias
+            variances[i] = variance
+            test_errors[i] = error
+
+        return test_errors, biases, variances
 
     def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
@@ -219,105 +269,7 @@ class FFNN:
         else:
             return predict
 
-    def optimize_scheduler(
-        self,
-        X: np.ndarray,
-        t: np.ndarray,
-        X_test: np.ndarray,
-        t_test: np.ndarray,
-        scheduler: Scheduler,
-        eta: list[float],
-        lam: list[float],
-        *args,
-        batches=1,
-        epochs: int = 1000,
-        classify: bool = False
-    ):
-        """
-        Optimizes neural network by gridsearching optimal parameters
-
-        For Constant, RMS_prop, Adagrad and Adam:
-            gridsearch best combination of eta and lambda
-            find batch size which yields minimal error or best accuracy
-
-        For Momentum:
-            gridsearch best combination of eta, lambda and momentum
-            find batch size which yields minimal error or best accuracy
-
-        :param eta: list of eta values to gridsearch
-        :param lam: list of lambda values to gridsearch
-        :param batches: list of batches to search
-        :param args: remaining params for schedulers
-        :param classify: selects regression or classification
-
-        :return: optimal parameters for fit
-        """
-        if scheduler is not Momentum and scheduler is not AdagradMomentum:
-            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler(
-                X,
-                t,
-                X_test,
-                t_test,
-                scheduler,
-                eta,
-                lam,
-                *args,
-                batches=batches,
-                epochs=epochs,
-                classify=classify
-            )
-        else:
-            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
-                X,
-                t,
-                X_test,
-                t_test,
-                scheduler,
-                eta,
-                lam,
-                *args,
-                batches=batches,
-                epochs=epochs,
-                classify=classify
-            )
-
-        return optimal_params, optimal_lambda, loss_heatmap
-
-    def optimize_batch(
-        self,
-        X: np.ndarray,
-        t: np.ndarray,
-        X_test: np.ndarray,
-        t_test: np.ndarray,
-        scheduler: Scheduler,
-        lam: float,
-        *args,
-        batches_list: list[int],
-        epochs: int = 1000,
-        classify: bool = False,
-    ):
-        optimal_batch = 0
-        batches_list_search = np.zeros((len(batches_list), epochs))
-        for i in range(len(batches_list)):
-            scores = self.fit(
-                X,
-                t,
-                scheduler,
-                *args,
-                batches=batches_list[i],
-                epochs=epochs,
-                lam=lam,
-                X_test=X_test,
-                t_test=t_test,
-            )
-            test_error = scores["test_error"]
-            self.reset_weights()
-            # todo would be interesting to see how much time / how fast it happens
-            batches_list_search[i, :] = test_error
-        optimal_batch = batches_list[np.argmin(batches_list_search[:,-1])]
-
-        return optimal_batch, batches_list_search
-
+    
     def write(self, path: str):
         """
         Write weights and biases to file
@@ -499,6 +451,105 @@ class FFNN:
                 line += f"| {key}: {value} "
         print(line, end="\r")
         return len(line)
+
+    def optimize_scheduler(
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        X_test: np.ndarray,
+        t_test: np.ndarray,
+        scheduler: Scheduler,
+        eta: list[float],
+        lam: list[float],
+        *args,
+        batches=1,
+        epochs: int = 1000,
+        classify: bool = False
+    ):
+        """
+        Optimizes neural network by gridsearching optimal parameters
+
+        For Constant, RMS_prop, Adagrad and Adam:
+            gridsearch best combination of eta and lambda
+            find batch size which yields minimal error or best accuracy
+
+        For Momentum:
+            gridsearch best combination of eta, lambda and momentum
+            find batch size which yields minimal error or best accuracy
+
+        :param eta: list of eta values to gridsearch
+        :param lam: list of lambda values to gridsearch
+        :param batches: list of batches to search
+        :param args: remaining params for schedulers
+        :param classify: selects regression or classification
+
+        :return: optimal parameters for fit
+        """
+        if scheduler is not Momentum and scheduler is not AdagradMomentum:
+            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler(
+                X,
+                t,
+                X_test,
+                t_test,
+                scheduler,
+                eta,
+                lam,
+                *args,
+                batches=batches,
+                epochs=epochs,
+                classify=classify
+            )
+        else:
+            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
+                X,
+                t,
+                X_test,
+                t_test,
+                scheduler,
+                eta,
+                lam,
+                *args,
+                batches=batches,
+                epochs=epochs,
+                classify=classify
+            )
+
+        return optimal_params, optimal_lambda, loss_heatmap
+
+    def optimize_batch(
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        X_test: np.ndarray,
+        t_test: np.ndarray,
+        scheduler: Scheduler,
+        lam: float,
+        *args,
+        batches_list: list[int],
+        epochs: int = 1000,
+        classify: bool = False,
+    ):
+        optimal_batch = 0
+        batches_list_search = np.zeros((len(batches_list), epochs))
+        for i in range(len(batches_list)):
+            scores = self.fit(
+                X,
+                t,
+                scheduler,
+                *args,
+                batches=batches_list[i],
+                epochs=epochs,
+                lam=lam,
+                X_test=X_test,
+                t_test=t_test,
+            )
+            test_error = scores["test_error"]
+            self.reset_weights()
+            # todo would be interesting to see how much time / how fast it happens
+            batches_list_search[i, :] = test_error
+        optimal_batch = batches_list[np.argmin(batches_list_search[:,-1])]
+
+        return optimal_batch, batches_list_search
 
     def _gridsearch_scheduler(
         self, X, t, X_test, t_test, scheduler, eta, lam, *args, batches=1, epochs=1000, classify=False,
