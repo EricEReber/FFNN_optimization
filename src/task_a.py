@@ -39,12 +39,12 @@ lam[0] = 0
 rho = 0.9
 rho2 = 0.999
 
-batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
+batches_list = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 schedulers = [Constant, Momentum, Adagrad, RMS_prop, Adam]
-# schedulers = [Constant, Momentum, AdagradMomentum]
+# schedulers = [Constant, Momentum]
 
 constant_params = []
-momentum_params = np.linspace(0, 1, 5)
+momentum_params = np.linspace(0, 0.75, 5)
 adagrad_momentum_params = np.linspace(0, 1, 5)
 adagrad_params = []
 rms_params = [rho]
@@ -69,13 +69,7 @@ neural = FFNN(dims, seed=1337)
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
-    (
-        optimal_params,
-        optimal_lambda,
-        optimal_batch,
-        minimal_error,
-        plotting_data,
-    ) = neural.optimize_scheduler(
+    optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
         # X_train[:, 1:3],
         X_train,
         z_train,
@@ -85,7 +79,6 @@ for i in range(len(schedulers)):
         schedulers[i],
         eta,
         lam,
-        batch_sizes,
         params_list[i],
         batches=X.shape[0] // 8,
         epochs=epochs // 2,
@@ -93,12 +86,10 @@ for i in range(len(schedulers)):
 
     optimal_eta[i] = optimal_params[0]
     optimal_lambdas[i] = optimal_lambda
-    optimal_batches[i] = optimal_batch
-    minimal_errors[i] = minimal_error
     optimal_params_list.append(optimal_params)
 
     # plot heatmap
-    ax = sns.heatmap(plotting_data[0], xticklabels=lam, yticklabels=eta, annot=True)
+    ax = sns.heatmap(loss_heatmap, xticklabels=lam, yticklabels=eta, annot=True)
     ax.add_patch(
         Rectangle(
             (np.where(lam == optimal_lambda)[0], np.where(eta == optimal_params[0])[0]),
@@ -113,6 +104,29 @@ for i in range(len(schedulers)):
     plt.xlabel("lambda", fontsize=18)
     plt.ylabel("eta", fontsize=18)
     plt.title(f"{schedulers[i].__name__}", fontsize=22)
+plt.show()
+
+for i in range(len(schedulers)):
+    plt.subplot(321 + i)
+    plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=22)
+    optimal_batch, batches_list_search = neural.optimize_batch(
+        X_train,
+        z_train,
+        X_test,
+        z_test,
+        schedulers[i],
+        optimal_lambdas[i],
+        *optimal_params_list[i],
+        batches_list=batches_list,
+        epochs=epochs,
+    )
+
+    for j in range(len(batches_list)):
+        plt.plot(batches_list_search[j, :], label=f"batch size {batches_list[j]}")
+        plt.legend()
+    plt.xlabel("epochs", fontsize=18)
+    plt.ylabel("MSE score", fontsize=18)
+    plt.title(schedulers[i].__name__)
 plt.show()
 
 for i in range(len(schedulers)):

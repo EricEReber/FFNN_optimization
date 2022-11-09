@@ -228,11 +228,10 @@ class FFNN:
         scheduler: Scheduler,
         eta: list[float],
         lam: list[float],
-        batch_sizes: list[int],
         *args,
         batches=1,
         epochs: int = 1000,
-        # classify: bool = False
+        classify: bool = False
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -249,47 +248,10 @@ class FFNN:
         :param lam: list of lambda values to gridsearch
         :param batches: list of batches to search
         :param args: remaining params for schedulers
+        :param classify: selects regression or classification
 
         :return: optimal parameters for fit
         """
-        # if classify:
-        #     if scheduler is not Momentum:
-        #         loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler_classify(
-        #             X, t, X_test, t_test, scheduler, eta, lam, *args epochs=epochs
-        #         )
-        #     else:
-        #         loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum_classify(
-        #             X, t, X_test, t_test, eta, lam, *args, epochs=epochs
-        #         )
-        #     optimal_batch = 0
-        #     batch_size_search = np.zeros(len(batch_sizes))
-        #     for i in range(len(batch_sizes)):
-        #         scores = self.fit(
-        #             X,
-        #             t,
-        #             scheduler,
-        #             *optimal_params,
-        #             batches=batch_sizes[i],
-        #             epochs=epochs,
-        #             lam=optimal_lambda,
-        #             X_test=X_test,
-        #             t_test=t_test,
-        #         )
-        #         test_error = scores["test_error"]
-        #         self._reset_weights()
-        #         batch_size_search[i] = test_error[-1]
-        #     minimal_error = np.min(batch_size_search)
-        #     optimal_batch = batch_sizes[np.argmax(batch_size_search)]
-        #
-        #     plotting_data = [loss_heatmap, batch_size_search]
-        #
-        #     return (
-        #         optimal_params,
-        #         optimal_lambda,
-        #         optimal_batch,
-        #         minimal_error,
-        #         plotting_data,
-        #     )
         if scheduler is not Momentum and scheduler is not AdagradMomentum:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler(
                 X,
@@ -302,6 +264,7 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
+                classify=classify
             )
         else:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
@@ -315,48 +278,49 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
+                classify=classify
             )
 
+        return optimal_params, optimal_lambda, loss_heatmap
+
+    def optimize_batch(
+        self,
+        X: np.ndarray,
+        t: np.ndarray,
+        X_test: np.ndarray,
+        t_test: np.ndarray,
+        scheduler: Scheduler,
+        lam: float,
+        *args,
+        batches_list: list[int],
+        epochs: int = 1000,
+        classify: bool = False,
+    ):
         optimal_batch = 0
-        batch_size_search = np.zeros(len(batch_sizes))
-        for i in range(len(batch_sizes)):
+        batches_list_search = np.zeros((len(batches_list), epochs))
+        for i in range(len(batches_list)):
             scores = self.fit(
                 X,
                 t,
                 scheduler,
-                *optimal_params,
-                batches=batch_sizes[i],
+                *args,
+                batches=batches_list[i],
                 epochs=epochs,
-                lam=optimal_lambda,
+                lam=lam,
                 X_test=X_test,
                 t_test=t_test,
             )
             test_error = scores["test_error"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
-            batch_size_search[i] = test_error[-1]
-        minimal_error = np.min(batch_size_search)
-        optimal_batch = batch_sizes[np.argmin(batch_size_search)]
+            batches_list_search[i, :] = test_error
+        optimal_batch = batches_list[np.argmin(batches_list_search[:,-1])]
 
-        plotting_data = [loss_heatmap, batch_size_search]
-
-        # if plot_batch:
-        #     plt.plot(batch_size_search)
-        #     plt.title("batch size vs error", fontsize=22)
-        #     plt.xlabel("batch size", fontsize=18)
-        #     plt.ylabel("error", fontsize=18)
-        #     plt.show()
-
-        return (
-            optimal_params,
-            optimal_lambda,
-            optimal_batch,
-            minimal_error,
-            plotting_data,
-        )
+        return optimal_batch, batches_list_search
 
     def write(self, path: str):
-        """Write weights and biases to file
+        """
+        Write weights and biases to file
         Parameters:
             path (str): The path to the file to be written to
         """
@@ -373,7 +337,8 @@ class FFNN:
         np.set_printoptions(threshold=1000)
 
     def read(self, path: str):
-        """Read weights and biases from file. This overwrites the weights and biases for the calling instance,
+        """
+        Read weights and biases from file. This overwrites the weights and biases for the calling instance,
         and may well change the dimensions completely if the saved dimensions are not the same as the current
         ones.
         Parameters:
@@ -536,7 +501,7 @@ class FFNN:
         return len(line)
 
     def _gridsearch_scheduler(
-        self, X, t, X_test, t_test, scheduler, eta, lam, *args, batches=1, epochs=1000
+        self, X, t, X_test, t_test, scheduler, eta, lam, *args, batches=1, epochs=1000, classify=False,
     ):
         """
         Help function for optimize_scheduler
@@ -558,15 +523,20 @@ class FFNN:
                     X_test=X_test,
                     t_test=t_test,
                 )
-                test_error = scores["test_error"]
-                loss_heatmap[y, x] = test_error[-1]
+                if classify:
+                    test_accs = scores["test_accs"]
+                    loss_heatmap[y, x] = test_accs[-1]
+                else:
+                    test_error = scores["test_error"]
+                    loss_heatmap[y, x] = test_error[-1]
                 self.reset_weights()
 
         # select optimal eta, lambda
-        y, x = (
-            loss_heatmap.argmin() // loss_heatmap.shape[1],
-            loss_heatmap.argmin() % loss_heatmap.shape[1],
-        )
+        if classify:
+            y, x = np.unravel_index(loss_heatmap.argmax(), loss_heatmap.shape)
+        else:
+            y, x = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+
         optimal_eta = eta[y]
         optimal_lambda = lam[x]
 
@@ -586,6 +556,7 @@ class FFNN:
         momentums,
         batches=1,
         epochs=1000,
+        classify=False
     ):
         """
         Help function for optimize_scheduler
@@ -609,11 +580,19 @@ class FFNN:
                         X_test=X_test,
                         t_test=t_test,
                     )
-                    test_error = scores["test_error"]
-                    loss_heatmap[y, x, z] = test_error[-1]
+                    if classify:
+                        test_accs = scores["test_accs"]
+                        loss_heatmap[y, x, z] = test_accs[-1]
+                    else:
+                        test_error = scores["test_error"]
+                        loss_heatmap[y, x, z] = test_error[-1]
                     self.reset_weights()
 
-        y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+        if classify:
+            y, x, z = np.unravel_index(loss_heatmap.argmax(), loss_heatmap.shape)
+        else:
+            y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+
         optimal_eta = eta[y]
         optimal_lambda = lam[x]
         optimal_momentum = momentums[z]
