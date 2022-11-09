@@ -50,13 +50,7 @@ hidden_func_list = [sigmoid, RELU, LRELU]
 for i in range(len(hidden_func_list)):
     neural = FFNN(dimensions=dims, hidden_func=hidden_func_list[i], seed=42069)
 
-    (
-        optimal_params,
-        optimal_lambda,
-        optimal_batch,
-        minimal_error,
-        plotting_data,
-    ) = neural.optimize_scheduler(
+    optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
         X_train[:, 1:3],
         z_train,
         X_test[:, 1:3],
@@ -64,20 +58,31 @@ for i in range(len(hidden_func_list)):
         sched,
         eta,
         lams,
-        batch_sizes,
         opt_params,
-        batches=X.shape[0] // 10,
-        epochs=10,
+        batches=10,
+        epochs=20,
     )
 
     params = [optimal_params[0], rho, rho2]
+
+    optimal_batch = neural.optimize_batch(
+        X_train[:, 1:3],
+        z_train,
+        X_test[:, 1:3],
+        z_test,
+        sched,
+        optimal_lambda,
+        *params,
+        batches_list=batch_sizes,
+        epochs=20,
+    )
 
     scores = neural.fit(
         X_train[:, 1:3],
         z_train,
         sched,
         *params,
-        batches=optimal_batch,
+        batches=optimal_batch[0],
         epochs=train_epochs,
         lam=optimal_lambda,
         X_test=X_test[:, 1:3],
