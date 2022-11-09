@@ -2,14 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from matplotlib.patches import Rectangle
 from utils import *
 from Schedulers import *
 from FFNN import FFNN
-
+from sklearn.neural_network import MLPRegressor
 
 np.random.seed(42069)
-
 (
     betas_to_plot,
     N,
@@ -28,51 +26,61 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-opti_epochs = 20
-train_epochs = 1000
-etas = np.logspace(-5, -1, 5)
-lams = np.zeros(etas.shape)
-print(lams)  # np.logspace(-5, -1, 5)
+# ------------------------- Params -------------------------
+eta = 0.00005
+momentum = 0.5
 rho = 0.9
-rho2 = 0.999
+rho2 = 0.99
+sched = Adam
+# sched = Momentum
+params = [eta, rho, rho2]
+opt_params = [rho, rho2]
+# params = [eta, momentum]
 
-dims = (X.shape[1], 1)
-hidden_func_list = [sigmoid, RELU, LRELU]
+dims = (2, 224, 112, 1)
+train_epochs = 10
+
+eta = np.logspace(-5, -1, 5)
+lams = np.logspace(-5, -1, 5)
 batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
-scheduler = [Adam]
-scheduler_params = [[rho, rho2]]
+hidden_func_list = [sigmoid, RELU, LRELU]
 
-optimal_eta = np.zeros(len(scheduler))
-optimal_lam = np.zeros(len(scheduler))
-optimal_batch = np.zeros(len(scheduler))
-optimal_error = np.zeros(len(scheduler))
+# ------------------------- FFNN -------------------------
 
 for i in range(len(hidden_func_list)):
     neural = FFNN(dimensions=dims, hidden_func=hidden_func_list[i], seed=42069)
 
-    optimal_params, optimal_lambda, optimal_batch, _, _ = neural.optimize_scheduler(
-        X_train,
+    (
+        optimal_params,
+        optimal_lambda,
+        optimal_batch,
+        minimal_error,
+        plotting_data,
+    ) = neural.optimize_scheduler(
+        X_train[:, 1:3],
         z_train,
-        X_test,
+        X_test[:, 1:3],
         z_test,
-        scheduler[0],
-        etas,
+        sched,
+        eta,
         lams,
         batch_sizes,
-        scheduler_params[0],
-        batches=X.shape[0],
-        epochs=opti_epochs,
+        opt_params,
+        batches=X.shape[0] // 10,
+        epochs=10,
     )
 
+    params = [optimal_params[0], rho, rho2]
+
     scores = neural.fit(
-        X=X_train,
-        t=z_train,
-        scheduler_class=scheduler[0],
-        *optimal_params,
+        X_train[:, 1:3],
+        z_train,
+        sched,
+        *params,
         batches=optimal_batch,
         epochs=train_epochs,
         lam=optimal_lambda,
-        X_test=X_test,
+        X_test=X_test[:, 1:3],
         t_test=z_test,
     )
 
