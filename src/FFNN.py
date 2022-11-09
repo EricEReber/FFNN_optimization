@@ -397,10 +397,17 @@ class FFNN:
                 if self.output_func.__name__ == "softmax":
                     delta_matrix = self.a_matrices[i + 1] - t
                 else:
-                    cost_func_derivative = grad(self.cost_func(t))
-                    delta_matrix = out_derivative(
-                        self.z_matrices[i + 1]
-                    ) * cost_func_derivative(self.a_matrices[i + 1])
+                    try:
+                        cost_func_derivative = grad(self.cost_func(t))
+                        delta_matrix = out_derivative(
+                            self.z_matrices[i + 1]
+                        ) * cost_func_derivative(self.a_matrices[i + 1])
+                    except ZeroDivisionError:
+                        print(f"{self.a_matrices=}")
+                        print(f"{self.weights=}")
+                        print(f"{self.a_matrices[i+1]=}")
+                        print(f"{self.a_matrices[i+1].shape=}")
+                        exit()
 
             else:
                 delta_matrix = (
@@ -497,7 +504,12 @@ class FFNN:
         :return: optimal parameters for fit
         """
         if scheduler is not Momentum and scheduler is not AdagradMomentum:
-            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_scheduler(
+            (
+                loss_heatmap,
+                min_heatmap,
+                optimal_params,
+                optimal_lambda,
+            ) = self._gridsearch_scheduler(
                 X,
                 t,
                 X_test,
@@ -511,7 +523,12 @@ class FFNN:
                 classify=classify,
             )
         else:
-            loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
+            (
+                loss_heatmap,
+                min_heatmap,
+                optimal_params,
+                optimal_lambda,
+            ) = self._gridsearch_momentum(
                 X,
                 t,
                 X_test,
@@ -525,6 +542,20 @@ class FFNN:
                 classify=classify,
             )
 
+        string = (
+            f"{scheduler.__name__}"
+            + "\n"
+            + f"optimal_eta={optimal_params[0]}"
+            + "\n"
+            + f"{optimal_lambda=}"
+            + "\n"
+            + f"final MSE or accuracy={loss_heatmap[np.where(lam==optimal_lambda)[0], np.where(eta==optimal_params[0])[0]]}"
+            + "\n"
+            + f"minimal MSE={min_heatmap[np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[0], np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[1]]}"
+        )
+        print(string)
+        with open(f"{scheduler.__name__}_optimal_params.txt", "w") as file:
+            file.write(string)
         return optimal_params, optimal_lambda, loss_heatmap
 
     def optimize_batch(
@@ -543,6 +574,7 @@ class FFNN:
         optimal_batch = 0
         batches_list_search = np.zeros((len(batches_list), epochs))
         for i in range(len(batches_list)):
+            print(batches_list[i])
             scores = self.fit(
                 X,
                 t,
@@ -582,6 +614,7 @@ class FFNN:
         Gridsearches eta and lambda
         """
         loss_heatmap = np.zeros((eta.shape[0], lam.shape[0]))
+        min_heatmap = np.zeros((eta.shape[0], lam.shape[0]))
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
@@ -599,9 +632,11 @@ class FFNN:
                 if classify:
                     test_accs = scores["test_accs"]
                     loss_heatmap[y, x] = test_accs[-1]
+                    min_heatmap[y, x] = np.min(test_accs)
                 else:
                     test_error = scores["test_error"]
                     loss_heatmap[y, x] = test_error[-1]
+                    min_heatmap[y, x] = np.min(test_error)
                 self.reset_weights()
 
         # select optimal eta, lambda
@@ -615,7 +650,7 @@ class FFNN:
 
         optimal_params = [optimal_eta] + [*args][0]
 
-        return loss_heatmap, optimal_params, optimal_lambda
+        return loss_heatmap, min_heatmap, optimal_params, optimal_lambda
 
     def _gridsearch_momentum(
         self,
@@ -637,11 +672,11 @@ class FFNN:
         Gridsearches eta, lambda and momentum
         """
         loss_heatmap = np.zeros((eta.shape[0], lam.shape[0], len(momentums)))
+        min_heatmap = np.zeros((eta.shape[0], lam.shape[0], len(momentums)))
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    print(params)
                     scores = self.fit(
                         X,
                         t,
@@ -656,9 +691,11 @@ class FFNN:
                     if classify:
                         test_accs = scores["test_accs"]
                         loss_heatmap[y, x, z] = test_accs[-1]
+                        min_heatmap[y, x, z] = np.min(test_accs)
                     else:
                         test_error = scores["test_error"]
                         loss_heatmap[y, x, z] = test_error[-1]
+                        min_heatmap[y, x, z] = np.min(test_error)
                     self.reset_weights()
 
         if classify:
@@ -673,4 +710,9 @@ class FFNN:
         optimal_params = [optimal_eta, optimal_momentum]
         batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
-        return loss_heatmap[:, :, z], optimal_params, optimal_lambda
+        return (
+            loss_heatmap[:, :, z],
+            min_heatmap[:, :, z],
+            optimal_params,
+            optimal_lambda,
+        )
