@@ -8,8 +8,9 @@ from utils import *
 from Schedulers import *
 from FFNN import FFNN
 
-np.random.seed(42069)
+np.random.seed(1337)
 
+# read in data
 (
     betas_to_plot,
     N,
@@ -27,27 +28,36 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
+# epochs to run for
 epochs = 2000
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
+neural = FFNN(dims, seed=1337)
 
+# parameters to test for
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
+momentums = np.linspace(0, 0.1, 5)
 lam[0] = 0
 rho = 0.9
 rho2 = 0.999
 
+# batches to test for
 batches_list = np.logspace(0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int)
+
+# schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
 
+# parameters for schedulers
 constant_params = []
-momentum_params = np.linspace(0, 0.1, 5)
+momentum_params = momentums
 adagrad_params = []
-adagrad_momentum_params = np.linspace(0, 1, 5)
+adagrad_momentum_params = momentums
 rms_params = [rho]
 adam_params = [rho, rho2]
 
+# list of scheduler parameters
 params_list = [
     constant_params,
     momentum_params,
@@ -56,14 +66,14 @@ params_list = [
     rms_params,
     adam_params,
 ]
-optimal_params_list = []
 
+# results
+optimal_params_list = []
 optimal_eta = np.zeros(len(schedulers))
 optimal_lambdas = np.zeros(len(schedulers))
 optimal_batches = np.zeros(len(schedulers), dtype=int)
-minimal_errors = np.zeros(len(schedulers))
 
-neural = FFNN(dims, seed=1337)
+# gridsearch eta, lambda
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
@@ -102,6 +112,7 @@ for i in range(len(schedulers)):
     plt.title(f"{schedulers[i].__name__}", fontsize=22)
 plt.show()
 
+# search batch size
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=22)
@@ -125,6 +136,7 @@ for i in range(len(schedulers)):
     plt.title(schedulers[i].__name__, fontsize=22)
 plt.show()
 
+# plot best run for each scheduler
 for i in range(len(schedulers)):
     neural = FFNN(dims, seed=1337)
     scores = neural.fit(
