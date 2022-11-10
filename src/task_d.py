@@ -27,6 +27,10 @@ X_train, X_test, z_train, z_test = train_test_split(X, z)
 scaler = StandardScaler()
 scaler.fit(X_train)
 
+scaler = StandardScaler()
+scaler.fit(X)
+X = scaler.transform(X)
+
 X_train_sc = scaler.transform(X_train)
 X_test_sc = scaler.transform(X_test)
 
@@ -40,7 +44,8 @@ rho = 0.90
 rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
-batches = 20
+z = z.reshape(z.shape[0], 1)
+batches = 10
 
 #neural = FFNN(neural_dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg)
 # neural = FFNN(logreg_dims, output_func=sigmoid, cost_func=CostLogReg)

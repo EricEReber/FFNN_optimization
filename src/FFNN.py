@@ -85,6 +85,18 @@ class FFNN:
         """
 
         # --------- setup ---------
+
+        classification = False
+        if (
+            self.cost_func.__name__ == "CostLogReg"
+            or self.cost_func.__name__ == "CostCrossEntropy"
+        ):
+            classification = True
+
+        test_set = False
+        if X_test is not None and t_test is not None:
+            test_set = True
+
         train_errors = np.empty(epochs)
         train_errors.fill(
             np.nan
@@ -105,13 +117,14 @@ class FFNN:
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if X_test is not None:
-            test_preds = np.zeros((X_test.shape[0], epochs))
+        # if X_test is not None:
+        #     test_preds = np.zeros((X_test.shape[0], epochs))
 
-        if use_best_weights and X_test is not None:
-            best_weights = deepcopy(self.weights)
-            best_error = 10e20
-            best_acc = 0
+        best_weights = deepcopy(self.weights)
+        best_test_error = 10e20
+        best_test_acc = 0
+        best_train_error = 10e20
+        best_train_acc = 0
 
         X, t = resample(X, t)
 
@@ -120,7 +133,7 @@ class FFNN:
 
         # this function returns a function valued only at X
         cost_function_train = self.cost_func(t)  # used for performance metrics
-        if X_test is not None and t_test is not None:
+        if test_set:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
@@ -158,34 +171,39 @@ class FFNN:
                 if train_error > 10e20:
                     # if this happens, we have a problem
                     break
-                if X_test is not None:
+                if test_set:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
-                    test_preds[:, e] = prediction_test.ravel()
+                    # test_preds[:, e] = prediction_test.ravel()
 
                     if use_best_weights:
-                        if test_error < best_error:
-                            best_error = test_error
+                        if test_error < best_test_error:
+                            best_test_error = test_error
+                            best_train_error = train_error
                             best_weights = deepcopy(self.weights)
+                    else:
+                        best_test_error = test_error
+                        best_train_error = train_error
 
                 else:
                     test_error = np.nan  # a
 
                 train_acc = None
                 test_acc = None
-                if (
-                    self.cost_func.__name__ == "CostLogReg"
-                    or self.cost_func.__name__ == "CostCrossEntropy"
-                ):
+                if classification:
                     train_acc = accuracy(self.predict(X, raw=False), t)
                     train_accs[e] = train_acc
-                    if X_test is not None:
+                    if test_set:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
                         test_accs[e] = test_acc
                         if use_best_weights:
-                            if test_acc > best_acc:
-                                best_acc = test_acc
+                            if test_acc > best_test_acc:
+                                best_test_acc = test_acc
+                                best_train_acc = train_acc
                                 best_weights = deepcopy(self.weights)
+                        else:
+                            best_test_acc = test_acc
+                            best_train_acc = train_acc
 
                 train_errors[e] = train_error
                 test_errors[e] = test_error
@@ -230,17 +248,28 @@ class FFNN:
         if use_best_weights:
             self.weights = best_weights
 
-        return {
-            "train_error": train_errors,
-            "test_error": test_errors,
-            "train_acc": train_accs,
-            "test_acc": test_accs,
-            "test_pred": test_preds,
-        }
+        scores = dict()
 
-    def bootstrap(
+        scores["train_errors"] = train_errors
+        scores["final_train_error"] = best_test_error
+
+        if test_set:
+            scores["test_errors"] = test_errors
+            scores["final_test_error"] = best_test_error
+
+        if classification:
+            scores["train_accs"] = train_accs
+            scores["final_train_acc"] = best_train_acc
+
+            if test_set:
+                scores["test_accs"] = test_accs
+                scores["final_test_acc"] = best_test_acc
+
+        return scores
+
+    def crossval(
         self,
-        num_bootstraps: int,
+        folds: int,
         X: np.ndarray,
         t: np.ndarray,
         scheduler_class,
@@ -259,37 +288,39 @@ class FFNN:
         Returns:
             bootstrapped test error, bias, variance by epochs
         """
-        matrices = bootstrap(X, t, num_bootstraps)
+        if self.seed:
+            np.random.seed(self.seed)
+        matrices = crossval(X, t, folds)
 
-        test_errors = np.zeros(epochs)
-        predictions = np.zeros((X_test.shape[0], num_bootstraps, epochs))
-        biases = np.zeros(epochs)
-        variances = np.zeros(epochs)
+        # avg_weights = [x * 0 for x in self.weights]
 
+        avg_scores = None
         for i in range(len(matrices)):
+            self.reset_weights()
             scores = self.fit(
                 matrices[i][0],
-                matrices[i][1],
+                matrices[i][2],
                 scheduler_class,
                 *args,
-                X_test=X_test,
-                t_test=t_test,
+                X_test=matrices[i][1],
+                t_test=matrices[i][3],
+                lam=lam,
                 batches=batches,
-                epochs=epochs,
+                epochs=epochs
             )
-            self.reset_weights()
 
-            predictions[:, i, :] = scores["test_pred"]
+            # avg_weights = [avg_weights[i] + (self.weights[i] / folds) for i in range(len(avg_weights))]
+            if not avg_scores:
+                avg_scores = scores 
+                for key in avg_scores:
+                    avg_scores[key] /=  folds
+            else:
+                for key in avg_scores:
+                    avg_scores[key] +=  scores[key] / folds
 
-        for i in range(epochs):
-            # if not i:
-            #     print(predictions[:, :, i])
-            error, bias, variance = bias_variance(t_test, predictions[:, :, i])
-            biases[i] = bias
-            variances[i] = variance
-            test_errors[i] = error
+        # self.weights = avg_weights
 
-        return test_errors, biases, variances
+        return avg_scores
 
     def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
