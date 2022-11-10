@@ -55,6 +55,8 @@ opt_params = [rho, rho2]
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
+batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
+
 
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train_sc,
@@ -77,7 +79,7 @@ scores = neural.fit(
     z_train,
     sched,
     *params,
-    batches=batches,
+    batches=optimal_batch,
     epochs=1000,
     lam=optimal_lambda,
     X_test=X_test_sc,

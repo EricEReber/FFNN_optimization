@@ -630,7 +630,7 @@ class FFNN:
                     t_test=t_test,
                 )
                 if classify:
-                    test_accs = scores["test_accs"]
+                    test_accs = scores["test_acc"]
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = np.min(test_accs)
                 else:
@@ -689,7 +689,7 @@ class FFNN:
                         t_test=t_test,
                     )
                     if classify:
-                        test_accs = scores["test_accs"]
+                        test_accs = scores["test_acc"]
                         loss_heatmap[y, x, z] = test_accs[-1]
                         min_heatmap[y, x, z] = np.min(test_accs)
                     else:
