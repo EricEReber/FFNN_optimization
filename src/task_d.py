@@ -65,8 +65,8 @@ scores = neural.fit(
     X_test=X_test_sc,
     t_test=z_test,
 )
-train_errors = scores["train_error"]
-test_errors = scores["test_error"]
+train_errors = scores["train_errors"]
+test_errors = scores["test_errors"]
 plt.plot(train_errors, label="train")
 plt.plot(test_errors, label="test")
 plt.legend()
@@ -74,6 +74,7 @@ plt.xlabel("Epochs")
 plt.ylabel("LogLoss")
 plt.title("LogLoss over Epochs")
 plt.show()
+print(scores)
 
 prediction = neural.predict(X_test_sc)
 

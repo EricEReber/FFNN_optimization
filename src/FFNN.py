@@ -84,10 +84,23 @@ class FFNN:
         :return: error over epochs for training and test runs for plotting
         """
 
-
         # --------- setup ---------
+
+        classification = False
+        if (
+            self.cost_func.__name__ == "CostLogReg"
+            or self.cost_func.__name__ == "CostCrossEntropy"
+        ):
+            classification = True
+
+        test_set = False
+        if X_test is not None and t_test is not None:
+            test_set = True
+
         train_errors = np.empty(epochs)
-        train_errors.fill(np.nan)  # nan makes for better plots if we cancel early (they are not plotted)
+        train_errors.fill(
+            np.nan
+        )  # nan makes for better plots if we cancel early (they are not plotted)
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
@@ -104,23 +117,23 @@ class FFNN:
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if X_test is not None:
-            test_preds = np.zeros((X_test.shape[0], epochs))
+        # if X_test is not None:
+        #     test_preds = np.zeros((X_test.shape[0], epochs))
 
-        if use_best_weights and X_test is not None:
-            best_weights = deepcopy(self.weights)
-            best_error = 10e20
-            best_acc = 0
+        best_weights = deepcopy(self.weights)
+        best_test_error = 10e20
+        best_test_acc = 0
+        best_train_error = 10e20
+        best_train_acc = 0
 
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
         checkpoint_num = 0
 
-
         # this function returns a function valued only at X
-        cost_function_train = self.cost_func(t) # used for performance metrics
-        if X_test is not None and t_test is not None:
+        cost_function_train = self.cost_func(t)  # used for performance metrics
+        if test_set:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
@@ -151,7 +164,6 @@ class FFNN:
                 for scheduler in self.schedulers_bias:
                     scheduler.reset()
 
-
                 # --------- performance metrics -------
 
                 prediction = self.predict(X, raw=True)
@@ -159,35 +171,39 @@ class FFNN:
                 if train_error > 10e20:
                     # if this happens, we have a problem
                     break
-                if X_test is not None:
+                if test_set:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
-                    test_preds[:, e] = prediction_test.ravel()
+                    # test_preds[:, e] = prediction_test.ravel()
 
                     if use_best_weights:
-                        if test_error < best_error:
-                            best_error = test_error
+                        if test_error < best_test_error:
+                            best_test_error = test_error
+                            best_train_error = train_error
                             best_weights = deepcopy(self.weights)
+                    else:
+                        best_test_error = test_error
+                        best_train_error = train_error
 
                 else:
                     test_error = np.nan  # a
 
-
                 train_acc = None
                 test_acc = None
-                if (
-                    self.cost_func.__name__ == "CostLogReg"
-                    or self.cost_func.__name__ == "CostCrossEntropy"
-                ):
+                if classification:
                     train_acc = accuracy(self.predict(X, raw=False), t)
                     train_accs[e] = train_acc
-                    if X_test is not None:
+                    if test_set:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
                         test_accs[e] = test_acc
                         if use_best_weights:
-                            if test_acc > best_acc:
-                                best_acc = test_acc
+                            if test_acc > best_test_acc:
+                                best_test_acc = test_acc
+                                best_train_acc = train_acc
                                 best_weights = deepcopy(self.weights)
+                        else:
+                            best_test_acc = test_acc
+                            best_train_acc = train_acc
 
                 train_errors[e] = train_error
                 test_errors[e] = test_error
@@ -202,9 +218,6 @@ class FFNN:
                     test_acc=test_acc,
                 )
 
-
-
-
                 # save to file every 10% if checkpoint file given
                 if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
                     e == epochs - 1 and self.checkpoint_file
@@ -214,7 +227,6 @@ class FFNN:
                     print()
                     print(f"{checkpoint_num}/10: Checkpoint reached")
                     self.write(self.checkpoint_file)
-
 
         except KeyboardInterrupt:
             # allows for stopping training at any point and seeing the result
@@ -233,17 +245,27 @@ class FFNN:
 
         # return performance metrics for the entire run
 
-
         if use_best_weights:
             self.weights = best_weights
 
-        return {
-            "train_error": train_errors,
-            "test_error": test_errors,
-            "train_acc": train_accs,
-            "test_acc": test_accs,
-            "test_pred": test_preds,
-        }
+        scores = dict()
+
+        scores["train_errors"] = train_errors
+        scores["final_train_error"] = best_test_error
+
+        if test_set:
+            scores["test_errors"] = test_errors
+            scores["final_test_error"] = best_test_error
+
+        if classification:
+            scores["train_accs"] = train_accs
+            scores["final_train_acc"] = best_train_acc
+
+            if test_set:
+                scores["test_accs"] = test_accs
+                scores["final_test_acc"] = best_test_acc
+
+        return scores
 
     def bootstrap(
         self,
@@ -289,9 +311,10 @@ class FFNN:
             predictions[:, i, :] = scores["test_pred"]
 
         for i in range(epochs):
-            # if not i:
-            #     print(predictions[:, :, i])
             error, bias, variance = bias_variance(t_test, predictions[:, :, i])
+            if not i:
+                print(np.hstack([predictions[:, :, i], t_test]))
+                print(error)
             biases[i] = bias
             variances[i] = variance
             test_errors[i] = error
