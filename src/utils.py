@@ -231,6 +231,65 @@ def accuracy(prediction: np.ndarray, target: np.ndarray):
     return np.average((target == prediction))
 
 
+def crossval(
+    X: np.ndarray,
+    z: np.ndarray,
+    K: int,
+):
+    chunksize = X.shape[0] // K
+    X, z = resample(X, z)
+    tuples = list()
+
+    for k in range(K):
+        if k == K - 1:
+            # if we are on the last, take all thats left
+            X_test = X[k * chunksize :, :]
+            z_test = z[k * chunksize :]
+        else:
+            X_test = X[k * chunksize : (k + 1) * chunksize, :]
+            z_test = z[k * chunksize : (k + 1) * chunksize :]
+
+        X_train = np.delete(
+            X,
+            [i for i in range(k * chunksize, k * chunksize + X_test.shape[0])],
+            axis=0,
+        )
+        z_train = np.delete(
+            z,
+            [i for i in range(k * chunksize, k * chunksize + z_test.shape[0])],
+            axis=0,
+        )
+
+        tuples.append((X_train, X_test, z_train, z_test))
+
+    return tuples
+
+
+def bias_variance(z_test: np.ndarray, z_preds_test: np.ndarray):
+    MSEs, _ = scores(z_test, z_preds_test)
+    error = np.mean(MSEs)
+    bias = np.mean(
+        (z_test - np.mean(z_preds_test, axis=1, keepdims=True).flatten()) ** 2
+    )
+    variance = np.mean(np.var(z_preds_test, axis=1, keepdims=True))
+
+    return error, bias, variance
+
+
+def bootstrap(
+    X_train: np.ndarray,
+    z_train: np.ndarray,
+    bootstraps: int,
+):
+    tuples = list()
+
+    for i in range(bootstraps):
+        X_, z_ = resample(X_train, z_train)
+        tuples.append((X_, z_))
+
+    return tuples
+
+
 def confusion(prediction: np.ndarray, target: np.ndarray):
     # expects that both are vector of zero and one
     # print(np.hstack([target,prediction]))
@@ -253,6 +312,7 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
 
     return np.array([[true_neg_perc, false_pos_perc], [false_neg_perc, true_pos_perc]])
 
+
 def plot_confusion(prediction: np.ndarray, target: np.ndarray):
     fontsize = 40
     confusion_matrix = confusion(prediction, target)
@@ -271,6 +331,9 @@ def plot_confusion(prediction: np.ndarray, target: np.ndarray):
     plt.ylabel("Predicted class")
     plt.show()
 
+
+# formatting for prints stolen from stack overflow.
+# makes decimal values have the same number of digits
 def fmt(value, N=4):
     import math
 
@@ -290,6 +353,7 @@ def fmt(value, N=4):
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
+    np.random.seed(1337)
     argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Read in arguments for tasks")
