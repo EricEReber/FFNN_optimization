@@ -29,7 +29,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 2000
+epochs = 20
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
@@ -44,7 +44,9 @@ rho = 0.9
 rho2 = 0.999
 
 # batches to test for
-batches_list = np.logspace(0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int)
+batches_list = np.logspace(
+    0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int
+)
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
@@ -88,6 +90,7 @@ for i in range(len(schedulers)):
         params_list[i],
         batches=X_train.shape[0],
         epochs=epochs // 2,
+        bootstraps=1,
     )
 
     optimal_eta[i] = optimal_params[0]
@@ -129,35 +132,61 @@ for i in range(len(schedulers)):
     )
 
     for j in range(len(batches_list)):
-        plt.plot(batches_list_search[j, :], label=f"batch size {X_train.shape[0]//batches_list[j]}")
+        plt.plot(
+            batches_list_search[j, :],
+            label=f"batch size {X_train.shape[0]//batches_list[j]}",
+        )
         plt.legend(loc=(1.04, 0))
     plt.xlabel("epochs", fontsize=18)
     plt.ylabel("MSE score", fontsize=18)
     plt.title(schedulers[i].__name__, fontsize=22)
 plt.show()
 
+test_errors = np.zeros((len(schedulers), epochs))
+all_biases = np.zeros((len(schedulers), epochs))
+all_variances = np.zeros((len(schedulers), epochs))
+
 # plot best run for each scheduler
 for i in range(len(schedulers)):
     neural = FFNN(dims, seed=1337)
-    scores = neural.fit(
+    test_error, biases, variances = neural.bootstrap(
+        3,
         X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        batches=X.shape[0] // 8,
+        batches=optimal_batch,
         epochs=epochs,
         lam=optimal_lambdas[i],
         X_test=X_test,
         t_test=z_test,
     )
-    test_error = scores["test_error"]
+
+    test_errors[i] = test_error
+    all_biases[i] = biases
+    all_variances[i] = variances
+
     plt.plot(test_error, label=f"{schedulers[i].__name__}")
     plt.legend(loc=(1.04, 0))
+
 best_MSE_analytically = np.zeros(epochs)
 best_MSE_analytically[:] = 0.003027
+
 plt.plot(best_MSE_analytically)
 plt.legend(loc=(1.04, 0))
 plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
 plt.title("MSE over Epochs for different schedulers", fontsize=22)
+plt.show()
+
+# plot bias-variance trade-off
+for i in range(len(schedulers)):
+    plt.subplot(321 + i)
+    plt.suptitle("Bias-variance trade-off", fontsize=22)
+
+    plt.title(schedulers[i].__name__, fontsize=22)
+    plt.plot(test_errors[i], label="MSE score")
+    plt.plot(all_biases[i], label="bias")
+    plt.plot(all_variances[i], label="variance")
+    plt.legend(loc=(1.04, 0))
 plt.show()
