@@ -81,6 +81,9 @@ class FFNN:
 
         :return: error over epochs for training and test runs for plotting
         """
+
+
+        # --------- setup ---------
         train_errors = np.empty(epochs)
         train_errors.fill(np.nan)  # makes for better plots if we cancel early
         test_errors = np.empty(epochs)
@@ -90,20 +93,24 @@ class FFNN:
         train_accs.fill(np.nan)  # makes for better plots if we cancel early
         test_accs = np.empty(epochs)
         test_accs.fill(np.nan)
-        if X_test is not None:
-            test_preds = np.zeros((X_test.shape[0], epochs))
+
+        self.schedulers_weight = list()
+        self.schedulers_bias = list()
+
+        batch_size = X.shape[0] // batches
 
         if self.seed is not None:
             np.random.seed(self.seed)
+
+        if X_test is not None:
+            test_preds = np.zeros((X_test.shape[0], epochs))
+
+
+
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
         checkpoint_num = 0
-
-        batch_size = X.shape[0] // batches
-
-        self.schedulers_weight = list()
-        self.schedulers_bias = list()
 
         # this function returns a function valued only at X
         cost_function_train = self.cost_func(t)
@@ -115,10 +122,12 @@ class FFNN:
             self.schedulers_bias.append(scheduler_class(*args))
 
         print(scheduler_class.__name__)
+        # this try is only so that we may cancel early by hitting ctrl+c
         try:
             for e in range(epochs):
                 for i in range(batches):
-                    # print(f"Batch: {i}")
+
+                    # -------- minibatch gradient descent ---------
                     if i == batches - 1:
                         # if we are on the last, take all thats left
                         X_batch = X[i * batch_size :, :]
@@ -130,11 +139,15 @@ class FFNN:
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
 
+                # reset schedulers every epoch
                 for scheduler in self.schedulers_weight:
                     scheduler.reset()
 
                 for scheduler in self.schedulers_bias:
                     scheduler.reset()
+
+
+                # --------- performance metrics -------
 
                 prediction = self.predict(X, raw=True)
                 train_error = cost_function_train(prediction)
@@ -164,6 +177,7 @@ class FFNN:
                 test_errors[e] = test_error
                 progression = e / epochs
 
+                 # ----- printing progress bar ------------
                 length = self._progress_bar(
                     progression,
                     train_error=train_error,
@@ -172,19 +186,25 @@ class FFNN:
                     test_acc=test_acc,
                 )
 
+
+
+
+                # save to file every 10% if checkpoint file given
                 if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
                     e == epochs - 1 and self.checkpoint_file
                 ):
                     checkpoint_num += 1
                     print()
-                    print(" " * length, end="\r")
                     print(f"{checkpoint_num}/10: Checkpoint reached")
                     self.write(self.checkpoint_file)
+
+                print(" " * length, end="\r")
 
         except KeyboardInterrupt:
             # allows for stopping training at any point and seeing the result
             pass
 
+        # overwrite last print so that we dont get 99.9 %
         print(" " * length, end="\r")
         self._progress_bar(
             1,
@@ -195,6 +215,7 @@ class FFNN:
         )
         print()
 
+        # return performance metrics for the entire run
         return {
             "train_error": train_errors,
             "test_error": test_errors,
