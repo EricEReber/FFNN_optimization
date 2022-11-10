@@ -34,15 +34,15 @@ X_test_sc = scaler.transform(X_test)
 # parameters
 neural_dims = (30, 60, 1)
 logreg_dims = (30, 1)
-eta = np.logspace(-5, -1, 5)
-lam = np.logspace(-5, -1, 5)
+eta = 0.001
+#lam = np.logspace(-5, -1, 5)
 rho = 0.90
 rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 batches = 20
 
-neural = FFNN(neural_dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg)
+#neural = FFNN(neural_dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg)
 # neural = FFNN(logreg_dims, output_func=sigmoid, cost_func=CostLogReg)
 
 momentum = 0.5
@@ -55,6 +55,7 @@ opt_params = [rho, rho2]
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
+"""
 batch_sizes = np.logspace(0, np.log(X_train.shape[0]+1), 7, base=np.exp(1), dtype=int)
 
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
@@ -86,7 +87,7 @@ optimal_batch, _ = neural.optimize_batch(
 
 scores = neural.fit(
     X_train_sc,
-    z_train,
+    z_traint ,
     sched,
     *optimal_params,
     # batches=optimal_batch,
@@ -95,7 +96,24 @@ scores = neural.fit(
     lam=optimal_lambda,
     X_test=X_test_sc,
     t_test=z_test,
-)
+) """
+
+optimize_arch(FFNN, 
+              60, 
+              [RELU, sigmoid, CostLogReg],
+              X_train_sc,
+              z_train,
+              X_test_sc,
+              z_test,
+              sched,
+              params,
+              lams=0.05,
+              batch=20,
+              epochs=100,
+              classify=True)
+
+
+
 train_errors = scores["train_error"]
 test_errors = scores["test_error"]
 plt.plot(train_errors, label="train")

@@ -15,6 +15,7 @@ from imageio import imread
 import seaborn as sns
 import sys
 import argparse
+from Schedulers import Scheduler
 
 
 def FrankeFunction(x, y):
@@ -351,6 +352,76 @@ def fmt(value, N=4):
         # return '!'*N
     return f"{value:.{N-n-1}f}"
 
+
+def optimize_arch(
+    model, 
+    max_nodes,
+    funcs,
+    X,
+    t,
+    X_test,
+    t_test,
+    scheduler,
+    args,
+    lams: float,
+    batch: int,
+    epochs: int,
+    classify: bool = False,
+):
+
+    one_hid_train = np.zeros(max_nodes)
+    one_hid_test = np.zeros(max_nodes)
+    two_hid_train = np.zeros(max_nodes)
+    two_hid_test = np.zeros(max_nodes)
+
+    for i in range(1, max_nodes + 1, 1):
+        neural = model(
+            (X.shape[1], i+29, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+        )
+        print(neural.dimensions)
+        scores = neural.fit(
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batch,
+            epochs=epochs,
+            lam=lams,
+            X_test=X_test,
+            t_test=t_test,
+        )
+        if classify:
+            one_hid_test[i] = scores["test_acc"]
+            one_hid_train[i] = score["train_acc"]
+        else: 
+            one_hid_test[i] = scores["test_acc"]
+            one_hid_train[i] = scores["train_acc"]
+        self.reset_weights()
+
+    for j in range(1, (max_nodes//2)+1, 1): 
+        neural = model(
+            (X.shape[1], j, j, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+        )
+        scores = neural.fit(    
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batch,
+            epochs=epochs,
+            lam=lams,
+            X_test=X_test,
+            t_test=t_test,
+        )
+        if classify:
+            two_hid_test[j] = scores["test_acc"]
+            two_hid_train[j] = score["train_acc"]
+        else: 
+            two_hid_test[j] = scores["test_acc"]
+            two_hid_train[j] = scores["train_acc"]
+        self.reset_weights()
+
+    return one_hid_train, one_hid_test, two_hid_train, two_hid_test
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
