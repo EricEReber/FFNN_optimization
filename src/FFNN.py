@@ -173,20 +173,20 @@ class FFNN:
                     break
                 if test_set:
                     prediction_test = self.predict(X_test, raw=True)
-                    test_error = cost_function_test(prediction_test)
+                    test_errors = cost_function_test(prediction_test)
                     # test_preds[:, e] = prediction_test.ravel()
 
                     if use_best_weights:
-                        if test_error < best_test_error:
-                            best_test_error = test_error
+                        if test_errors < best_test_error:
+                            best_test_error = test_errors
                             best_train_error = train_error
                             best_weights = deepcopy(self.weights)
                     else:
-                        best_test_error = test_error
+                        best_test_error = test_errors
                         best_train_error = train_error
 
                 else:
-                    test_error = np.nan  # a
+                    test_errors = np.nan  # a
 
                 train_acc = None
                 test_acc = None
@@ -206,14 +206,14 @@ class FFNN:
                             best_train_acc = train_acc
 
                 train_errors[e] = train_error
-                test_errors[e] = test_error
+                test_errors[e] = test_errors
                 progression = e / epochs
 
                 # ----- printing progress bar ------------
                 length = self._progress_bar(
                     progression,
                     train_error=train_error,
-                    test_error=test_error,
+                    test_errors=test_errors,
                     train_acc=train_acc,
                     test_acc=test_acc,
                 )
@@ -237,7 +237,7 @@ class FFNN:
         self._progress_bar(
             1,
             train_error=train_error,
-            test_error=test_error,
+            test_errors=test_errors,
             train_acc=train_acc,
             test_acc=test_acc,
         )
@@ -282,7 +282,7 @@ class FFNN:
     ):
         """Bootstrap
         Parameters:
-            num_bootstraps (int): number of bootstraps
+            num_bootstraps (int): number of folds
             args: positional arguments for FFNN.fit()
             kwargs: keyword arguments for FFNN.fit()
         Returns:
@@ -543,7 +543,7 @@ class FFNN:
         batches=1,
         epochs: int = 1000,
         classify: bool = False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -582,7 +582,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
-                bootstraps=bootstraps,
+                folds=folds,
             )
         else:
             (
@@ -602,7 +602,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
-                bootstraps=bootstraps,
+                folds=folds,
             )
 
         string = (
@@ -648,10 +648,10 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
-            test_error = scores["test_error"]
+            test_errors = scores["test_errors"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
-            batches_list_search[i, :] = test_error
+            batches_list_search[i, :] = test_errors
         optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
 
         return optimal_batch, batches_list_search
@@ -669,7 +669,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Help function for optimize_scheduler
@@ -681,8 +681,8 @@ class FFNN:
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
-                test_error, _, _ = self.bootstrap(
-                    bootstraps,
+                scores = self.cross_val(
+                    folds,
                     X,
                     t,
                     scheduler,
@@ -698,8 +698,9 @@ class FFNN:
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = np.min(test_accs)
                 else:
-                    loss_heatmap[y, x] = test_error[-1]
-                    min_heatmap[y, x] = np.min(test_error)
+                    test_scores = scores["test_errors"]
+                    loss_heatmap[y, x] = test_errors[-1]
+                    min_heatmap[y, x] = np.min(test_errors)
                 self.reset_weights()
 
         # select optimal eta, lambda
@@ -728,7 +729,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Help function for optimize_scheduler
@@ -741,8 +742,8 @@ class FFNN:
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    test_error, _, _ = self.bootstrap(
-                        bootstraps,
+                    scores = self.cross_val(
+                        folds,
                         X,
                         t,
                         scheduler,
@@ -759,8 +760,9 @@ class FFNN:
                         loss_heatmap[y, x, z] = test_accs[-1]
                         min_heatmap[y, x, z] = np.min(test_accs)
                     else:
-                        loss_heatmap[y, x, z] = test_error[-1]
-                        min_heatmap[y, x, z] = np.min(test_error)
+                        test_errors = scores["test_errors"]
+                        loss_heatmap[y, x, z] = test_errors[-1]
+                        min_heatmap[y, x, z] = np.min(test_errors)
                     self.reset_weights()
 
         if classify:
