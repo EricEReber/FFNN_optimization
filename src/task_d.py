@@ -27,6 +27,10 @@ X_train, X_test, z_train, z_test = train_test_split(X, z)
 scaler = StandardScaler()
 scaler.fit(X_train)
 
+scaler = StandardScaler()
+scaler.fit(X)
+X = scaler.transform(X)
+
 X_train_sc = scaler.transform(X_train)
 X_test_sc = scaler.transform(X_test)
 
@@ -39,7 +43,8 @@ rho = 0.90
 rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
-batches = 20
+z = z.reshape(z.shape[0], 1)
+batches = 10
 
 neural = FFNN(neural_dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg)
 # neural = FFNN(logreg_dims, output_func=sigmoid, cost_func=CostLogReg)
@@ -53,14 +58,18 @@ sched = Adam
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
+folds = 30
 
-scores = neural.fit(
-    X_train_sc,
-    z_train,
+scores = neural.crossval(
+    folds,
+    # X_train_sc,
+    # z_train,
+    X,
+    z,
     sched,
     *params,
     batches=batches,
-    epochs=1000,
+    epochs=20,
     # lam=0.01,
     X_test=X_test_sc,
     t_test=z_test,
@@ -74,7 +83,6 @@ plt.xlabel("Epochs")
 plt.ylabel("LogLoss")
 plt.title("LogLoss over Epochs")
 plt.show()
-print(scores)
 
 prediction = neural.predict(X_test_sc)
 

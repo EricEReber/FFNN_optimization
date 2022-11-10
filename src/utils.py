@@ -206,6 +206,7 @@ def crossval(
     K: int,
 ):
     chunksize = X.shape[0] // K
+    np.random.seed(3)
     X, z = resample(X, z)
     tuples = list()
 
@@ -279,7 +280,7 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     true_pos_perc = true_pos / (false_pos + true_pos)
     false_pos_perc = false_pos / (false_pos + true_pos)
 
-    return np.array([[true_neg_perc, false_pos_perc], [false_neg_perc, true_pos_perc]])
+    return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
 
 def plot_confusion(prediction: np.ndarray, target: np.ndarray):
@@ -292,12 +293,9 @@ def plot_confusion(prediction: np.ndarray, target: np.ndarray):
         annot=True,
         fmt=".2%",
         cmap="Blues",
-        # annot_kws={"fontsize": fontsize},
     )
-    # plt.xlabel("True class", fontsize=fontsize)
-    plt.xlabel("True class")
-    # plt.ylabel("Predicted class", fontsize=fontsize)
-    plt.ylabel("Predicted class")
+    plt.xlabel("Predicted class")
+    plt.ylabel("True class")
     plt.show()
 
 
