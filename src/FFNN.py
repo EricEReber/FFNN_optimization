@@ -1,6 +1,7 @@
 import numpy as np
 from Schedulers import *
 from utils import *
+from copy import deepcopy
 
 
 class FFNN:
@@ -65,6 +66,7 @@ class FFNN:
         lam: float = 0,
         X_test: np.ndarray = None,
         t_test: np.ndarray = None,
+        use_best_weights: bool = False,
     ):
         """
         Trains the neural network via feedforward and backpropagation
@@ -76,8 +78,8 @@ class FFNN:
         :param batches: batches to split data into
         :param epochs: how many epochs for training
         :param lam: regularization parameter
-        :param X_test: pass -> return test plotting data
-        :param t_test: pass -> return test plotting data
+        :param use_best_weights: save the best weights and only use them. This runs slower because
+        it has to check every epoch if it is better than the best. Only use with X_test set
 
         :return: error over epochs for training and test runs for plotting
         """
@@ -85,12 +87,12 @@ class FFNN:
 
         # --------- setup ---------
         train_errors = np.empty(epochs)
-        train_errors.fill(np.nan)  # makes for better plots if we cancel early
+        train_errors.fill(np.nan)  # nan makes for better plots if we cancel early (they are not plotted)
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
         train_accs = np.empty(epochs)
-        train_accs.fill(np.nan)  # makes for better plots if we cancel early
+        train_accs.fill(np.nan)
         test_accs = np.empty(epochs)
         test_accs.fill(np.nan)
 
@@ -105,15 +107,19 @@ class FFNN:
         if X_test is not None:
             test_preds = np.zeros((X_test.shape[0], epochs))
 
-
+        if use_best_weights and X_test is not None:
+            best_weights = deepcopy(self.weights)
+            best_error = 10e20
+            best_acc = 0
 
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
         checkpoint_num = 0
 
+
         # this function returns a function valued only at X
-        cost_function_train = self.cost_func(t)
+        cost_function_train = self.cost_func(t) # used for performance metrics
         if X_test is not None and t_test is not None:
             cost_function_test = self.cost_func(t_test)
 
@@ -154,12 +160,19 @@ class FFNN:
                 if train_error > 10e20:
                     # if this happens, we have a problem
                     break
-                if X_test is not None and t_test is not None:
+                if X_test is not None:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
                     test_preds[:, e] = prediction_test.ravel()
+
+                    if use_best_weights:
+                        if test_error < best_error:
+                            best_error = test_error
+                            best_weights = deepcopy(self.weights)
+
                 else:
                     test_error = np.nan  # a
+
 
                 train_acc = None
                 test_acc = None
@@ -169,15 +182,19 @@ class FFNN:
                 ):
                     train_acc = accuracy(self.predict(X, raw=False), t)
                     train_accs[e] = train_acc
-                    if X_test is not None and t_test is not None:
+                    if X_test is not None:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
                         test_accs[e] = test_acc
+                        if use_best_weights:
+                            if test_acc > best_acc:
+                                best_acc = test_acc
+                                best_weights = deepcopy(self.weights)
 
                 train_errors[e] = train_error
                 test_errors[e] = test_error
                 progression = e / epochs
 
-                 # ----- printing progress bar ------------
+                # ----- printing progress bar ------------
                 length = self._progress_bar(
                     progression,
                     train_error=train_error,
@@ -193,12 +210,12 @@ class FFNN:
                 if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
                     e == epochs - 1 and self.checkpoint_file
                 ):
+                    print(" " * length, end="\r")
                     checkpoint_num += 1
                     print()
                     print(f"{checkpoint_num}/10: Checkpoint reached")
                     self.write(self.checkpoint_file)
 
-                print(" " * length, end="\r")
 
         except KeyboardInterrupt:
             # allows for stopping training at any point and seeing the result
@@ -216,6 +233,11 @@ class FFNN:
         print()
 
         # return performance metrics for the entire run
+
+
+        if use_best_weights:
+            self.weights = best_weights
+
         return {
             "train_error": train_errors,
             "test_error": test_errors,

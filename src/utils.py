@@ -196,6 +196,7 @@ def LRELU(x: np.ndarray):
 
 
 def accuracy(prediction: np.ndarray, target: np.ndarray):
+    assert prediction.size == target.size
     return np.average((target == prediction))
 
 
