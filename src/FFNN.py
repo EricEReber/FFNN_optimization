@@ -231,7 +231,7 @@ class FFNN:
         *args,
         batches=1,
         epochs: int = 1000,
-        classify: bool = False
+        classify: bool = False,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -264,7 +264,7 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
-                classify=classify
+                classify=classify,
             )
         else:
             loss_heatmap, optimal_params, optimal_lambda = self._gridsearch_momentum(
@@ -278,7 +278,7 @@ class FFNN:
                 *args,
                 batches=batches,
                 epochs=epochs,
-                classify=classify
+                classify=classify,
             )
 
         return optimal_params, optimal_lambda, loss_heatmap
@@ -314,7 +314,7 @@ class FFNN:
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
             batches_list_search[i, :] = test_error
-        optimal_batch = batches_list[np.argmin(batches_list_search[:,-1])]
+        optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
 
         return optimal_batch, batches_list_search
 
@@ -501,7 +501,18 @@ class FFNN:
         return len(line)
 
     def _gridsearch_scheduler(
-        self, X, t, X_test, t_test, scheduler, eta, lam, *args, batches=1, epochs=1000, classify=False,
+        self,
+        X,
+        t,
+        X_test,
+        t_test,
+        scheduler,
+        eta,
+        lam,
+        *args,
+        batches=1,
+        epochs=1000,
+        classify=False,
     ):
         """
         Help function for optimize_scheduler
@@ -524,7 +535,7 @@ class FFNN:
                     t_test=t_test,
                 )
                 if classify:
-                    test_accs = scores["test_accs"]
+                    test_accs = scores["test_acc"]
                     loss_heatmap[y, x] = test_accs[-1]
                 else:
                     test_error = scores["test_error"]
@@ -556,7 +567,7 @@ class FFNN:
         momentums,
         batches=1,
         epochs=1000,
-        classify=False
+        classify=False,
     ):
         """
         Help function for optimize_scheduler
@@ -581,7 +592,7 @@ class FFNN:
                         t_test=t_test,
                     )
                     if classify:
-                        test_accs = scores["test_accs"]
+                        test_accs = scores["test_acc"]
                         loss_heatmap[y, x, z] = test_accs[-1]
                     else:
                         test_error = scores["test_error"]

@@ -34,7 +34,7 @@ opt_params = [rho, rho2]
 # params = [eta, momentum]
 
 dims = (2, 224, 112, 1)
-train_epochs = 2000
+train_epochs = 1000
 
 eta = np.logspace(-5, -1, 5)
 lams = np.logspace(-5, -1, 5)
@@ -52,8 +52,8 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     eta,
     lams,
     opt_params,
-    batches=10,
-    epochs=20,
+    batches=25,
+    epochs=1000,
 )
 
 params = [optimal_params[0], rho, rho2]
@@ -67,7 +67,7 @@ optimal_batch = neural.optimize_batch(
     optimal_lambda,
     *params,
     batches_list=batch_sizes,
-    epochs=20,
+    epochs=30,
 )
 
 scores = neural.fit(

@@ -32,9 +32,10 @@ X_test_sc = scaler.transform(X_test)
 
 
 # parameters
-neural_dims = (30, 100, 1)
+neural_dims = (30, 60, 1)
 logreg_dims = (30, 1)
-eta = 0.001
+eta = np.logspace(-5, -1, 5)
+lam = np.logspace(-5, -1, 5)
 rho = 0.90
 rho2 = 0.999
 z_train = z_train.reshape(z_train.shape[0], 1)
@@ -50,9 +51,26 @@ sched = RMS_prop
 sched = Adam
 # params = [eta, momentum]
 # params = [eta]
+opt_params = [rho, rho2]
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
+
+optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
+    X_train_sc,
+    z_train,
+    X_test_sc,
+    z_test,
+    sched,
+    eta,
+    lam,
+    opt_params,
+    batches=20,
+    epochs=100,
+    classify=True,
+)
+
+params = [optimal_params[0], rho, rho2]
 
 scores = neural.fit(
     X_train_sc,
@@ -61,7 +79,7 @@ scores = neural.fit(
     *params,
     batches=batches,
     epochs=1000,
-    # lam=0.01,
+    lam=optimal_lambda,
     X_test=X_test_sc,
     t_test=z_test,
 )
@@ -76,5 +94,4 @@ plt.title("LogLoss over Epochs")
 plt.show()
 
 prediction = neural.predict(X_test_sc)
-
 plot_confusion(prediction, z_test)
