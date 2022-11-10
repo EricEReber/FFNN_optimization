@@ -267,9 +267,9 @@ class FFNN:
 
         return scores
 
-    def bootstrap(
+    def crossval(
         self,
-        num_bootstraps: int,
+        folds: int,
         X: np.ndarray,
         t: np.ndarray,
         scheduler_class,
@@ -288,38 +288,39 @@ class FFNN:
         Returns:
             bootstrapped test error, bias, variance by epochs
         """
-        matrices = bootstrap(X, t, num_bootstraps)
+        if self.seed:
+            np.random.seed(self.seed)
+        matrices = crossval(X, t, folds)
 
-        test_errors = np.zeros(epochs)
-        predictions = np.zeros((X_test.shape[0], num_bootstraps, epochs))
-        biases = np.zeros(epochs)
-        variances = np.zeros(epochs)
+        # avg_weights = [x * 0 for x in self.weights]
 
+        avg_scores = None
         for i in range(len(matrices)):
+            self.reset_weights()
             scores = self.fit(
                 matrices[i][0],
-                matrices[i][1],
+                matrices[i][2],
                 scheduler_class,
                 *args,
-                X_test=X_test,
-                t_test=t_test,
+                X_test=matrices[i][1],
+                t_test=matrices[i][3],
+                lam=lam,
                 batches=batches,
-                epochs=epochs,
+                epochs=epochs
             )
-            self.reset_weights()
 
-            predictions[:, i, :] = scores["test_pred"]
+            # avg_weights = [avg_weights[i] + (self.weights[i] / folds) for i in range(len(avg_weights))]
+            if not avg_scores:
+                avg_scores = scores 
+                for key in avg_scores:
+                    avg_scores[key] /=  folds
+            else:
+                for key in avg_scores:
+                    avg_scores[key] +=  scores[key] / folds
 
-        for i in range(epochs):
-            error, bias, variance = bias_variance(t_test, predictions[:, :, i])
-            if not i:
-                print(np.hstack([predictions[:, :, i], t_test]))
-                print(error)
-            biases[i] = bias
-            variances[i] = variance
-            test_errors[i] = error
+        # self.weights = avg_weights
 
-        return test_errors, biases, variances
+        return avg_scores
 
     def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
         """
