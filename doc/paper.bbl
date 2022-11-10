@@ -17,17 +17,15 @@ Goodfellow, I., Bengio, Y., and Courville, A. (2016).
 \newblock MIT Press.
 \newblock http://www.deeplearningbook.org.
 
-\bibitem[Hjort-Jensen, 2022a]{mortensched}
-Hjort-Jensen, M. (2022a).
+\bibitem[Hjorth-Jensen, 2022a]{mortensched}
+Hjorth-Jensen, M. (2022a).
 \newblock Week 39: Optimization and gradient methods.
-\newblock On the WWW.
 \newblock URL
   \verb+https://compphysics.github.io/MachineLearning/doc/pub/week39/html/week39.html+.
 
-\bibitem[Hjort-Jensen, 2022b]{morten}
-Hjort-Jensen, M. (2022b).
+\bibitem[Hjorth-Jensen, 2022b]{morten}
+Hjorth-Jensen, M. (2022b).
 \newblock Week 40: Neural networks.
-\newblock On the WWW.
 \newblock URL
   \verb+https://compphysics.github.io/MachineLearning/doc/pub/week40/html/week40.html+.
 
@@ -35,5 +33,11 @@ Hjort-Jensen, M. (2022b).
 Raschka, S. and Mirjalili, V. (2019).
 \newblock {\em Python Machine Learning}.
 \newblock Packt, Birmingham.
+
+\bibitem[Reber and Hanssen, 2022]{ericjona}
+Reber, E. and Hanssen, J. (2022).
+\newblock Linear regression for approximating real and synthetic data.
+\newblock URL
+  \verb+https://raw.githubusercontent.com/jonatan-hanssen/linear_regression_report/main/doc/paper.pdf+.
 
 \end{thebibliography}

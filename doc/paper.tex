@@ -11,11 +11,20 @@
 \usepackage{tablefootnote}
 \usepackage{float}
 \usepackage{xcolor}
+\usepackage{xurl}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks%  save the current one
+  \do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j%
+  \do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t%
+  \do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D%
+  \do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N%
+  \do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X%
+  \do\Y\do\Z}
 
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{backcolour},
@@ -114,7 +123,7 @@ We developed a Feed Forward Neural Network (FFNN) and applied it to many common 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 
-Neural Networks are all the rage these days, everyone wants to have a neural network in their home. Ive even seen people install neural networks in their dogs.
+Neural Networks are all the rage these days, everyone wants to have a neural network in their home. Ive even seen people install neural networks in their dogs. \cite{ericjona}
 
 % Neural networks are powerful tools, able to solve many different problems with 
 
@@ -230,9 +239,17 @@ We implement the FFNN as a class, using NumPy's many matrix functions. In the in
 
 The feedforward part is implemented as a simple matrix vector multiplication, followed by an elementwise application of the chosen activation function. For processing batches of inputs, the same multiplication code is used, but this time the input is the design matrix instead of a single row. Each hidden layer will now contain matrices themselves, consisting of a number of rows equivalent to the batch size and a number of columns equal to the number of nodes in this layer.
 
-The backpropagation is implemented by differentiating all the functions declared when the class is instatiated, and following the algorithm laid out in Hjort-Jensens lectures \cite{morten}. For batch backpropagation, we accumulate the gradient. In practice this means that the gradient for the weights, normally a matrix the same size as the relevant weight matrix, is now one matrix per element in our batch (in practice implemented as a NumPy array of three dimensions). At the end of the batch, we average all the gradients for each weight matrix together and feed this into our scheduler calculation to determine how much our weights should change.
+The backpropagation is implemented by differentiating all the functions declared when the class is instatiated, and following the algorithm laid out in Hjorth-Jensens lectures \cite{morten}. For batch backpropagation, we accumulate the gradient. In practice this means that the gradient for the weights, normally a matrix the same size as the relevant weight matrix, is now one matrix per element in our batch (in practice implemented as a NumPy array of three dimensions). At the end of the batch, we average all the gradients for each weight matrix together and feed this into our scheduling calculation to determine how much our weights should change.
 
-Training a model is implemented as repeated calls to feedforward and backpropagation, once per batch per epoch. During training, one is able to specify which scheduler to use. These are implemented as a series of classes all inheriting from a base class, and are all implemented following Hjort-Jensens lectures \cite{mortensched}. For finding the optimal parameters, we implement our own gridsearch which finds the lowest error among combinations of lambda, eta, and parameters used for the scheduling.
+Training a model is implemented as repeated calls to feedforward and backpropagation, once per batch per epoch. During training, one is able to specify which scheduler to use. These are implemented as a series of classes all inheriting from a base class, and are all implemented following Hjorth-Jensens lectures \cite{mortensched}. For finding the optimal parameters, we implement our own gridsearch which finds the lowest error among combinations of lambda, eta, and parameters used for the scheduling.
+
+For verification that our implementation is working correctly, we train on a simple second degree polynomial, and see that our predicted y value is very close to the actual y value\footnote{see \texttt{src/verification.py}}. See Fig.~\ref{verification}.
+
+\begin{figure}[h]
+\centerline{\includegraphics[width=5in]{figure/verification.png}}
+\caption{Simple verification case}
+\label{verification}
+\end{figure}
 
 \section{Results}
 
@@ -248,14 +265,7 @@ To test our networks ability to classify data, we trained it on many common data
 
 \subsection{Logistic Regression}
 
-Although our neural network performed well, we also found very similar results with logistic regression, at a much lower computational cost. This implies that our classification datasets were perhaps too simple, and that using Neural Networks was perhaps not needed to achieve good results.
-
-% \begin{figure}[h]
-% \centerline{\includegraphics[width=5in]{figure/frankebestlambdamse.png}}
-% \caption{Test and train MSE for ridge}
-% \label{frankebestlambdamse}
-% \end{figure}
-
+Although our neural network performed well, we also found very similar results with logistic regression, at a much lower computational cost. This implies that our classification datasets were perhaps too simple, and that using Neural Networks was not needed to achieve good results.
 
 % \begin{table}
 % \begin{center}
@@ -310,13 +320,5 @@ Figure & Shell command (leading \texttt{python3} omitted) \\
 \end{tabular}
 \end{center}
 \end{table*}
-
-%%%%%%%%%%% FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%5
-
-% \begin{figure*} 
-% \centerline{\includegraphics[width=3.25in]{figure/frankeridgebetas.png}}
-% \caption{Beta progression for different values of lambda in Ridge regression. Note the different scales on each of the plots, showing how increasing the regularization parameter shrinks the betas}
-% \label{frankeridgebetas}
-% \end{figure*}
 
 \end{document}
