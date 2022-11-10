@@ -118,7 +118,6 @@ class FFNN:
         try:
             for e in range(epochs):
                 for i in range(batches):
-                    # print(f"Batch: {i}")
                     if i == batches - 1:
                         # if we are on the last, take all thats left
                         X_batch = X[i * batch_size :, :]
@@ -247,8 +246,8 @@ class FFNN:
             predictions[:, i, :] = scores["test_pred"]
 
         for i in range(epochs):
-            if not i:
-                print(predictions[:, :, i])
+            # if not i:
+            #     print(predictions[:, :, i])
             error, bias, variance = bias_variance(t_test, predictions[:, :, i])
             biases[i] = bias
             variances[i] = variance
@@ -403,10 +402,6 @@ class FFNN:
                             self.z_matrices[i + 1]
                         ) * cost_func_derivative(self.a_matrices[i + 1])
                     except ZeroDivisionError:
-                        print(f"{self.a_matrices=}")
-                        print(f"{self.weights=}")
-                        print(f"{self.a_matrices[i+1]=}")
-                        print(f"{self.a_matrices[i+1].shape=}")
                         exit()
 
             else:
@@ -441,7 +436,6 @@ class FFNN:
                     self.schedulers_weight[i].update_change(gradient_weights),
                 ]
             )
-            # print(f"{update_matrix=}")
             update_list.insert(0, update_matrix)
 
         self._update_w_and_b(update_list)
@@ -483,6 +477,7 @@ class FFNN:
         batches=1,
         epochs: int = 1000,
         classify: bool = False,
+        bootstraps=1,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -521,6 +516,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
+                bootstraps=bootstraps,
             )
         else:
             (
@@ -540,6 +536,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
+                bootstraps=bootstraps,
             )
 
         string = (
@@ -574,7 +571,6 @@ class FFNN:
         optimal_batch = 0
         batches_list_search = np.zeros((len(batches_list), epochs))
         for i in range(len(batches_list)):
-            print(batches_list[i])
             scores = self.fit(
                 X,
                 t,
@@ -607,6 +603,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
+        bootstraps=1,
     ):
         """
         Help function for optimize_scheduler
@@ -618,7 +615,8 @@ class FFNN:
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
-                scores = self.fit(
+                test_error, _, _ = self.bootstrap(
+                    bootstraps,
                     X,
                     t,
                     scheduler,
@@ -634,7 +632,6 @@ class FFNN:
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = np.min(test_accs)
                 else:
-                    test_error = scores["test_error"]
                     loss_heatmap[y, x] = test_error[-1]
                     min_heatmap[y, x] = np.min(test_error)
                 self.reset_weights()
@@ -665,6 +662,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
+        bootstraps=1,
     ):
         """
         Help function for optimize_scheduler
@@ -677,7 +675,8 @@ class FFNN:
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    scores = self.fit(
+                    test_error, _, _ = self.bootstrap(
+                        bootstraps,
                         X,
                         t,
                         scheduler,
@@ -689,11 +688,11 @@ class FFNN:
                         t_test=t_test,
                     )
                     if classify:
+                        # todo wont work with bootstrap
                         test_accs = scores["test_accs"]
                         loss_heatmap[y, x, z] = test_accs[-1]
                         min_heatmap[y, x, z] = np.min(test_accs)
                     else:
-                        test_error = scores["test_error"]
                         loss_heatmap[y, x, z] = test_error[-1]
                         min_heatmap[y, x, z] = np.min(test_error)
                     self.reset_weights()
