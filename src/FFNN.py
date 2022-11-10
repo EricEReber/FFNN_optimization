@@ -1,6 +1,7 @@
 import numpy as np
 from Schedulers import *
 from utils import *
+from copy import deepcopy
 
 
 class FFNN:
@@ -65,6 +66,7 @@ class FFNN:
         lam: float = 0,
         X_test: np.ndarray = None,
         t_test: np.ndarray = None,
+        use_best_weights: bool = False,
     ):
         """
         Trains the neural network via feedforward and backpropagation
@@ -76,37 +78,48 @@ class FFNN:
         :param batches: batches to split data into
         :param epochs: how many epochs for training
         :param lam: regularization parameter
-        :param X_test: pass -> return test plotting data
-        :param t_test: pass -> return test plotting data
+        :param use_best_weights: save the best weights and only use them. This runs slower because
+        it has to check every epoch if it is better than the best. Only use with X_test set
 
         :return: error over epochs for training and test runs for plotting
         """
+
+        # --------- setup ---------
         train_errors = np.empty(epochs)
-        train_errors.fill(np.nan)  # makes for better plots if we cancel early
+        train_errors.fill(
+            np.nan
+        )  # nan makes for better plots if we cancel early (they are not plotted)
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
         train_accs = np.empty(epochs)
-        train_accs.fill(np.nan)  # makes for better plots if we cancel early
+        train_accs.fill(np.nan)
         test_accs = np.empty(epochs)
         test_accs.fill(np.nan)
-        if X_test is not None:
-            test_preds = np.zeros((X_test.shape[0], epochs))
+
+        self.schedulers_weight = list()
+        self.schedulers_bias = list()
+
+        batch_size = X.shape[0] // batches
 
         if self.seed is not None:
             np.random.seed(self.seed)
+
+        if X_test is not None:
+            test_preds = np.zeros((X_test.shape[0], epochs))
+
+        if use_best_weights and X_test is not None:
+            best_weights = deepcopy(self.weights)
+            best_error = 10e20
+            best_acc = 0
+
         X, t = resample(X, t)
 
         checkpoint_length = epochs // 10
         checkpoint_num = 0
 
-        batch_size = X.shape[0] // batches
-
-        self.schedulers_weight = list()
-        self.schedulers_bias = list()
-
         # this function returns a function valued only at X
-        cost_function_train = self.cost_func(t)
+        cost_function_train = self.cost_func(t)  # used for performance metrics
         if X_test is not None and t_test is not None:
             cost_function_test = self.cost_func(t_test)
 
@@ -115,10 +128,11 @@ class FFNN:
             self.schedulers_bias.append(scheduler_class(*args))
 
         print(scheduler_class.__name__)
+        # this try is only so that we may cancel early by hitting ctrl+c
         try:
             for e in range(epochs):
                 for i in range(batches):
-                    # print(f"Batch: {i}")
+                    # -------- minibatch gradient descent ---------
                     if i == batches - 1:
                         # if we are on the last, take all thats left
                         X_batch = X[i * batch_size :, :]
@@ -130,21 +144,30 @@ class FFNN:
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
 
+                # reset schedulers every epoch
                 for scheduler in self.schedulers_weight:
                     scheduler.reset()
 
                 for scheduler in self.schedulers_bias:
                     scheduler.reset()
 
+                # --------- performance metrics -------
+
                 prediction = self.predict(X, raw=True)
                 train_error = cost_function_train(prediction)
                 if train_error > 10e20:
                     # if this happens, we have a problem
                     break
-                if X_test is not None and t_test is not None:
+                if X_test is not None:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
                     test_preds[:, e] = prediction_test.ravel()
+
+                    if use_best_weights:
+                        if test_error < best_error:
+                            best_error = test_error
+                            best_weights = deepcopy(self.weights)
+
                 else:
                     test_error = np.nan  # a
 
@@ -156,14 +179,19 @@ class FFNN:
                 ):
                     train_acc = accuracy(self.predict(X, raw=False), t)
                     train_accs[e] = train_acc
-                    if X_test is not None and t_test is not None:
+                    if X_test is not None:
                         test_acc = accuracy(self.predict(X_test, raw=False), t_test)
                         test_accs[e] = test_acc
+                        if use_best_weights:
+                            if test_acc > best_acc:
+                                best_acc = test_acc
+                                best_weights = deepcopy(self.weights)
 
                 train_errors[e] = train_error
                 test_errors[e] = test_error
                 progression = e / epochs
 
+                # ----- printing progress bar ------------
                 length = self._progress_bar(
                     progression,
                     train_error=train_error,
@@ -172,12 +200,13 @@ class FFNN:
                     test_acc=test_acc,
                 )
 
+                # save to file every 10% if checkpoint file given
                 if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
                     e == epochs - 1 and self.checkpoint_file
                 ):
+                    print(" " * length, end="\r")
                     checkpoint_num += 1
                     print()
-                    print(" " * length, end="\r")
                     print(f"{checkpoint_num}/10: Checkpoint reached")
                     self.write(self.checkpoint_file)
 
@@ -185,6 +214,7 @@ class FFNN:
             # allows for stopping training at any point and seeing the result
             pass
 
+        # overwrite last print so that we dont get 99.9 %
         print(" " * length, end="\r")
         self._progress_bar(
             1,
@@ -194,6 +224,11 @@ class FFNN:
             test_acc=test_acc,
         )
         print()
+
+        # return performance metrics for the entire run
+
+        if use_best_weights:
+            self.weights = best_weights
 
         return {
             "train_error": train_errors,
@@ -247,8 +282,8 @@ class FFNN:
             predictions[:, i, :] = scores["test_pred"]
 
         for i in range(epochs):
-            if not i:
-                print(predictions[:, :, i])
+            # if not i:
+            #     print(predictions[:, :, i])
             error, bias, variance = bias_variance(t_test, predictions[:, :, i])
             biases[i] = bias
             variances[i] = variance
@@ -403,10 +438,6 @@ class FFNN:
                             self.z_matrices[i + 1]
                         ) * cost_func_derivative(self.a_matrices[i + 1])
                     except ZeroDivisionError:
-                        print(f"{self.a_matrices=}")
-                        print(f"{self.weights=}")
-                        print(f"{self.a_matrices[i+1]=}")
-                        print(f"{self.a_matrices[i+1].shape=}")
                         exit()
 
             else:
@@ -441,7 +472,6 @@ class FFNN:
                     self.schedulers_weight[i].update_change(gradient_weights),
                 ]
             )
-            # print(f"{update_matrix=}")
             update_list.insert(0, update_matrix)
 
         self._update_w_and_b(update_list)
@@ -483,6 +513,7 @@ class FFNN:
         batches=1,
         epochs: int = 1000,
         classify: bool = False,
+        bootstraps=1,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -521,6 +552,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
+                bootstraps=bootstraps,
             )
         else:
             (
@@ -540,6 +572,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
+                bootstraps=bootstraps,
             )
 
         string = (
@@ -574,7 +607,6 @@ class FFNN:
         optimal_batch = 0
         batches_list_search = np.zeros((len(batches_list), epochs))
         for i in range(len(batches_list)):
-            print(batches_list[i])
             scores = self.fit(
                 X,
                 t,
@@ -607,6 +639,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
+        bootstraps=1,
     ):
         """
         Help function for optimize_scheduler
@@ -618,7 +651,8 @@ class FFNN:
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
-                scores = self.fit(
+                test_error, _, _ = self.bootstrap(
+                    bootstraps,
                     X,
                     t,
                     scheduler,
@@ -634,7 +668,6 @@ class FFNN:
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = np.min(test_accs)
                 else:
-                    test_error = scores["test_error"]
                     loss_heatmap[y, x] = test_error[-1]
                     min_heatmap[y, x] = np.min(test_error)
                 self.reset_weights()
@@ -665,6 +698,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
+        bootstraps=1,
     ):
         """
         Help function for optimize_scheduler
@@ -677,7 +711,8 @@ class FFNN:
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    scores = self.fit(
+                    test_error, _, _ = self.bootstrap(
+                        bootstraps,
                         X,
                         t,
                         scheduler,
@@ -689,11 +724,11 @@ class FFNN:
                         t_test=t_test,
                     )
                     if classify:
-                        test_accs = scores["test_acc"]
+                        # todo wont work with bootstrap
+                        test_accs = scores["test_accs"]
                         loss_heatmap[y, x, z] = test_accs[-1]
                         min_heatmap[y, x, z] = np.min(test_accs)
                     else:
-                        test_error = scores["test_error"]
                         loss_heatmap[y, x, z] = test_error[-1]
                         min_heatmap[y, x, z] = np.min(test_error)
                     self.reset_weights()
