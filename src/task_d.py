@@ -14,7 +14,7 @@ from matplotlib.colors import ListedColormap
 from sklearn import metrics
 
 
-np.random.seed(42069)
+np.random.seed(1337)
 
 cancer = datasets.load_breast_cancer()
 
@@ -55,8 +55,7 @@ opt_params = [rho, rho2]
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
-batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
-
+batch_sizes = np.logspace(0, np.log(X_train.shape[0]+1), 7, base=np.exp(1), dtype=int)
 
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train_sc,
@@ -67,19 +66,31 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     eta,
     lam,
     opt_params,
-    batches=20,
+    batches=batch_sizes[2],
     epochs=100,
     classify=True,
 )
 
-params = [optimal_params[0], rho, rho2]
+optimal_batch, _ = neural.optimize_batch(
+    X_train_sc,
+    z_train,
+    X_test_sc,
+    z_test,
+    sched,
+    optimal_lambda,
+    *optimal_params,
+    batches_list=batch_sizes,
+    epochs=100,
+    classify=True,
+)
 
 scores = neural.fit(
     X_train_sc,
     z_train,
     sched,
-    *params,
-    batches=optimal_batch,
+    *optimal_params,
+    # batches=optimal_batch,
+    batches=batch_sizes[2],
     epochs=1000,
     lam=optimal_lambda,
     X_test=X_test_sc,

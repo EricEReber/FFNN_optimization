@@ -618,11 +618,19 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
-            test_error = scores["test_error"]
+            if classify:
+                test_accs = scores["test_acc"]
+                batches_list_search[i, :] = test_accs
+            else:
+                test_error = scores["test_error"]
+                batches_list_search[i, :] = test_error
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
-            batches_list_search[i, :] = test_error
-        optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
+        if classify:
+            optimal_batch = batches_list[np.argmax(batches_list_search[:, -1])]
+        else:
+            optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
+
 
         return optimal_batch, batches_list_search
 
