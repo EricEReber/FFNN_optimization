@@ -42,29 +42,29 @@ batches_list = np.logspace(0, np.log(X.shape[0] + 1), 7, base=np.exp(1), dtype=i
 # schedulers to test for
 sched = Adam
 adam_params = [rho, rho2]
-adam_params = [0.005, rho, rho2]
+# adam_params = [0.005, rho, rho2]
 
-# optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
-#     X,
-#     z,
-#     sched,
-#     eta,
-#     lam,
-#     adam_params,
-#     batches=7,
-#     epochs=epochs // 2,
-#     folds=folds,
-# )
-
-neural.cross_val(
-    5,
+optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
     X,
     z,
-    Adam,
-    *adam_params,
+    sched,
+    eta,
+    lam,
+    adam_params,
     batches=7,
-    epochs=1000,
+    epochs=epochs // 2,
+    folds=folds,
 )
+
+# neural.cross_val(
+#     5,
+#     X,
+#     z,
+#     Adam,
+#     *adam_params,
+#     batches=7,
+#     epochs=40,
+# )
 
 print(optimal_params)
 print(optimal_lambda)

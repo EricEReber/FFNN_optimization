@@ -355,7 +355,7 @@ def fmt(value, N=4):
     return f"{value:.{N-n-1}f}"
 
 
-def optimize_arch(
+def plot_arch(
     model, 
     max_nodes,
     funcs,

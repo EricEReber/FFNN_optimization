@@ -325,7 +325,7 @@ class FFNN:
                 )
 
             if self.cost_func.__name__ == "CostLogReg":
-                avg_confusion += confusion(self.predict(cv_data[i][2]), cv_data[i][3]) / folds
+                avg_confusion += confusion(self.predict(X_test), t_test) / folds
 
             # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
             # print(avg_weights)
