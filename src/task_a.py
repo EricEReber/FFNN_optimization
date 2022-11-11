@@ -156,8 +156,6 @@ for i in range(len(schedulers)):
         batches=optimal_batch,
         epochs=epochs,
         lam=optimal_lambdas[i],
-        X_test=X_test,
-        t_test=z_test,
     )
 
     test_errors = scores["test_errors"]
