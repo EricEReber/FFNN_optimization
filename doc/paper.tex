@@ -261,6 +261,14 @@ For the organic terrain data used in our previous project, we found that our neu
 
 \subsection{Neural Network for binary and multiclass classification}
 
+To test our neural networks ability to solve classification problems, we first applied it to the Wisconsin Breast Cancer dataset. Using our gridsearch method, we found that the best scheduler was Adam, with an eta of NUMBER and lambda of NUMBER. With this, we were able to achieve a crossvalidated test accuracy of $98.6 \%$, which is very good. Looking at the confusion matrix (Fig.~\ref{cancerconf}), we see that we are achieving good predictions for both true positives and true negatives. Confident 
+
+\begin{figure}[h]
+\centerline{\includegraphics[width=5in]{figure/cancerconf.png}}
+\caption{Confusion matrix for the cancer dataset using a neural net with a single hidden layer of 100 nodes}
+\label{verification}
+\end{figure}
+
 To test our networks ability to classify data, we trained it on many common datasets used in the development of neural networks. The datasets were the Wisconsin Breast Cancer dataset and the 8x8 MNIST dataset, as well as other datasets\footnote{Sonar dataset, House dataset}. We found good results on all datasets achieving a test accuracy of over 97\% on all 
 
 \subsection{Logistic Regression}
