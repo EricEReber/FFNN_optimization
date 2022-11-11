@@ -372,9 +372,9 @@ def optimize_arch(
     two_hid_train = np.zeros(max_nodes)
     two_hid_test = np.zeros(max_nodes)
 
-    for i in range(1, max_nodes + 1, 1):
+    for i in range(1, max_nodes + 1, 3):
         neural = model(
-            (X.shape[1], i+29, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+            (X.shape[1], i, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
         )
         print(neural.dimensions)
         scores = neural.fit(
@@ -387,16 +387,16 @@ def optimize_arch(
             lam=lams,
             X_test=X_test,
             t_test=t_test,
+            use_best_weights=True,
         )
         if classify:
-            one_hid_test[i] = scores["test_acc"]
-            one_hid_train[i] = score["train_acc"]
+            one_hid_test[i] = scores["final_test_acc"]
+            one_hid_train[i] = scores["final_train_acc"]
         else: 
-            one_hid_test[i] = scores["test_acc"]
-            one_hid_train[i] = scores["train_acc"]
-        self.reset_weights()
+            one_hid_test[i] = scores["final_test_error"]
+            one_hid_train[i] = scores["final_train_error"]
 
-    for j in range(1, (max_nodes//2)+1, 1): 
+    for j in range(1, (max_nodes//2)+1, 3): 
         neural = model(
             (X.shape[1], j, j, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
         )
@@ -412,12 +412,11 @@ def optimize_arch(
             t_test=t_test,
         )
         if classify:
-            two_hid_test[j] = scores["test_acc"]
-            two_hid_train[j] = score["train_acc"]
+            two_hid_test[j] = scores["final_test_acc"]
+            two_hid_train[j] = scores["final_train_acc"]
         else: 
-            two_hid_test[j] = scores["test_acc"]
-            two_hid_train[j] = scores["train_acc"]
-        self.reset_weights()
+            two_hid_test[j] = scores["final_test_error"]
+            two_hid_train[j] = scores["final_train_error"]
 
     return one_hid_train, one_hid_test, two_hid_train, two_hid_test
 

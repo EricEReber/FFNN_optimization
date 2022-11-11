@@ -103,8 +103,8 @@ scores = neural.fit(
     t_test=z_test,
 ) """
 
-optimize_arch(FFNN, 
-              60, 
+o1, o2, t1, t2 = optimize_arch(FFNN, 
+              15, 
               [RELU, sigmoid, CostLogReg],
               X_train_sc,
               z_train,
@@ -119,15 +119,16 @@ optimize_arch(FFNN,
 
 
 
-train_errors = scores["train_error"]
-test_errors = scores["test_error"]
-plt.plot(train_errors, label="train")
-plt.plot(test_errors, label="test")
+plt.plot(o1, label="o1")
+plt.plot(o2, label="o2")
 plt.legend()
-plt.xlabel("Epochs")
-plt.ylabel("LogLoss")
-plt.title("LogLoss over Epochs")
 plt.show()
+
+plt.plot(t1, label="t1")
+plt.plot(t2, label="t2")
+plt.legend()
+plt.show()
+
 
 prediction = neural.predict(X_test_sc)
 plot_confusion(prediction, z_test)
