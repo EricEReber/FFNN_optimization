@@ -361,13 +361,11 @@ def plot_arch(
     funcs,
     X,
     t,
-    X_test,
-    t_test,
     scheduler,
-    args,
-    lams: float,
-    batch: int,
-    epochs: int,
+    *args,
+    lam: float = 0,
+    batches: int = 1,
+    epochs: int = 1000,
     classify: bool = False,
 ):
 
@@ -381,16 +379,14 @@ def plot_arch(
             (X.shape[1], i, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
         )
         print(neural.dimensions)
-        scores = neural.fit(
+        scores = neural.cross_val(
             X,
             t,
             scheduler,
             *args,
-            batches=batch,
+            batches=batches,
             epochs=epochs,
-            lam=lams,
-            X_test=X_test,
-            t_test=t_test,
+            lam=lam,
             use_best_weights=True,
         )
         if classify:
@@ -404,16 +400,15 @@ def plot_arch(
         neural = model(
             (X.shape[1], j, j, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
         )
-        scores = neural.fit(    
+        scores = neural.cross_val(
             X,
             t,
             scheduler,
             *args,
-            batches=batch,
+            batches=batches,
             epochs=epochs,
-            lam=lams,
-            X_test=X_test,
-            t_test=t_test,
+            lam=lam,
+            use_best_weights=True,
         )
         if classify:
             two_hid_test[j] = scores["final_test_acc"]
