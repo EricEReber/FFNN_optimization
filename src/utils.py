@@ -204,33 +204,35 @@ def crossval(
     X: np.ndarray,
     z: np.ndarray,
     K: int,
+    batches: int = 1
 ):
-    chunksize = X.shape[0] // K
-    np.random.seed(3)
+    batch_size = X.shape[0] // batches // K
+    np.random.seed(1337)
     X, z = resample(X, z)
     tuples = list()
 
     for k in range(K):
         if k == K - 1:
             # if we are on the last, take all thats left
-            X_test = X[k * chunksize :, :]
-            z_test = z[k * chunksize :]
+            X_left_out = X[k * batch_size :, :]
+            z_left_out = z[k * batch_size :]
         else:
-            X_test = X[k * chunksize : (k + 1) * chunksize, :]
-            z_test = z[k * chunksize : (k + 1) * chunksize :]
+            X_left_out = X[k * batch_size : (k + 1) * batch_size :]
+            z_left_out = z[k * batch_size : (k + 1) * batch_size :]
 
+        print(f"{z=}")
         X_train = np.delete(
             X,
-            [i for i in range(k * chunksize, k * chunksize + X_test.shape[0])],
+            [i for i in range(k * batch_size, k * batch_size + X_left_out.shape[0])],
             axis=0,
         )
         z_train = np.delete(
             z,
-            [i for i in range(k * chunksize, k * chunksize + z_test.shape[0])],
+            [i for i in range(k * batch_size, k * batch_size + z_left_out.shape[0])],
             axis=0,
         )
 
-        tuples.append((X_train, X_test, z_train, z_test))
+        tuples.append((X_train, X_left_out, z_train, z_left_out))
 
     return tuples
 

@@ -267,7 +267,7 @@ class FFNN:
 
         return scores
 
-    def crossval(
+    def cross_val(
         self,
         folds: int,
         X: np.ndarray,
@@ -290,20 +290,21 @@ class FFNN:
         """
         if self.seed:
             np.random.seed(self.seed)
-        matrices = crossval(X, t, folds)
+        cv_data = crossval(X, t, folds, batches)
 
         # avg_weights = [x * 0 for x in self.weights]
-
         avg_scores = None
-        for i in range(len(matrices)):
+        for i in range(len(cv_data)):
+            print(f"{cv_data[i][0]=}")
+            print(f"{cv_data[i][0]=}")
             self.reset_weights()
             scores = self.fit(
-                matrices[i][0],
-                matrices[i][2],
+                cv_data[i][0],
+                cv_data[i][2],
                 scheduler_class,
                 *args,
-                X_test=matrices[i][1],
-                t_test=matrices[i][3],
+                X_test=cv_data[i][1],
+                t_test=cv_data[i][3],
                 lam=lam,
                 batches=batches,
                 epochs=epochs
@@ -427,6 +428,7 @@ class FFNN:
         # put a coloumn of ones as the first coloumn of the design matrix, so that
         # we have a bias term
         X = np.hstack([np.ones((X.shape[0], 1)), X])
+        print(f"{X=}")
 
         # a^0, the nodes in the input layer (one a^0 for each row in X)
         a = X
@@ -443,10 +445,13 @@ class FFNN:
                 self.a_matrices.append(a)
             else:
                 # a^L, the nodes in our output layer
+                print(f"{a=}")
                 z = a @ self.weights[i]
                 a = self.output_func(z)
                 self.a_matrices.append(a)
                 self.z_matrices.append(z)
+                print("OUTPUT")
+                print(f"{z=}")
 
         # this will be a^L
         return a
@@ -464,11 +469,16 @@ class FFNN:
                     delta_matrix = self.a_matrices[i + 1] - t
                 else:
                     try:
+                        
                         cost_func_derivative = grad(self.cost_func(t))
+                        print(f"{self.z_matrices[i+1]=}")
+                        print(f"{self.z_matrices[i+1]=}")
                         delta_matrix = out_derivative(
                             self.z_matrices[i + 1]
                         ) * cost_func_derivative(self.a_matrices[i + 1])
+
                     except ZeroDivisionError:
+                        print("ZeroDivisionError occured in backpropagation")
                         exit()
 
             else:
