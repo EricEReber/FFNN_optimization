@@ -15,6 +15,7 @@ from imageio import imread
 import seaborn as sns
 import sys
 import argparse
+from Schedulers import Scheduler
 
 
 def FrankeFunction(x, y):
@@ -45,6 +46,38 @@ def create_X(x, y, n):
             X[:, q + k] = (x ** (i - k)) * (y**k)
 
     return X
+
+
+def plot_terrain(x, y, z, pred_map, *args):
+    fig = plt.figure(figsize=plt.figaspect(0.3))
+
+    # Subplot for terrain
+    ax = fig.add_subplot(121, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title("Scaled terrain", size=24)
+    # Add a color bar which maps values to colors.
+    # fig.colorbar(surf_real, shrink=0.5, aspect=5)
+
+    # Subplot for the prediction
+    # Plot the surface.
+    ax = fig.add_subplot(122, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(
+        x,
+        y,
+        pred_map,
+        cmap=cm.coolwarm,
+        linewidth=0,
+        antialiased=False,
+    )
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
 
 
 def R2(y_data, y_model):
@@ -321,6 +354,75 @@ def fmt(value, N=4):
         # return '!'*N
     return f"{value:.{N-n-1}f}"
 
+
+def optimize_arch(
+    model, 
+    max_nodes,
+    funcs,
+    X,
+    t,
+    X_test,
+    t_test,
+    scheduler,
+    args,
+    lams: float,
+    batch: int,
+    epochs: int,
+    classify: bool = False,
+):
+
+    one_hid_train = np.zeros(max_nodes)
+    one_hid_test = np.zeros(max_nodes)
+    two_hid_train = np.zeros(max_nodes)
+    two_hid_test = np.zeros(max_nodes)
+
+    for i in range(1, max_nodes + 1, 3):
+        neural = model(
+            (X.shape[1], i, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+        )
+        print(neural.dimensions)
+        scores = neural.fit(
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batch,
+            epochs=epochs,
+            lam=lams,
+            X_test=X_test,
+            t_test=t_test,
+            use_best_weights=True,
+        )
+        if classify:
+            one_hid_test[i] = scores["final_test_acc"]
+            one_hid_train[i] = scores["final_train_acc"]
+        else: 
+            one_hid_test[i] = scores["final_test_error"]
+            one_hid_train[i] = scores["final_train_error"]
+
+    for j in range(1, (max_nodes//2)+1, 3): 
+        neural = model(
+            (X.shape[1], j, j, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+        )
+        scores = neural.fit(    
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batch,
+            epochs=epochs,
+            lam=lams,
+            X_test=X_test,
+            t_test=t_test,
+        )
+        if classify:
+            two_hid_test[j] = scores["final_test_acc"]
+            two_hid_train[j] = scores["final_train_acc"]
+        else: 
+            two_hid_test[j] = scores["final_test_error"]
+            two_hid_train[j] = scores["final_train_error"]
+
+    return one_hid_train, one_hid_test, two_hid_train, two_hid_test
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():

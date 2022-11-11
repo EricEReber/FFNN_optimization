@@ -304,8 +304,8 @@ class FFNN:
             t_test = cv_data[i][3]
 
             scaler.fit(X_train)
-            scaler.transform(X_train)
-            scaler.transform(X_test)
+            X_train = scaler.transform(X_train)
+            X_test = scaler.transform(X_test)
 
 
             ratio = X.shape[0] / X_train.shape[0]
@@ -557,8 +557,6 @@ class FFNN:
         self,
         X: np.ndarray,
         t: np.ndarray,
-        X_test: np.ndarray,
-        t_test: np.ndarray,
         scheduler: Scheduler,
         eta: list[float],
         lam: list[float],
@@ -596,8 +594,6 @@ class FFNN:
             ) = self._gridsearch_scheduler(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -616,8 +612,6 @@ class FFNN:
             ) = self._gridsearch_momentum(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -672,6 +666,7 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
+
             test_errors = scores["test_errors"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
@@ -687,8 +682,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,
@@ -720,7 +713,7 @@ class FFNN:
                     use_best_weights=True
                 )
                 if classify:
-                    test_accs = scores["test_accs"]
+                    test_accs = scores["test_acc"]
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = scores["final_test_acc"]
                 else:
@@ -746,8 +739,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,
