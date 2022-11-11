@@ -2,6 +2,7 @@ import numpy as np
 from Schedulers import *
 from utils import *
 from copy import deepcopy
+from sklearn.preprocessing import MinMaxScaler
 
 
 class FFNN:
@@ -278,42 +279,56 @@ class FFNN:
         batches: int = 1,
         epochs: int = 1000,
         lam: float = 0,
-        X_test: np.ndarray = None,
-        t_test: np.ndarray = None,
-        use_best_weights=False
+        use_best_weights=False,
+        # X_test=None,
+        # t_test=None,
     ):
-        """Bootstrap
-        Parameters:
-            num_bootstraps (int): number of folds
-            args: positional arguments for FFNN.fit()
-            kwargs: keyword arguments for FFNN.fit()
-        Returns:
-            bootstrapped test error, bias, variance by epochs
-        """
         if self.seed:
             np.random.seed(self.seed)
-        cv_data = crossval(X, t, folds, batches)
+        cv_data = crossval(X, t, folds)
 
-        # avg_weights = [x * 0 for x in self.weights]
+        if self.cost_func.__name__ == "CostLogReg":
+            avg_confusion = np.array([[0.,0.],[0.,0.]])
+
+        avg_weights = [x * 0 for x in self.weights]
+        # print(avg_weights)
         avg_scores = None
         for i in range(len(cv_data)):
-            ratio = X.shape[0] / cv_data[i][0].shape[0]
+            scaler = MinMaxScaler()
+
+
+            X_train = cv_data[i][0]
+            t_train = cv_data[i][1]
+
+            X_test = cv_data[i][2]
+            t_test = cv_data[i][3]
+
+            scaler.fit(X_train)
+            scaler.transform(X_train)
+            scaler.transform(X_test)
+
+
+            ratio = X.shape[0] / X_train.shape[0]
             scaled_batches = int(batches / ratio)
             self.reset_weights()
             scores = self.fit(
-                cv_data[i][0],
-                cv_data[i][1],
+                X_train,
+                t_train,
                 scheduler_class,
                 *args,
-                X_test=cv_data[i][2],
-                t_test=cv_data[i][3],
+                X_test=X_test,
+                t_test=t_test,
                 lam=lam,
                 batches=scaled_batches,
                 epochs=epochs,
                 use_best_weights=use_best_weights,
             )
 
-            # avg_weights = [avg_weights[i] + (self.weights[i] / folds) for i in range(len(avg_weights))]
+            if self.cost_func.__name__ == "CostLogReg":
+                avg_confusion += confusion(self.predict(cv_data[i][2]), cv_data[i][3]) / folds
+
+            # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
+            # print(avg_weights)
             if not avg_scores:
                 avg_scores = scores 
                 for key in avg_scores:
@@ -322,7 +337,11 @@ class FFNN:
                 for key in avg_scores:
                     avg_scores[key] +=  scores[key] / folds
 
+        # avg_weights = [avg_weights[i] / folds for i in range(len(avg_weights))]
         # self.weights = avg_weights
+
+        if self.cost_func.__name__ == "CostLogReg":
+            avg_scores["confusion"] = avg_confusion
 
         return avg_scores
 
@@ -694,8 +713,6 @@ class FFNN:
                     epochs=epochs,
                     batches=batches,
                     lam=lam[x],
-                    X_test=X_test,
-                    t_test=t_test,
                     use_best_weights=True
                 )
                 if classify:
@@ -756,8 +773,6 @@ class FFNN:
                         batches=batches,
                         epochs=epochs,
                         lam=lam[x],
-                        X_test=X_test,
-                        t_test=t_test,
                     )
                     if classify:
                         # todo wont work with bootstrap

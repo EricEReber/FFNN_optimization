@@ -204,7 +204,6 @@ def crossval(
     X: np.ndarray,
     z: np.ndarray,
     K: int,
-    batches: int = 1
 ):
     batch_size = X.shape[0] // K
     np.random.seed(1337)
@@ -284,9 +283,8 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
 
-def plot_confusion(prediction: np.ndarray, target: np.ndarray):
+def plot_confusion(confusion_matrix: np.ndarray):
     fontsize = 40
-    confusion_matrix = confusion(prediction, target)
 
     sns.set(font_scale=4)
     sns.heatmap(

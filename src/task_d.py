@@ -58,21 +58,20 @@ sched = Adam
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
-folds = 30
+folds = 5
 
-scores = neural.crossval(
+scores = neural.cross_val(
     folds,
-    # X_train_sc,
-    # z_train,
     X,
     z,
     sched,
     *params,
     batches=batches,
-    epochs=20,
+    epochs=500,
     # lam=0.01,
-    X_test=X_test_sc,
-    t_test=z_test,
+    # X_test=X_test_sc,
+    # t_test=z_test,
+    use_best_weights=True
 )
 train_errors = scores["train_errors"]
 test_errors = scores["test_errors"]
@@ -84,6 +83,4 @@ plt.ylabel("LogLoss")
 plt.title("LogLoss over Epochs")
 plt.show()
 
-prediction = neural.predict(X_test_sc)
-
-plot_confusion(prediction, z_test)
+plot_confusion(scores["confusion"])
