@@ -151,8 +151,9 @@ class FFNN:
                         X_batch = X[i * batch_size :, :]
                         t_batch = t[i * batch_size :, :]
                     else:
+                        # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
-                        t_batch = t[i * batch_size : (i + 1) * batch_size :, :]
+                        t_batch = t[i * batch_size : (i + 1) * batch_size, :]
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
@@ -173,16 +174,16 @@ class FFNN:
                     break
                 if test_set:
                     prediction_test = self.predict(X_test, raw=True)
-                    test_errors = cost_function_test(prediction_test)
+                    test_error = cost_function_test(prediction_test)
                     # test_preds[:, e] = prediction_test.ravel()
 
                     if use_best_weights:
-                        if test_errors < best_test_error:
-                            best_test_error = test_errors
+                        if test_error < best_test_error:
+                            best_test_error = test_error
                             best_train_error = train_error
                             best_weights = deepcopy(self.weights)
                     else:
-                        best_test_error = test_errors
+                        best_test_error = test_error
                         best_train_error = train_error
 
                 else:
@@ -206,14 +207,14 @@ class FFNN:
                             best_train_acc = train_acc
 
                 train_errors[e] = train_error
-                test_errors[e] = test_errors
+                test_errors[e] = test_error
                 progression = e / epochs
 
                 # ----- printing progress bar ------------
                 length = self._progress_bar(
                     progression,
                     train_error=train_error,
-                    test_errors=test_errors,
+                    test_error=test_error,
                     train_acc=train_acc,
                     test_acc=test_acc,
                 )
@@ -237,7 +238,7 @@ class FFNN:
         self._progress_bar(
             1,
             train_error=train_error,
-            test_errors=test_errors,
+            test_error=test_error,
             train_acc=train_acc,
             test_acc=test_acc,
         )
@@ -279,6 +280,7 @@ class FFNN:
         lam: float = 0,
         X_test: np.ndarray = None,
         t_test: np.ndarray = None,
+        use_best_weights=False
     ):
         """Bootstrap
         Parameters:
@@ -295,19 +297,20 @@ class FFNN:
         # avg_weights = [x * 0 for x in self.weights]
         avg_scores = None
         for i in range(len(cv_data)):
-            print(f"{cv_data[i][1].shape=}")
-            print(f"{cv_data[i][3].shape=}")
+            ratio = X.shape[0] / cv_data[i][0].shape[0]
+            scaled_batches = int(batches / ratio)
             self.reset_weights()
             scores = self.fit(
                 cv_data[i][0],
-                cv_data[i][2],
+                cv_data[i][1],
                 scheduler_class,
                 *args,
-                X_test=cv_data[i][1],
+                X_test=cv_data[i][2],
                 t_test=cv_data[i][3],
                 lam=lam,
-                batches=batches,
-                epochs=epochs
+                batches=scaled_batches,
+                epochs=epochs,
+                use_best_weights=use_best_weights,
             )
 
             # avg_weights = [avg_weights[i] + (self.weights[i] / folds) for i in range(len(avg_weights))]
@@ -428,7 +431,6 @@ class FFNN:
         # put a coloumn of ones as the first coloumn of the design matrix, so that
         # we have a bias term
         X = np.hstack([np.ones((X.shape[0], 1)), X])
-        print(f"{X=}")
 
         # a^0, the nodes in the input layer (one a^0 for each row in X)
         a = X
@@ -445,13 +447,10 @@ class FFNN:
                 self.a_matrices.append(a)
             else:
                 # a^L, the nodes in our output layer
-                print(f"{a=}")
                 z = a @ self.weights[i]
                 a = self.output_func(z)
                 self.a_matrices.append(a)
                 self.z_matrices.append(z)
-                print("OUTPUT")
-                print(f"{z=}")
 
         # this will be a^L
         return a
@@ -461,6 +460,7 @@ class FFNN:
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
 
+
         for i in range(len(self.weights) - 1, -1, -1):
 
             # creating the delta terms
@@ -468,18 +468,11 @@ class FFNN:
                 if self.output_func.__name__ == "softmax":
                     delta_matrix = self.a_matrices[i + 1] - t
                 else:
-                    try:
-                        
-                        cost_func_derivative = grad(self.cost_func(t))
-                        print(f"{self.z_matrices[i+1]=}")
-                        print(f"{self.z_matrices[i+1]=}")
-                        delta_matrix = out_derivative(
-                            self.z_matrices[i + 1]
-                        ) * cost_func_derivative(self.a_matrices[i + 1])
+                    cost_func_derivative = grad(self.cost_func(t))
+                    delta_matrix = out_derivative(
+                        self.z_matrices[i + 1]
+                    ) * cost_func_derivative(self.a_matrices[i + 1])
 
-                    except ZeroDivisionError:
-                        print("ZeroDivisionError occured in backpropagation")
-                        exit()
 
             else:
                 delta_matrix = (
@@ -703,15 +696,16 @@ class FFNN:
                     lam=lam[x],
                     X_test=X_test,
                     t_test=t_test,
+                    use_best_weights=True
                 )
                 if classify:
                     test_accs = scores["test_accs"]
                     loss_heatmap[y, x] = test_accs[-1]
-                    min_heatmap[y, x] = np.min(test_accs)
+                    min_heatmap[y, x] = scores["final_test_acc"]
                 else:
                     test_scores = scores["test_errors"]
-                    loss_heatmap[y, x] = test_errors[-1]
-                    min_heatmap[y, x] = np.min(test_errors)
+                    loss_heatmap[y, x] = test_scores[-1]
+                    min_heatmap[y, x] = scores["final_test_error"]
                 self.reset_weights()
 
         # select optimal eta, lambda

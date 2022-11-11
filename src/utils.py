@@ -206,7 +206,7 @@ def crossval(
     K: int,
     batches: int = 1
 ):
-    batch_size = X.shape[0] // batches // K
+    batch_size = X.shape[0] // K
     np.random.seed(1337)
     X, z = resample(X, z)
     tuples = list()
@@ -215,12 +215,11 @@ def crossval(
         if k == K - 1:
             # if we are on the last, take all thats left
             X_left_out = X[k * batch_size :, :]
-            z_left_out = z[k * batch_size :]
+            z_left_out = z[k * batch_size :, :]
         else:
-            X_left_out = X[k * batch_size : (k + 1) * batch_size :]
-            z_left_out = z[k * batch_size : (k + 1) * batch_size :]
+            X_left_out = X[k * batch_size : (k + 1) * batch_size, :]
+            z_left_out = z[k * batch_size : (k + 1) * batch_size, :]
 
-        print(f"{X.shape=}")
         X_train = np.delete(
             X,
             [i for i in range(k * batch_size, k * batch_size + X_left_out.shape[0])],
@@ -232,7 +231,7 @@ def crossval(
             axis=0,
         )
 
-        tuples.append((X_train, X_left_out, z_train, z_left_out))
+        tuples.append((X_train, z_train, X_left_out, z_left_out))
 
     return tuples
 

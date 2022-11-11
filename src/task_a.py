@@ -51,6 +51,7 @@ batches_list = np.logspace(
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
+schedulers = [Constant]
 
 # parameters for schedulers
 constant_params = []
@@ -63,11 +64,11 @@ adam_params = [rho, rho2]
 # list of scheduler parameters
 params_list = [
     constant_params,
-    momentum_params,
-    adagrad_params,
-    adagrad_momentum_params,
-    rms_params,
-    adam_params,
+    # momentum_params,
+    # adagrad_params,
+    # adagrad_momentum_params,
+    # rms_params,
+    # adam_params,
 ]
 
 # results
@@ -91,7 +92,7 @@ for i in range(len(schedulers)):
         params_list[i],
         batches=X_train.shape[0],
         epochs=epochs // 2,
-        folds=folds
+        folds=folds,
     )
 
     optimal_eta[i] = optimal_params[0]
@@ -161,7 +162,7 @@ for i in range(len(schedulers)):
 
     test_errors = scores["test_errors"]
 
-    plt.plot(test_error, label=f"{schedulers[i].__name__}")
+    plt.plot(test_errors, label=f"{schedulers[i].__name__}")
     plt.legend(loc=(1.04, 0))
 
 best_MSE_analytically = np.zeros(epochs)
@@ -174,14 +175,14 @@ plt.ylabel("MSE", fontsize=18)
 plt.title("MSE over Epochs for different schedulers", fontsize=22)
 plt.show()
 
-# plot bias-variance trade-off
-for i in range(len(schedulers)):
-    plt.subplot(321 + i)
-    plt.suptitle("Bias-variance trade-off", fontsize=22)
-
-    plt.title(schedulers[i].__name__, fontsize=22)
-    plt.plot(test_errors[i], label="MSE score")
-    plt.plot(all_biases[i], label="bias")
-    plt.plot(all_variances[i], label="variance")
-    plt.legend(loc=(1.04, 0))
-plt.show()
+# # plot bias-variance trade-off
+# for i in range(len(schedulers)):
+#     plt.subplot(321 + i)
+#     plt.suptitle("Bias-variance trade-off", fontsize=22)
+#
+#     plt.title(schedulers[i].__name__, fontsize=22)
+#     plt.plot(test_errors[i], label="MSE score")
+#     plt.plot(all_biases[i], label="bias")
+#     plt.plot(all_variances[i], label="variance")
+#     plt.legend(loc=(1.04, 0))
+# plt.show()
