@@ -122,8 +122,13 @@ We developed a Feed Forward Neural Network (FFNN) and applied it to many common 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
+Many problems in machine learning cannot be solved analytically. Thus, we turn to numerical methods, but this change implicitly comes with computationally heavy caveats as they require large matrix calculations over many iterations. Finding a solution becomes a waiting game, finding the many solutions of varying hyperparameters in order to make an informed model selection becomes virtually impossible. The problem of model selection is at the heart machine learning, as optimal model selection allows us to make predictions with the greatest possible accuracy. Finding ways around the liminations of numerical methods becomes a must for proper usage of these powerful machine learning tools.
 
-Neural Networks are all the rage these days, everyone wants to have a neural network in their home. Ive even seen people install neural networks in their dogs. \cite{ericjona}
+In this paper we will investigate implantations of the numerical optimization technique of gradient descent by researching stochastic gradient descent, along with constant, adaptive and momentum-enhanced schedulers with the aim of decreasing the computational cost of our calculations. We will study different supervised learning models which utilize gradient descent such as linear regression, logistic regression and a feed forward neural network (FFNN) in order to gain an understanding of model selection across regression, binary- and multi-class classification problems.
+
+First, we will give an explanation of the methods and theory used in this paper, followed up by a presentation and critical discussion of our results. Finally, we will provide a conclusion summarizing the core results and lessons.
+
+% Neural Networks are all the rage these days, everyone wants to have a neural network in their home. Ive even seen people install neural networks in their dogs. \cite{ericjona}
 
 % Neural networks are powerful tools, able to solve many different problems with 
 
@@ -254,6 +259,14 @@ For verification that our implementation is working correctly, we train on a sim
 \section{Results}
 
 \subsection{Different schedulers used with linear regression}
+
+-hessian vs constant?
+-constant vs momentum
+-adaptive methods
+
+In order to study the attributes of the different scheduler methods we performed a simple linear regression using gradient descent on the Franke Function. IF HESSIAN: Using Newtons method, the computational cost is much greater than simply replacing the Hessian matrix inversion with a constant learning rate as can be seen by TIME COMPARISON. Furthermore, we can observe from FIGURE COMPARING HESSIAN TO CONSTANT that the constant scheduler does a good job at reducing the MSE, given that the final MSE score is CONSTANT_SCORE compared to the Newton method's HESSIAN_SCORE.
+
+From FIGURE MOMENTUM v CONSTANT we can observe that adding momentum reduces the amount of epochs necessary to reach a lower MSE score. 
 
 \subsection{Neural Network for regression}
 
