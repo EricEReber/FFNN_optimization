@@ -304,8 +304,8 @@ class FFNN:
             t_test = cv_data[i][3]
 
             scaler.fit(X_train)
-            scaler.transform(X_train)
-            scaler.transform(X_test)
+            X_train = scaler.transform(X_train)
+            X_test = scaler.transform(X_test)
 
 
             ratio = X.shape[0] / X_train.shape[0]
@@ -557,8 +557,6 @@ class FFNN:
         self,
         X: np.ndarray,
         t: np.ndarray,
-        X_test: np.ndarray,
-        t_test: np.ndarray,
         scheduler: Scheduler,
         eta: list[float],
         lam: list[float],
@@ -596,8 +594,6 @@ class FFNN:
             ) = self._gridsearch_scheduler(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -616,8 +612,6 @@ class FFNN:
             ) = self._gridsearch_momentum(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -688,8 +682,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,
@@ -747,8 +739,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,
