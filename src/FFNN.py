@@ -322,7 +322,7 @@ class FFNN:
                 batches=scaled_batches,
                 epochs=epochs,
                 use_best_weights=use_best_weights,
-            )
+                )
 
             if self.cost_func.__name__ == "CostLogReg":
                 avg_confusion += confusion(self.predict(cv_data[i][2]), cv_data[i][3]) / folds
@@ -631,13 +631,14 @@ class FFNN:
         string = (
             f"{scheduler.__name__}"
             + "\n"
-            + f"optimal_eta={optimal_params[0]}"
+            + f"optimal_params={optimal_params}"
             + "\n"
             + f"{optimal_lambda=}"
             + "\n"
             + f"final MSE or accuracy={loss_heatmap[np.where(lam==optimal_lambda)[0], np.where(eta==optimal_params[0])[0]]}"
             + "\n"
             + f"minimal MSE={min_heatmap[np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[0], np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[1]]}"
+            + "\n"
         )
         print(string)
         with open(f"{scheduler.__name__}_optimal_params.txt", "w") as file:
@@ -676,6 +677,9 @@ class FFNN:
             # todo would be interesting to see how much time / how fast it happens
             batches_list_search[i, :] = test_errors
         optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
+        string=f"optimal_batch={optimal_batch}"
+        with open(f"{scheduler.__name__}_optimal_params.txt", "a") as file:
+            file.write(string)
 
         return optimal_batch, batches_list_search
 
