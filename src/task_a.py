@@ -51,7 +51,7 @@ batches_list = np.logspace(
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
-schedulers = [Constant]
+# schedulers = [Constant]
 
 # parameters for schedulers
 constant_params = []
@@ -64,11 +64,11 @@ adam_params = [rho, rho2]
 # list of scheduler parameters
 params_list = [
     constant_params,
-    # momentum_params,
-    # adagrad_params,
-    # adagrad_momentum_params,
-    # rms_params,
-    # adam_params,
+    momentum_params,
+    adagrad_params,
+    adagrad_momentum_params,
+    rms_params,
+    adam_params,
 ]
 
 # results
