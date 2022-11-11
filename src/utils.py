@@ -238,32 +238,32 @@ def crossval(
     z: np.ndarray,
     K: int,
 ):
-    chunksize = X.shape[0] // K
-    np.random.seed(3)
+    batch_size = X.shape[0] // K
+    np.random.seed(1337)
     X, z = resample(X, z)
     tuples = list()
 
     for k in range(K):
         if k == K - 1:
             # if we are on the last, take all thats left
-            X_test = X[k * chunksize :, :]
-            z_test = z[k * chunksize :]
+            X_left_out = X[k * batch_size :, :]
+            z_left_out = z[k * batch_size :, :]
         else:
-            X_test = X[k * chunksize : (k + 1) * chunksize, :]
-            z_test = z[k * chunksize : (k + 1) * chunksize :]
+            X_left_out = X[k * batch_size : (k + 1) * batch_size, :]
+            z_left_out = z[k * batch_size : (k + 1) * batch_size, :]
 
         X_train = np.delete(
             X,
-            [i for i in range(k * chunksize, k * chunksize + X_test.shape[0])],
+            [i for i in range(k * batch_size, k * batch_size + X_left_out.shape[0])],
             axis=0,
         )
         z_train = np.delete(
             z,
-            [i for i in range(k * chunksize, k * chunksize + z_test.shape[0])],
+            [i for i in range(k * batch_size, k * batch_size + z_left_out.shape[0])],
             axis=0,
         )
 
-        tuples.append((X_train, X_test, z_train, z_test))
+        tuples.append((X_train, z_train, X_left_out, z_left_out))
 
     return tuples
 
@@ -316,9 +316,8 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
 
-def plot_confusion(prediction: np.ndarray, target: np.ndarray):
+def plot_confusion(confusion_matrix: np.ndarray):
     fontsize = 40
-    confusion_matrix = confusion(prediction, target)
 
     sns.set(font_scale=4)
     sns.heatmap(

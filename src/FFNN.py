@@ -2,6 +2,7 @@ import numpy as np
 from Schedulers import *
 from utils import *
 from copy import deepcopy
+from sklearn.preprocessing import MinMaxScaler
 
 
 class FFNN:
@@ -151,8 +152,9 @@ class FFNN:
                         X_batch = X[i * batch_size :, :]
                         t_batch = t[i * batch_size :, :]
                     else:
+                        # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
-                        t_batch = t[i * batch_size : (i + 1) * batch_size :, :]
+                        t_batch = t[i * batch_size : (i + 1) * batch_size, :]
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
@@ -186,7 +188,7 @@ class FFNN:
                         best_train_error = train_error
 
                 else:
-                    test_error = np.nan  # a
+                    test_errors = np.nan  # a
 
                 train_acc = None
                 test_acc = None
@@ -267,7 +269,7 @@ class FFNN:
 
         return scores
 
-    def crossval(
+    def cross_val(
         self,
         folds: int,
         X: np.ndarray,
@@ -277,39 +279,56 @@ class FFNN:
         batches: int = 1,
         epochs: int = 1000,
         lam: float = 0,
-        X_test: np.ndarray = None,
-        t_test: np.ndarray = None,
+        use_best_weights=False,
+        # X_test=None,
+        # t_test=None,
     ):
-        """Bootstrap
-        Parameters:
-            num_bootstraps (int): number of bootstraps
-            args: positional arguments for FFNN.fit()
-            kwargs: keyword arguments for FFNN.fit()
-        Returns:
-            bootstrapped test error, bias, variance by epochs
-        """
         if self.seed:
             np.random.seed(self.seed)
-        matrices = crossval(X, t, folds)
+        cv_data = crossval(X, t, folds)
 
-        # avg_weights = [x * 0 for x in self.weights]
+        if self.cost_func.__name__ == "CostLogReg":
+            avg_confusion = np.array([[0.,0.],[0.,0.]])
 
+        avg_weights = [x * 0 for x in self.weights]
+        # print(avg_weights)
         avg_scores = None
-        for i in range(len(matrices)):
+        for i in range(len(cv_data)):
+            scaler = MinMaxScaler()
+
+
+            X_train = cv_data[i][0]
+            t_train = cv_data[i][1]
+
+            X_test = cv_data[i][2]
+            t_test = cv_data[i][3]
+
+            scaler.fit(X_train)
+            scaler.transform(X_train)
+            scaler.transform(X_test)
+
+
+            ratio = X.shape[0] / X_train.shape[0]
+            scaled_batches = int(batches / ratio)
             self.reset_weights()
             scores = self.fit(
-                matrices[i][0],
-                matrices[i][2],
+                X_train,
+                t_train,
                 scheduler_class,
                 *args,
-                X_test=matrices[i][1],
-                t_test=matrices[i][3],
+                X_test=X_test,
+                t_test=t_test,
                 lam=lam,
-                batches=batches,
-                epochs=epochs
-            )
+                batches=scaled_batches,
+                epochs=epochs,
+                use_best_weights=use_best_weights,
+                )
 
-            # avg_weights = [avg_weights[i] + (self.weights[i] / folds) for i in range(len(avg_weights))]
+            if self.cost_func.__name__ == "CostLogReg":
+                avg_confusion += confusion(self.predict(cv_data[i][2]), cv_data[i][3]) / folds
+
+            # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
+            # print(avg_weights)
             if not avg_scores:
                 avg_scores = scores 
                 for key in avg_scores:
@@ -318,7 +337,11 @@ class FFNN:
                 for key in avg_scores:
                     avg_scores[key] +=  scores[key] / folds
 
+        # avg_weights = [avg_weights[i] / folds for i in range(len(avg_weights))]
         # self.weights = avg_weights
+
+        if self.cost_func.__name__ == "CostLogReg":
+            avg_scores["confusion"] = avg_confusion
 
         return avg_scores
 
@@ -456,6 +479,7 @@ class FFNN:
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
 
+
         for i in range(len(self.weights) - 1, -1, -1):
 
             # creating the delta terms
@@ -463,13 +487,11 @@ class FFNN:
                 if self.output_func.__name__ == "softmax":
                     delta_matrix = self.a_matrices[i + 1] - t
                 else:
-                    try:
-                        cost_func_derivative = grad(self.cost_func(t))
-                        delta_matrix = out_derivative(
-                            self.z_matrices[i + 1]
-                        ) * cost_func_derivative(self.a_matrices[i + 1])
-                    except ZeroDivisionError:
-                        exit()
+                    cost_func_derivative = grad(self.cost_func(t))
+                    delta_matrix = out_derivative(
+                        self.z_matrices[i + 1]
+                    ) * cost_func_derivative(self.a_matrices[i + 1])
+
 
             else:
                 delta_matrix = (
@@ -544,7 +566,7 @@ class FFNN:
         batches=1,
         epochs: int = 1000,
         classify: bool = False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Optimizes neural network by gridsearching optimal parameters
@@ -583,7 +605,7 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
-                bootstraps=bootstraps,
+                folds=folds,
             )
         else:
             (
@@ -603,19 +625,20 @@ class FFNN:
                 batches=batches,
                 epochs=epochs,
                 classify=classify,
-                bootstraps=bootstraps,
+                folds=folds,
             )
 
         string = (
             f"{scheduler.__name__}"
             + "\n"
-            + f"optimal_eta={optimal_params[0]}"
+            + f"optimal_params={optimal_params}"
             + "\n"
             + f"{optimal_lambda=}"
             + "\n"
             + f"final MSE or accuracy={loss_heatmap[np.where(lam==optimal_lambda)[0], np.where(eta==optimal_params[0])[0]]}"
             + "\n"
             + f"minimal MSE={min_heatmap[np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[0], np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[1]]}"
+            + "\n"
         )
         print(string)
         with open(f"{scheduler.__name__}_optimal_params.txt", "w") as file:
@@ -649,19 +672,15 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
-            if classify:
-                test_accs = scores["test_acc"]
-                batches_list_search[i, :] = test_accs
-            else:
-                test_error = scores["test_error"]
-                batches_list_search[i, :] = test_error
+
+            test_errors = scores["test_errors"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
-        if classify:
-            optimal_batch = batches_list[np.argmax(batches_list_search[:, -1])]
-        else:
-            optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
-
+            batches_list_search[i, :] = test_errors
+        optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
+        string=f"optimal_batch={optimal_batch}"
+        with open(f"{scheduler.__name__}_optimal_params.txt", "a") as file:
+            file.write(string)
 
         return optimal_batch, batches_list_search
 
@@ -678,7 +697,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Help function for optimize_scheduler
@@ -690,8 +709,8 @@ class FFNN:
         for y in range(eta.shape[0]):
             for x in range(lam.shape[0]):
                 params = [eta[y]] + [*args][0]
-                test_error, _, _ = self.bootstrap(
-                    bootstraps,
+                scores = self.cross_val(
+                    folds,
                     X,
                     t,
                     scheduler,
@@ -699,16 +718,16 @@ class FFNN:
                     epochs=epochs,
                     batches=batches,
                     lam=lam[x],
-                    X_test=X_test,
-                    t_test=t_test,
+                    use_best_weights=True
                 )
                 if classify:
                     test_accs = scores["test_acc"]
                     loss_heatmap[y, x] = test_accs[-1]
-                    min_heatmap[y, x] = np.min(test_accs)
+                    min_heatmap[y, x] = scores["final_test_acc"]
                 else:
-                    loss_heatmap[y, x] = test_error[-1]
-                    min_heatmap[y, x] = np.min(test_error)
+                    test_scores = scores["test_errors"]
+                    loss_heatmap[y, x] = test_scores[-1]
+                    min_heatmap[y, x] = scores["final_test_error"]
                 self.reset_weights()
 
         # select optimal eta, lambda
@@ -737,7 +756,7 @@ class FFNN:
         batches=1,
         epochs=1000,
         classify=False,
-        bootstraps=1,
+        folds=1,
     ):
         """
         Help function for optimize_scheduler
@@ -750,8 +769,8 @@ class FFNN:
             for x in range(lam.shape[0]):
                 for z in range(len(momentums)):
                     params = [eta[y], momentums[z]]
-                    test_error, _, _ = self.bootstrap(
-                        bootstraps,
+                    scores = self.cross_val(
+                        folds,
                         X,
                         t,
                         scheduler,
@@ -759,8 +778,6 @@ class FFNN:
                         batches=batches,
                         epochs=epochs,
                         lam=lam[x],
-                        X_test=X_test,
-                        t_test=t_test,
                     )
                     if classify:
                         # todo wont work with bootstrap
@@ -768,8 +785,9 @@ class FFNN:
                         loss_heatmap[y, x, z] = test_accs[-1]
                         min_heatmap[y, x, z] = np.min(test_accs)
                     else:
-                        loss_heatmap[y, x, z] = test_error[-1]
-                        min_heatmap[y, x, z] = np.min(test_error)
+                        test_errors = scores["test_errors"]
+                        loss_heatmap[y, x, z] = test_errors[-1]
+                        min_heatmap[y, x, z] = np.min(test_errors)
                     self.reset_weights()
 
         if classify:

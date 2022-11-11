@@ -60,6 +60,7 @@ opt_params = [rho, rho2]
 params = [eta, rho, rho2]
 # params = [eta]
 # params = [eta, rho]
+<<<<<<< HEAD
 """
 batch_sizes = np.logspace(0, np.log(X_train.shape[0]+1), 7, base=np.exp(1), dtype=int)
 
@@ -121,7 +122,6 @@ o1, o2, t1, t2 = optimize_arch(FFNN,
 
 plt.plot(o1, label="o1")
 plt.plot(o2, label="o2")
-plt.legend()
 plt.show()
 
 plt.plot(t1, label="t1")
