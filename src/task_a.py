@@ -29,7 +29,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 20
+epochs = 200
 folds = 5
 
 # no hidden layers, no activation function
@@ -51,8 +51,7 @@ batches_list = np.logspace(
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
-# schedulers = [Constant]
-
+#
 # parameters for schedulers
 constant_params = []
 momentum_params = momentums
