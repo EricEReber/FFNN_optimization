@@ -295,8 +295,8 @@ class FFNN:
         # avg_weights = [x * 0 for x in self.weights]
         avg_scores = None
         for i in range(len(cv_data)):
-            print(f"{cv_data[i][0]=}")
-            print(f"{cv_data[i][0]=}")
+            print(f"{cv_data[i][1].shape=}")
+            print(f"{cv_data[i][3].shape=}")
             self.reset_weights()
             scores = self.fit(
                 cv_data[i][0],

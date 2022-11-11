@@ -30,7 +30,7 @@ z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
 epochs = 20
-folds = 1
+folds = 5
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)

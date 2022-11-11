@@ -220,7 +220,7 @@ def crossval(
             X_left_out = X[k * batch_size : (k + 1) * batch_size :]
             z_left_out = z[k * batch_size : (k + 1) * batch_size :]
 
-        print(f"{z=}")
+        print(f"{X.shape=}")
         X_train = np.delete(
             X,
             [i for i in range(k * batch_size, k * batch_size + X_left_out.shape[0])],
