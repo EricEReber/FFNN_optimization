@@ -283,7 +283,7 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
 
-def plot_confusion(confusion_matrix: np.ndarray):
+def plot_confusion(confusion_matrix: np.ndarray, title_text=None):
     fontsize = 40
 
     sns.set(font_scale=4)
@@ -293,6 +293,11 @@ def plot_confusion(confusion_matrix: np.ndarray):
         fmt=".2%",
         cmap="Blues",
     )
+    if title_text:
+        plt.title(title_text)
+    else:
+        plt.title("Confusion matrix")
+
     plt.xlabel("Predicted class")
     plt.ylabel("True class")
     plt.show()

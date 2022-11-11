@@ -83,4 +83,6 @@ plt.ylabel("LogLoss")
 plt.title("LogLoss over Epochs")
 plt.show()
 
-plot_confusion(scores["confusion"])
+plot_confusion(
+    scores["confusion"], title_text="Confusion matrix for the cancer dataset"
+)
