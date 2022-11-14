@@ -141,7 +141,7 @@ class FFNN:
             self.schedulers_weight.append(scheduler_class(*args))
             self.schedulers_bias.append(scheduler_class(*args))
 
-        print(scheduler_class.__name__)
+        print(f"{scheduler_class.__name__}: Eta={args[0]}, Lambda={lam}")
         # this try is only so that we may cancel early by hitting ctrl+c
         try:
             for e in range(epochs):
@@ -288,14 +288,13 @@ class FFNN:
         cv_data = crossval(X, t, folds)
 
         if self.cost_func.__name__ == "CostLogReg":
-            avg_confusion = np.array([[0.,0.],[0.,0.]])
+            avg_confusion = np.array([[0.0, 0.0], [0.0, 0.0]])
 
         avg_weights = [x * 0 for x in self.weights]
         # print(avg_weights)
         avg_scores = None
         for i in range(len(cv_data)):
             scaler = MinMaxScaler()
-
 
             X_train = cv_data[i][0]
             t_train = cv_data[i][1]
@@ -306,7 +305,6 @@ class FFNN:
             scaler.fit(X_train)
             X_train = scaler.transform(X_train)
             X_test = scaler.transform(X_test)
-
 
             ratio = X.shape[0] / X_train.shape[0]
             scaled_batches = int(batches / ratio)
@@ -322,7 +320,7 @@ class FFNN:
                 batches=scaled_batches,
                 epochs=epochs,
                 use_best_weights=use_best_weights,
-                )
+            )
 
             if self.cost_func.__name__ == "CostLogReg":
                 avg_confusion += confusion(self.predict(X_test), t_test) / folds
@@ -330,12 +328,12 @@ class FFNN:
             # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
             # print(avg_weights)
             if not avg_scores:
-                avg_scores = scores 
+                avg_scores = scores
                 for key in avg_scores:
-                    avg_scores[key] /=  folds
+                    avg_scores[key] /= folds
             else:
                 for key in avg_scores:
-                    avg_scores[key] +=  scores[key] / folds
+                    avg_scores[key] += scores[key] / folds
 
         # avg_weights = [avg_weights[i] / folds for i in range(len(avg_weights))]
         # self.weights = avg_weights
@@ -479,7 +477,6 @@ class FFNN:
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
 
-
         for i in range(len(self.weights) - 1, -1, -1):
 
             # creating the delta terms
@@ -491,7 +488,6 @@ class FFNN:
                     delta_matrix = out_derivative(
                         self.z_matrices[i + 1]
                     ) * cost_func_derivative(self.a_matrices[i + 1])
-
 
             else:
                 delta_matrix = (
@@ -672,7 +668,7 @@ class FFNN:
             # todo would be interesting to see how much time / how fast it happens
             batches_list_search[i, :] = test_errors
         optimal_batch = batches_list[np.argmin(batches_list_search[:, -1])]
-        string=f"optimal_batch={optimal_batch}"
+        string = f"optimal_batch={optimal_batch}"
         with open(f"{scheduler.__name__}_optimal_params.txt", "a") as file:
             file.write(string)
 
@@ -710,7 +706,7 @@ class FFNN:
                     epochs=epochs,
                     batches=batches,
                     lam=lam[x],
-                    use_best_weights=True
+                    use_best_weights=True,
                 )
                 if classify:
                     test_accs = scores["test_acc"]
