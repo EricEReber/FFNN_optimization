@@ -127,3 +127,15 @@ class Adam(Scheduler):
         self.n_epochs += 1
         self.moment = 0
         self.second = 0
+
+
+class Hessian(Scheduler):
+    def __init__(self, eta):
+        super().__init__(eta)
+
+    def update_change(self, gradient, X):
+        print(f"{gradient=}")
+        print(f"{X=}")
+        invhessian = np.linalg.pinv((2 / X.shape[0]) * X.T @ X)
+        print(f"{invhessian=}")
+        return gradient @ invhessian

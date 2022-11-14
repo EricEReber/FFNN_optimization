@@ -15,7 +15,6 @@ from imageio import imread
 import seaborn as sns
 import sys
 import argparse
-from Schedulers import Scheduler
 
 
 def FrankeFunction(x, y):
