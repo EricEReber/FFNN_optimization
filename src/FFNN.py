@@ -155,6 +155,9 @@ class FFNN:
                         # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
                         t_batch = t[i * batch_size : (i + 1) * batch_size, :]
+                    
+                    if scheduler_class.__name__ = "Hessian": 
+                        scheduler_class.set_invH(X_batch, t_batch)
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
@@ -304,8 +307,8 @@ class FFNN:
             t_test = cv_data[i][3]
 
             scaler.fit(X_train)
-            scaler.transform(X_train)
-            scaler.transform(X_test)
+            X_train = scaler.transform(X_train)
+            X_test = scaler.transform(X_test)
 
 
             ratio = X.shape[0] / X_train.shape[0]
@@ -325,7 +328,7 @@ class FFNN:
                 )
 
             if self.cost_func.__name__ == "CostLogReg":
-                avg_confusion += confusion(self.predict(cv_data[i][2]), cv_data[i][3]) / folds
+                avg_confusion += confusion(self.predict(X_test), t_test) / folds
 
             # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
             # print(avg_weights)
@@ -517,6 +520,7 @@ class FFNN:
             # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
 
+
             update_matrix = np.vstack(
                 [
                     self.schedulers_bias[i].update_change(
@@ -557,8 +561,6 @@ class FFNN:
         self,
         X: np.ndarray,
         t: np.ndarray,
-        X_test: np.ndarray,
-        t_test: np.ndarray,
         scheduler: Scheduler,
         eta: list[float],
         lam: list[float],
@@ -596,8 +598,6 @@ class FFNN:
             ) = self._gridsearch_scheduler(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -616,8 +616,6 @@ class FFNN:
             ) = self._gridsearch_momentum(
                 X,
                 t,
-                X_test,
-                t_test,
                 scheduler,
                 eta,
                 lam,
@@ -672,6 +670,7 @@ class FFNN:
                 X_test=X_test,
                 t_test=t_test,
             )
+
             test_errors = scores["test_errors"]
             self.reset_weights()
             # todo would be interesting to see how much time / how fast it happens
@@ -687,8 +686,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,
@@ -720,7 +717,7 @@ class FFNN:
                     use_best_weights=True
                 )
                 if classify:
-                    test_accs = scores["test_accs"]
+                    test_accs = scores["test_acc"]
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = scores["final_test_acc"]
                 else:
@@ -746,8 +743,6 @@ class FFNN:
         self,
         X,
         t,
-        X_test,
-        t_test,
         scheduler,
         eta,
         lam,

@@ -47,6 +47,38 @@ def create_X(x, y, n):
     return X
 
 
+def plot_terrain(x, y, z, pred_map, *args):
+    fig = plt.figure(figsize=plt.figaspect(0.3))
+
+    # Subplot for terrain
+    ax = fig.add_subplot(121, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title("Scaled terrain", size=24)
+    # Add a color bar which maps values to colors.
+    # fig.colorbar(surf_real, shrink=0.5, aspect=5)
+
+    # Subplot for the prediction
+    # Plot the surface.
+    ax = fig.add_subplot(122, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(
+        x,
+        y,
+        pred_map,
+        cmap=cm.coolwarm,
+        linewidth=0,
+        antialiased=False,
+    )
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
+
+
 def R2(y_data, y_model):
     return 1 - np.sum((y_data - y_model) ** 2) / np.sum((y_data - np.mean(y_data)) ** 2)
 
@@ -200,6 +232,12 @@ def accuracy(prediction: np.ndarray, target: np.ndarray):
     return np.average((target == prediction))
 
 
+def onehot(target: np.ndarray):
+    onehot = np.zeros((target.size, target.max() + 1))
+    onehot[np.arange(target.size), target] = 1
+    return onehot
+
+
 def crossval(
     X: np.ndarray,
     z: np.ndarray,
@@ -283,7 +321,7 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
 
-def plot_confusion(confusion_matrix: np.ndarray):
+def plot_confusion(confusion_matrix: np.ndarray, title_text=None):
     fontsize = 40
 
     sns.set(font_scale=4)
@@ -293,6 +331,11 @@ def plot_confusion(confusion_matrix: np.ndarray):
         fmt=".2%",
         cmap="Blues",
     )
+    if title_text:
+        plt.title(title_text)
+    else:
+        plt.title("Confusion matrix")
+
     plt.xlabel("Predicted class")
     plt.ylabel("True class")
     plt.show()
@@ -315,6 +358,77 @@ def fmt(value, N=4):
         # or overflow
         # return '!'*N
     return f"{value:.{N-n-1}f}"
+
+
+def plot_arch(
+    model,
+    max_nodes,
+    funcs,
+    X,
+    t,
+    scheduler,
+    *args,
+    lam: float = 0,
+    batches: int = 1,
+    epochs: int = 1000,
+    classify: bool = False,
+):
+
+    one_hid_train = np.zeros(max_nodes)
+    one_hid_test = np.zeros(max_nodes)
+    two_hid_train = np.zeros(max_nodes)
+    two_hid_test = np.zeros(max_nodes)
+
+    for i in range(1, max_nodes + 1, 3):
+        neural = model(
+            (X.shape[1], i, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+        )
+        print(neural.dimensions)
+        scores = neural.cross_val(
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+            use_best_weights=True,
+        )
+        if classify:
+            one_hid_test[i] = scores["final_test_acc"]
+            one_hid_train[i] = scores["final_train_acc"]
+        else:
+            one_hid_test[i] = scores["final_test_error"]
+            one_hid_train[i] = scores["final_train_error"]
+
+    for j in range(1, (max_nodes // 2) + 1, 3):
+        neural = model(
+            (X.shape[1], j, j, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+        )
+        scores = neural.cross_val(
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+            use_best_weights=True,
+        )
+        if classify:
+            two_hid_test[j] = scores["final_test_acc"]
+            two_hid_train[j] = scores["final_train_acc"]
+        else:
+            two_hid_test[j] = scores["final_test_error"]
+            two_hid_train[j] = scores["final_train_error"]
+
+    return one_hid_train, one_hid_test, two_hid_train, two_hid_test
 
 
 # ---------------------------------------------------------------------------------- OTHER METHODS

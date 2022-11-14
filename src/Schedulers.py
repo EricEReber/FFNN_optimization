@@ -17,6 +17,19 @@ class Scheduler:
     def reset(self):
         pass
 
+def Hessian(Scheduler): 
+    
+    def update_change(self, gradient, inv_H):
+        return inv_H @ gradients
+    
+    def newtons_method(X, z): 
+
+        # concat bias
+        # X = np.c_[np.ones((X.shape[0], 1))*0.1, X]
+        XT_X = X.T @ X 
+    
+        H = (2.0/X.shape[0])*XT_X
+        return np.linalg.pinv(H)
 
 class Constant(Scheduler):
     def __init__(self, eta):
