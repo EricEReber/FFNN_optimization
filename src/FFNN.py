@@ -376,8 +376,7 @@ class FFNN:
         """
         # print(f'Writing weights to file "{path}"')
         np.set_printoptions(threshold=np.inf)
-        with i
-         open(path, "w") as file:
+        with open(path, "w") as file:
             text = str(self.dimensions) + "\n"
             for weight in self.weights:
                 text += str(weight.shape) + "\n"
@@ -635,7 +634,7 @@ class FFNN:
             + "\n"
         )
         print(string)
-        with open(f"{scheduler.__name__}_optimal_params.txt", "a") as file:
+        with open(f"{scheduler.__name__}_optimal_params.txt", "w") as file:
             file.write(string)
         return optimal_params, optimal_lambda, loss_heatmap
 
