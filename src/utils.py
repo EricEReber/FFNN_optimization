@@ -232,6 +232,12 @@ def accuracy(prediction: np.ndarray, target: np.ndarray):
     return np.average((target == prediction))
 
 
+def onehot(target: np.ndarray):
+    onehot = np.zeros((target.size, target.max() + 1))
+    onehot[np.arange(target.size), target] = 1
+    return onehot
+
+
 def crossval(
     X: np.ndarray,
     z: np.ndarray,
@@ -355,7 +361,7 @@ def fmt(value, N=4):
 
 
 def plot_arch(
-    model, 
+    model,
     max_nodes,
     funcs,
     X,
@@ -375,7 +381,10 @@ def plot_arch(
 
     for i in range(1, max_nodes + 1, 3):
         neural = model(
-            (X.shape[1], i, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+            (X.shape[1], i, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
         )
         print(neural.dimensions)
         scores = neural.cross_val(
@@ -391,13 +400,16 @@ def plot_arch(
         if classify:
             one_hid_test[i] = scores["final_test_acc"]
             one_hid_train[i] = scores["final_train_acc"]
-        else: 
+        else:
             one_hid_test[i] = scores["final_test_error"]
             one_hid_train[i] = scores["final_train_error"]
 
-    for j in range(1, (max_nodes//2)+1, 3): 
+    for j in range(1, (max_nodes // 2) + 1, 3):
         neural = model(
-            (X.shape[1], j, j, t.shape[1]), hidden_func=funcs[0], output_func=funcs[1], cost_func=funcs[2]
+            (X.shape[1], j, j, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
         )
         scores = neural.cross_val(
             X,
@@ -412,11 +424,12 @@ def plot_arch(
         if classify:
             two_hid_test[j] = scores["final_test_acc"]
             two_hid_train[j] = scores["final_train_acc"]
-        else: 
+        else:
             two_hid_test[j] = scores["final_test_error"]
             two_hid_train[j] = scores["final_train_error"]
 
     return one_hid_train, one_hid_test, two_hid_train, two_hid_test
+
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
