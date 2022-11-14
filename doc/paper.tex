@@ -262,7 +262,7 @@ Below is a short description of each dataset used in this report, along with a t
 
 \subsubsection{Franke Function}
 
-The Franke Function is a simple weighted sum of polynomials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems.
+The Franke Function is a simple weighted sum of polynomials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems. For our linear regression problems, our training data will be based on a 9th degree polynomial approximation to the Franke Function, with 55 features. For the feed forward neural network, we will use 2 of the features (x, y) of the Franke Function.
 
 \subsubsection{Elevation data over Norway}
 
@@ -284,6 +284,7 @@ This dataset contains a preprocessed set of black and white images of hand drawn
 \hline
 Dataset & Number of instances & Features & Type \\
 \hline
+Franke Function & synthetic & 55 & regression \\
 Franke Function & synthetic & 2 & regression \\
 Terrain (downscaled) & 204 800 & 2 & regression \\
 Wisconsin Breast Cancer & 569 & 30 & binary classification \\
