@@ -156,7 +156,7 @@ class FFNN:
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
                         t_batch = t[i * batch_size : (i + 1) * batch_size, :]
                     
-                    if scheduler_class.__name__ = "Hessian": 
+                    if scheduler_class.__name__ == "Hessian": 
                         scheduler_class.set_invH(X_batch, t_batch)
 
                     self._feedforward(X_batch)
