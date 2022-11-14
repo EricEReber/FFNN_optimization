@@ -256,6 +256,43 @@ For verification that our implementation is working correctly, we train on a sim
 \label{verification}
 \end{figure}
 
+\subsection{Datasets}
+
+Below is a short description of each dataset used in this report, along with a table (Table.~\ref{datasettable}) listing their characteristics.
+
+\subsubsection{Franke Function}
+
+The Franke Function is a simple weighted sum of polynomials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems.
+
+\subsubsection{Elevation data over Norway}
+
+This data is similar to the Franke Function in that it takes two inputs (x and y coordinates) and returns a real value, which is the elevation of a specific point in Norway.
+
+\subsubsection{Wisconsin Breast Cancer Dataset}
+
+This dataset contains 30 features describing important characteristics of tumors. The features are real numbers. Each instance has an associated class, indicating whether the tumor was benign or not. This leads to a binary classification problem.
+
+\subsubsection{MNIST 8x8}
+
+This dataset contains a preprocessed set of black and white images of hand drawn digits. The images are 8 by 8 pixels, leading to 64 features, where each feature is an integer in the range $[0-16]$ describing the intensity of the pixel at that position\footnote{in reality, this describes the number of "on" pixels in a 4x4 region in the original image}. Each image has an associated class, which is simply the digit depicted. This leads to a multiclass classification problem with 10 classes.
+
+\begin{table}[h]
+\caption{Characteristics of each dataset used in the report}
+\begin{center}
+\label{datasettable}
+\begin{tabular}{| c | l | l | l |}
+\hline
+Dataset & Number of instances & Features & Type \\
+\hline
+Franke Function & synthetic & 2 & regression \\
+Terrain (downscaled) & 204 800 & 2 & regression \\
+Wisconsin Breast Cancer & 569 & 30 & binary classification \\
+MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
 \section{Results}
 
 \subsection{Different schedulers used with linear regression}
@@ -273,6 +310,10 @@ Before continuing, it is interesting to note that all the schedulers work best w
 
 However, when trained for 500 epochs, Adam with optimal parameters does not yield any improvement in MSE. Scikits Adam scheduler does perform better, further decreasing the MSE slightly. Even though we have cross validated both our own Adam implementation and Scikit's with 5 folds, these differences in results might be due to a more favorable weight initiation in Scikits model. Nonetheless, neither models are able to beat the analytical solution provided by linear regression methods using polynomial approximations, with our best result of ADAM FINAL MSE and Scikits final MSE of SCIKIT FINAL MSE both falling short of the analytical MSE of 0,003. In theory, the feed forward neural network should be able to better approximate the Franke function given that it is not limited to polynomial solutions. This result might be due to 500 epochs not being enough training time.
 
+<<<<<<< HEAD
+=======
+In order to study the attributes of the different scheduler methods we performed a simple linear regression using gradient descent on the Franke Function. IF HESSIAN: Using Newtons method, the computational cost is much greater than simply replacing the Hessian matrix inversion with a constant learning rate as can be seen by TIME COMPARISON. Furthermore, we can observe from FIGURE COMPARING HESSIAN TO CONSTANT that the constant scheduler does a good job at reducing the MSE, given that the final MSE score is CONSTANTSCORE compared to the Newton method's HESSIANSCORE.
+>>>>>>> a87b6f80c33cf6ab0163d7ca8f59b55321cd75a0
 
 
 \subsection{Neural Network for regression}
@@ -281,49 +322,31 @@ For the organic terrain data used in our previous project, we found that our neu
 
 \subsection{Neural Network for binary and multiclass classification}
 
-To test our neural networks ability to solve classification problems, we first applied it to the Wisconsin Breast Cancer dataset. Using our gridsearch method, we found that the best scheduler was Adam, with an eta of NUMBER and lambda of NUMBER. With this, we were able to achieve a crossvalidated test accuracy of $98.6 \%$, which is very good. Looking at the confusion matrix (Fig.~\ref{cancerconf}), we see that we are achieving good predictions for both true positives and true negatives. Confident 
+To test our neural networks ability to solve classification problems, we first applied it to the Wisconsin Breast Cancer dataset. Using our gridsearch method, we found that the best scheduler was Adam, with an eta of $0.01$ and no regularization. For our architecture, we chose to use only one hidden layer with 60 nodes, based on our testing. With this, we were able to achieve a crossvalidated test accuracy of $98.6 \%$, which is very good. Looking at the confusion matrix (Fig.~\ref{cancerconf}), we see that we are achieving good predictions for both true positives and true negatives.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/cancerconf.png}}
-\caption{Confusion matrix for the cancer dataset using a neural net with a single hidden layer of 100 nodes}
+\caption{Confusion matrix for the cancer dataset using a neural net with a single hidden layer of 60 nodes}
 \label{verification}
 \end{figure}
 
-To test our networks ability to classify data, we trained it on many common datasets used in the development of neural networks. The datasets were the Wisconsin Breast Cancer dataset and the 8x8 MNIST dataset, as well as other datasets\footnote{Sonar dataset, House dataset}. We found good results on all datasets achieving a test accuracy of over 97\% on all 
+Confident in our networks's ability to to binary classification, we turned to the MNIST dataset. Using our gridsearch, we again found that the best scheduler was Adam. Our architecture in this case was a single hidden layer with 100 nodes. Being a multiclass problem with ten different classes, one might expect our neural network to struggle more with this dataset. However, this was not the case, as we achieved a crossvalidated test accuracy of $99.07$. From these two datasets, we can see that a correctly optimized neural network is adept at solving classification problems. On the other hand, these good results, and the easew with which our network attained them, could imply that the problems we have dealt with are not as complicated as they may seem.
 
 \subsection{Logistic Regression}
 
-Although our neural network performed well, we also found very similar results with logistic regression, at a much lower computational cost. This implies that our classification datasets were perhaps too simple, and that using Neural Networks was not needed to achieve good results.
+Based on our good results with the neural net, we attempt to solve the same problems using simple logistic regression. Using logistic regression on the cancer dataset, we found through our gridsearch that Adam with an eta $0.1$ gave the best results. Here we found that logistic regression performed essentially equivalent or even better, at a much lower computational cost. Looking at Fig.~\ref{cancerlogneur}, we see that logistic regression keeps up and even surpasses our neural network in accuracy per epoch. The value of logistic regression becomes even greater when we consider the computational cost of each method. In this case, the logistic regression was about 65 \% faster\footnote{The time taken to complete a crossvalidation with 5 folds up to 200 epochs was about 52 seconds for our neural network, but only 18 seconds for logistic regression}, with results surpassing our neural network (see Fig.~\ref{cancerconflog}). This implies that our classification datasets were perhaps too simple, and that using Neural Networks was not needed to achieve good results.
 
-% \begin{table}
-% \begin{center}
-% \label{ols_mse_table_dif_data}
-% \begin{tabular}{c l l l}
-% Dataset & Std of noise & Best MSE & Best degree \\
-% \hline
-% Franke & 0 & 0.0005109 & 9\\
-% Franke & 0.05 & 0.0038302 & 7 \\
-% Franke & 0.10 & 0.0139833 & 7 \\
-% Terrain 1 & - & 0.0142683 & 19 \\
-% \hline
-% \end{tabular}
-% \end{center}
-% \end{table}
+\begin{figure}[h]
+\centerline{\includegraphics[width=5in]{figure/cancerlogneur.png}}
+\caption{Comparison between the test accuracy of logistic regression and a neural network on classifying the cancer dataset}
+\label{cancerlogneur}
+\end{figure}
 
-% \begin{table*}[t]
-% \caption{Best MSE for OLS, Ridge and Lasso regression on real elevation data. We only fit up to degree 9 due to computational constraints}
-% \begin{center}
-% \label{ols_vs_ridge_vs_lasso_table_real}
-% \begin{tabular}{c | l l l}
-% Regression & MSE & Degree & $\lambda$ \\
-% \hline
-% OLS & 0.01538 & 9 & - \\
-% Ridge & 0.01538 & 9 & 0 \\
-% Lasso & 0.01685 & 9 & $2.154 \cdot 10^{-7}$ \\
-% \hline
-% \end{tabular}
-% \end{center}
-% \end{table*}
+\begin{figure}[h]
+\centerline{\includegraphics[width=5in]{figure/cancerconflog.png}}
+\caption{Confusion matrix for the cancer dataset using logistic regression}
+\label{cancerconflog}
+\end{figure}
 
 \section{Conclusion}
 
