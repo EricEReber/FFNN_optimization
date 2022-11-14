@@ -1,4 +1,6 @@
 from utils import *
+from FFNN import FFNN
+from Schedulers import *
 from sklearn.datasets import load_digits
 
 np.random.seed(42069)
@@ -43,13 +45,13 @@ rho2 = 0.99
 sched = Adam
 params = [eta, rho, rho2]
 
-dims = (inputs, 64, 10)
+dims = (inputs, 10)
 neural = FFNN(
     dims,
     output_func=softmax,
     cost_func=CostCrossEntropy,
 )
-train_errors, test_errors = neural.fit(
+scores = neural.fit(
     X_train,
     t_train,
     sched,
@@ -65,8 +67,8 @@ np.set_printoptions(threshold=np.inf)
 print(neural.predict(X_twos))
 print(neural.predict(X_nines))
 
-plt.plot(train_errors, label="Train")
-plt.plot(test_errors, label="Train")
+plt.plot(scores["train_errors"], label="Train")
+plt.plot(scores["test_errors"], label="Train")
 plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("MSE")
