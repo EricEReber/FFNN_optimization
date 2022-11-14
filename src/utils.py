@@ -284,6 +284,81 @@ def bias_variance(z_test: np.ndarray, z_preds_test: np.ndarray):
     return error, bias, variance
 
 
+def progress_bar(progression, **kwargs):
+    length = 40
+    num_equals = int(progression * length)
+    num_not = length - num_equals
+    arrow = ">" if num_equals > 0 else ""
+    bar = "[" + "=" * (num_equals - 1) + arrow + "-" * num_not + "]"
+    perc_print = fmt(progression * 100, N=5)
+    line = f"  {bar} {perc_print}% "
+
+    for key in kwargs:
+        if kwargs[key]:
+            value = fmt(kwargs[key], N=4)
+            line += f"| {key}: {value} "
+    print(line, end="\r")
+    return len(line)
+
+
+def hessian(
+    X,
+    t,
+    epochs: int = 1000,
+    lam: float = 0,
+    X_test: np.ndarray = None,
+    t_test: np.ndarray = None,
+):
+    beta = np.random.rand(X.shape[1])
+    beta[0] = 0.1
+
+    def CostOLS(beta):
+        return (1.0 / X.shape[0]) * np.sum((t - X @ beta) ** 2)
+
+    if X_test is not None:
+
+        def CostOLS_test(beta):
+            return (1.0 / X_test.shape[0]) * np.sum((t_test - X_test @ beta) ** 2)
+
+        test_errors = np.empty(epochs)
+        test_errors.fill(np.nan)
+
+    inv_hessian = np.linalg.pinv((2 / X.shape[0]) * X.T @ X)
+
+    train_errors = np.empty(epochs)
+    train_errors.fill(np.nan)
+
+    cost_func_derivative = grad(CostOLS)
+
+    for e in range(epochs):
+        train_error = CostOLS(beta)
+        train_errors[e] = train_error
+
+        test_error = None
+        if X_test is not None:
+            test_error = CostOLS_test(beta)
+            test_errors[e] = test_error
+
+        gradient = cost_func_derivative(beta)
+        beta -= inv_hessian @ gradient
+
+        progression = e / epochs
+        length = progress_bar(
+            progression,
+            train_error=train_error,
+            test_error=test_error,
+        )
+
+    scores = dict()
+
+    scores["train_errors"] = train_errors
+
+    if X_test is not None:
+        scores["test_errors"] = test_errors
+
+    return scores, beta
+
+
 def bootstrap(
     X_train: np.ndarray,
     z_train: np.ndarray,
