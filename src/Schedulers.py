@@ -20,12 +20,11 @@ class Scheduler:
 class Hessian(Scheduler): 
     def __init__(self, eta):
         super().__init__(eta)
-
+        self.invH = 0
+    
     def update_change(self, gradient):
-        print(self.invH)
         return self.invH @ gradient  
 
-    
     def set_invH(self, X): 
 
         # concat bias
