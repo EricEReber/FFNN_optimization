@@ -138,8 +138,12 @@ class FFNN:
             cost_function_test = self.cost_func(t_test)
 
         for i in range(len(self.weights)):
-            self.schedulers_weight.append(scheduler_class(*args))
-            self.schedulers_bias.append(scheduler_class(*args))
+            if scheduler_class.__name__ == "Hessian":
+                self.schedulers_weight.append(scheduler_class(*args, X))
+                self.schedulers_bias.append(scheduler_class(*args, X))
+            else:
+                self.schedulers_weight.append(scheduler_class(*args))
+                self.schedulers_bias.append(scheduler_class(*args))
 
         print(scheduler_class.__name__)
         # this try is only so that we may cancel early by hitting ctrl+c
@@ -517,25 +521,15 @@ class FFNN:
             # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
 
-            if isinstance(self.schedulers_bias[0], Hessian):
-                update_matrix = np.vstack(
-                    [
-                        self.schedulers_bias[i].update_change(
-                            delta_accumulated.reshape(1, delta_accumulated.shape[0]), X
-                        ),
-                        self.schedulers_weight[i].update_change(gradient_weights, X),
-                    ]
-                )
-            else:
-                update_matrix = np.vstack(
-                    [
-                        self.schedulers_bias[i].update_change(
-                            delta_accumulated.reshape(1, delta_accumulated.shape[0])
-                        ),
-                        self.schedulers_weight[i].update_change(gradient_weights),
-                    ]
-                )
-                update_list.insert(0, update_matrix)
+            update_matrix = np.vstack(
+                [
+                    self.schedulers_bias[i].update_change(
+                        delta_accumulated.reshape(1, delta_accumulated.shape[0])
+                    ),
+                    self.schedulers_weight[i].update_change(gradient_weights),
+                ]
+            )
+            update_list.insert(0, update_matrix)
 
         self._update_w_and_b(update_list)
 
