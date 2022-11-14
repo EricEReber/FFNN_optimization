@@ -35,10 +35,10 @@ rho2 = 0.999
 
 # batches to test for
 batches_list = np.logspace(0, np.log(X.shape[0] + 1), 7, base=np.exp(1), dtype=int)
-
 # schedulers to test for
 sched = Adam
 adam_params = [rho, rho2]
+
 # adam_params = [0.005, rho, rho2]
 
 dims = (30, 60, 1)
