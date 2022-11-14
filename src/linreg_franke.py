@@ -53,6 +53,7 @@ batches_list = np.logspace(
 best_MSE_analytically = np.zeros(epochs)
 best_MSE_analytically[:] = 0.00328322949832417
 
+# optimize Adam
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train,
     z_train,
@@ -65,6 +66,7 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     folds=folds,
 )
 
+# fit using optimal params
 scores = neural.cross_val(
     folds,
     X_train,
@@ -78,6 +80,7 @@ scores = neural.cross_val(
 test_errors = scores["test_errors"]
 train_errors = scores["train_errors"]
 
+# test against sklearn
 scikit_MLP = MLPRegressor(
     hidden_layer_sizes=[],
     activation="identity",
@@ -97,6 +100,7 @@ for i in range(folds):
     scikit_train_errors[:] += scikit_MLP.loss_curve_
 scikit_train_errors /= folds
 
+# plot
 plt.plot(scikit_train_errors, label="scikit Adam train")
 plt.plot(train_errors, label="Adam train")
 plt.plot(test_errors, label="Adam test")
