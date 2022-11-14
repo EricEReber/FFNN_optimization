@@ -155,6 +155,9 @@ class FFNN:
                         # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
                         t_batch = t[i * batch_size : (i + 1) * batch_size, :]
+                    
+                    if scheduler_class.__name__ = "Hessian": 
+                        scheduler_class.set_invH(X_batch, t_batch)
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
@@ -516,6 +519,7 @@ class FFNN:
 
             # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
+
 
             update_matrix = np.vstack(
                 [
