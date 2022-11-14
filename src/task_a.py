@@ -87,7 +87,7 @@ for i in range(len(schedulers)):
         eta,
         lam,
         params_list[i],
-        batches=X_train.shape[0],
+        batches=batches_list[3],
         epochs=epochs // 2,
         folds=folds,
     )
