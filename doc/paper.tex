@@ -263,10 +263,17 @@ For verification that our implementation is working correctly, we train on a sim
 -hessian vs constant?
 -constant vs momentum
 -adaptive methods
+-batch sizes
 
-In order to study the attributes of the different scheduler methods we performed a simple linear regression using gradient descent on the Franke Function. IF HESSIAN: Using Newtons method, the computational cost is much greater than simply replacing the Hessian matrix inversion with a constant learning rate as can be seen by TIME COMPARISON. Furthermore, we can observe from FIGURE COMPARING HESSIAN TO CONSTANT that the constant scheduler does a good job at reducing the MSE, given that the final MSE score is CONSTANT_SCORE compared to the Newton method's HESSIAN_SCORE.
+In order to study the attributes of the different scheduler methods we performed numerical linear regression using gradient descent on the Franke Function. IF HESSIAN: Using Newtons method, the computational cost is much greater than simply replacing the Hessian matrix inversion with a constant learning rate as can be seen by TIME COMPARISON. Furthermore, we can observe from FIGURE COMPARING HESSIAN TO CONSTANT that the constant scheduler does a good job at reducing the MSE, given that the final MSE score is CONSTANT_SCORE compared to the Newton method's HESSIAN_SCORE.
 
-From FIGURE MOMENTUM v CONSTANT we can observe that adding momentum reduces the amount of epochs necessary to reach a lower MSE score. 
+From FIGURE MOMENTUM v CONSTANT we can observe that adding momentum reduces the amount of epochs necessary to reach a lower MSE score. Already after EPOCHS epochs, the momentum scheduler has achieved MOMENTUM MSE AT EPOCHS, a notable improvement over CONSTANT MSE AT EPOCHS achieved by a constant learning rate. Furthermore, with the introduction of various adaptive scheduler methods such as RMS prop, adagrad, adagrad with momentum and adam we can observe from FIGURE ALL that we can reach even greater results in fewer epochs. We can also observe that the different schedulers that they all reach REASONABLE MSE within a couple of epochs, but in order to get a better understanding of the computational cost we have also compared the time it took to fit the data. Looking at TIME TABLE FOR ALL SCHEDULERS, BEST took the least time, beating out our baseline constant scheduler by TIME DIFF. Surprisingly, RMS prop performed more poorly than expected.
+
+Before continuing, it is interesting to note that all the schedulers work best with a combination of similar eta and lambda values when gridsearched for achieving the minimal MSE. It is also interesting that they in the long term reach more or less the same error as can be observed in HEATMAP FIG. This could be because given more epochs, the other schedulers are given more time to catch up as the best performing schedulers, such as Adam, only decrease their MSE slightly. However, as can be seen in HEATMAP FIG, Adam offers a $\frac{0.018}{0.016} \dot 100 = 11.11\%$ decrease in MSE compared to the constant schedulers.
+
+However, when trained for 500 epochs, Adam with optimal parameters does not yield any improvement in MSE. Scikits Adam scheduler does perform better, further decreasing the MSE slightly. Even though we have cross validated both our own Adam implementation and Scikit's with 5 folds, these differences in results might be due to a more favorable weight initiation in Scikits model. Nonetheless, neither models are able to beat the analytical solution provided by linear regression methods using polynomial approximations, with our best result of ADAM FINAL MSE and Scikits final MSE of SCIKIT FINAL MSE both falling short of the analytical MSE of 0,003. In theory, the feed forward neural network should be able to better approximate the Franke function given that it is not limited to polynomial solutions. This result might be due to 500 epochs not being enough training time.
+
+
 
 \subsection{Neural Network for regression}
 
