@@ -155,13 +155,9 @@ class FFNN:
                         # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
                         t_batch = t[i * batch_size : (i + 1) * batch_size, :]
-                    
-                    if scheduler_class.__name__ == "Hessian":
-                        for scheduler in self.schedulers_weight: 
-                            scheduler.set_invH(X_batch)
 
                     self._feedforward(X_batch)
-                    self._backpropagate(X_batch, t_batch, lam, scheduler=scheduler_class.__name__)
+                    self._backpropagate(X_batch, t_batch, lam)
 
                 # reset schedulers every epoch
                 for scheduler in self.schedulers_weight:
@@ -476,7 +472,7 @@ class FFNN:
         # this will be a^L
         return a
 
-    def _backpropagate(self, X, t, lam, scheduler=''):
+    def _backpropagate(self, X, t, lam):
         out_derivative = derivate(self.output_func)
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
@@ -516,18 +512,15 @@ class FFNN:
 
             # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
-            
-            if scheduler == 'Hessian': 
-                update_matrix = self.schedulers_weight[i].update_change(gradient_weights)
-            else: 
-                update_matrix = np.vstack(
-                    [
-                        self.schedulers_bias[i].update_change(
-                            delta_accumulated.reshape(1, delta_accumulated.shape[0])
-                        ),
-                        self.schedulers_weight[i].update_change(gradient_weights),
-                    ]
-                )
+
+            update_matrix = np.vstack(
+                [
+                    self.schedulers_bias[i].update_change(
+                        delta_accumulated.reshape(1, delta_accumulated.shape[0])
+                    ),
+                    self.schedulers_weight[i].update_change(gradient_weights),
+                ]
+            )
 
             update_list.insert(0, update_matrix)
 
