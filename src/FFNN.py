@@ -212,7 +212,7 @@ class FFNN:
                 progression = e / epochs
 
                 # ----- printing progress bar ------------
-                length = progress_bar(
+                length = self._progress_bar(
                     progression,
                     train_error=train_error,
                     test_error=test_error,
@@ -236,7 +236,7 @@ class FFNN:
 
         # overwrite last print so that we dont get 99.9 %
         print(" " * length, end="\r")
-        progress_bar(
+        self._progress_bar(
             1,
             train_error=train_error,
             test_error=test_error,
@@ -376,7 +376,8 @@ class FFNN:
         """
         # print(f'Writing weights to file "{path}"')
         np.set_printoptions(threshold=np.inf)
-        with open(path, "w") as file:
+        with i
+         open(path, "w") as file:
             text = str(self.dimensions) + "\n"
             for weight in self.weights:
                 text += str(weight.shape) + "\n"
@@ -534,6 +535,21 @@ class FFNN:
         for i in range(len(self.weights)):
             self.weights[i] -= update_list[i]
 
+    def _progress_bar(self, progression, **kwargs):
+        length = 40
+        num_equals = int(progression * length)
+        num_not = length - num_equals
+        arrow = ">" if num_equals > 0 else ""
+        bar = "[" + "=" * (num_equals - 1) + arrow + "-" * num_not + "]"
+        perc_print = fmt(progression * 100, N=5)
+        line = f"  {bar} {perc_print}% "
+
+        for key in kwargs:
+            if kwargs[key]:
+                value = fmt(kwargs[key], N=4)
+                line += f"| {key}: {value} "
+        print(line, end="\r")
+        return len(line)
 
     def optimize_scheduler(
         self,
@@ -615,9 +631,11 @@ class FFNN:
             + "\n"
             + f"minimal MSE={min_heatmap[np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[0], np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)[1]]}"
             + "\n"
+            + f"for epochs={epochs}"
+            + "\n"
         )
         print(string)
-        with open(f"{scheduler.__name__}_optimal_params.txt", "w") as file:
+        with open(f"{scheduler.__name__}_optimal_params.txt", "a") as file:
             file.write(string)
         return optimal_params, optimal_lambda, loss_heatmap
 
