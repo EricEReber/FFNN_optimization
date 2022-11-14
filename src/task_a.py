@@ -83,8 +83,6 @@ for i in range(len(schedulers)):
     optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
         X_train,
         z_train,
-        X_test,
-        z_test,
         schedulers[i],
         eta,
         lam,
