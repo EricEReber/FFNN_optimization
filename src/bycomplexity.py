@@ -70,5 +70,5 @@ plt.plot(
     label="Two hidden layers: test",
     lw=4,
 )
-plt.legend()
+plt.legend(loc=(1.04, 0))
 plt.show()
