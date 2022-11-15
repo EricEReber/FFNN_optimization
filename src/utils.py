@@ -309,7 +309,7 @@ def hessian(
     X_test: np.ndarray = None,
     t_test: np.ndarray = None,
 ):
-    beta = np.random.rand(X.shape[1])
+    beta = np.random.rand(X.shape[1], 1)
     beta[0] = 0.1
 
     def CostOLS(beta):
@@ -323,13 +323,13 @@ def hessian(
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
-    inv_hessian = np.linalg.pinv((2 / X.shape[0]) * X.T @ X)
+    inv_hessian = np.linalg.inv((2 / X.shape[0]) * X.T @ X)
 
     train_errors = np.empty(epochs)
     train_errors.fill(np.nan)
 
     cost_func_derivative = grad(CostOLS)
-
+    
     for e in range(epochs):
         train_error = CostOLS(beta)
         train_errors[e] = train_error
@@ -341,7 +341,7 @@ def hessian(
 
         gradient = cost_func_derivative(beta)
         beta -= inv_hessian @ gradient
-
+        
         progression = e / epochs
         length = progress_bar(
             progression,
