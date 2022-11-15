@@ -301,11 +301,37 @@ def progress_bar(progression, **kwargs):
     return len(line)
 
 
+def hessian_cv(
+    K,
+    X,
+    t,
+    epochs: int = 1000,
+):
+    matrices = crossval(X, t, K)
+
+    avgbeta = np.zeros((X.shape[1], 1))
+
+    test_errors = np.zeros(epochs)
+    train_errors = np.zeros(epochs)
+
+    for cv in matrices:
+        X_train = cv[0]
+        t_train = cv[1]
+        X_test = cv[2]
+        t_test = cv[3]
+
+        scores, beta = hessian(X_train, t_train, epochs=epochs, X_test=X_test, t_test=t_test)
+        test_errors += scores["test_errors"] / K
+        train_errors += scores["train_errors"] / K
+        avgbeta += beta / K
+
+    return {"test_errors": test_errors, "train_errors": train_errors}, avgbeta
+
+
 def hessian(
     X,
     t,
     epochs: int = 1000,
-    lam: float = 0,
     X_test: np.ndarray = None,
     t_test: np.ndarray = None,
 ):
@@ -350,6 +376,7 @@ def hessian(
         )
 
     scores = dict()
+    print()
 
     scores["train_errors"] = train_errors
 
@@ -473,7 +500,7 @@ def plot_arch(
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
-            seed=1337
+            seed=1337,
         )
         print(neural.dimensions)
         scores = neural.cross_val(
@@ -502,7 +529,7 @@ def plot_arch(
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
-            seed=1337
+            seed=1337,
         )
         print(neural.dimensions)
         scores = neural.cross_val(
