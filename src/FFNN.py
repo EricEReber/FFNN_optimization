@@ -307,7 +307,7 @@ class FFNN:
             X_test = scaler.transform(X_test)
 
             ratio = X.shape[0] / X_train.shape[0]
-            scaled_batches = int(batches / ratio)
+            scaled_batches = int(batches / ratio) or 1
             self.reset_weights()
             scores = self.fit(
                 X_train,
