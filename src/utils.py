@@ -347,6 +347,7 @@ def hessian(
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
+    print(((2 / X.shape[0]) * X.T @ X).shape)
     inv_hessian = np.linalg.inv((2 / X.shape[0]) * X.T @ X)
 
     train_errors = np.empty(epochs)
@@ -572,7 +573,6 @@ def plot_arch(
             use_best_weights=True,
         )
         if classify:
-            print("heheheh")
             one_hid_test[i] = scores["final_test_acc"]
             one_hid_train[i] = scores["final_train_acc"]
         else:
