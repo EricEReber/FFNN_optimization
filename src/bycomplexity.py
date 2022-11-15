@@ -22,17 +22,34 @@ z = z.reshape(z.shape[0], 1)
 # epochs to run for
 epochs = 200
 folds = 5
+scheduler = Adam
+args = [0.01, 0.9, 0.999]
 
-plot_arch(
-    FFNN, 
-    max_nodes,
+funcs = [RELU, sigmoid, CostLogReg]
+
+one_hid_train, one_hid_test, two_hid_train, two_hid_test = plot_arch(
+    FFNN,
+    50,
     funcs,
     X,
-    t,
+    z,
     scheduler,
     *args,
-    lam: float = 0,
-    batches: int = 1,
-    epochs: int = 1000,
-    classify: bool = False,
-):
+    lam=0,
+    batches=7,
+    epochs=10,
+    classify=True,
+)
+
+one_hid_train2 = list()
+
+for item in one_hid_train:
+    if not np.isnan(item):
+        one_hid_train2.append(item)
+
+
+print(f"{one_hid_train2=}")
+print(f"{one_hid_test=}")
+plt.plot(one_hid_train2)
+plt.plot(one_hid_test)
+plt.show()

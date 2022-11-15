@@ -387,11 +387,19 @@ def confusion(prediction: np.ndarray, target: np.ndarray):
     false_pos = np.sum(pred * not_target)
     false_neg = np.sum(not_pred * target)
 
-    false_neg_perc = false_neg / (false_neg + true_neg)
-    true_neg_perc = true_neg / (false_neg + true_neg)
+    if false_neg + true_neg > 0:
+        false_neg_perc = false_neg / (false_neg + true_neg)
+        true_neg_perc = true_neg / (false_neg + true_neg)
+    else:
+        false_neg_perc = 0
+        true_neg_perc = 0
 
-    true_pos_perc = true_pos / (false_pos + true_pos)
-    false_pos_perc = false_pos / (false_pos + true_pos)
+    if false_pos + true_pos > 0:
+        true_pos_perc = true_pos / (false_pos + true_pos)
+        false_pos_perc = false_pos / (false_pos + true_pos)
+    else:
+        false_pos_perc = 0
+        true_pos_perc = 0
 
     return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
 
@@ -446,15 +454,23 @@ def plot_arch(
     lam: float = 0,
     batches: int = 1,
     epochs: int = 1000,
-    classify: bool = False,
+    size_step: int = 10,
+    classify=False,
 ):
 
-    one_hid_train = np.zeros(max_nodes)
-    one_hid_test = np.zeros(max_nodes)
-    two_hid_train = np.zeros(max_nodes)
-    two_hid_test = np.zeros(max_nodes)
+    one_hid_train = np.empty(max_nodes)
+    one_hid_train.fill(np.nan)
+    one_hid_test = np.empty(max_nodes)
+    one_hid_test.fill(np.nan)
+    two_hid_train = np.empty(max_nodes)
+    two_hid_train.fill(np.nan)
+    two_hid_test = np.empty(max_nodes)
+    two_hid_test.fill(np.nan)
 
-    for i in range(1, max_nodes + 1, 3):
+    node_sizes = np.arange(0, max_nodes, size_step)
+    node_sizes[0] = 1
+
+    for i in range(1, max_nodes, 10):
         neural = model(
             (X.shape[1], i, t.shape[1]),
             hidden_func=funcs[0],
@@ -463,6 +479,7 @@ def plot_arch(
         )
         print(neural.dimensions)
         scores = neural.cross_val(
+            5,
             X,
             t,
             scheduler,
@@ -473,20 +490,23 @@ def plot_arch(
             use_best_weights=True,
         )
         if classify:
+            print("heheheh")
             one_hid_test[i] = scores["final_test_acc"]
             one_hid_train[i] = scores["final_train_acc"]
         else:
             one_hid_test[i] = scores["final_test_error"]
             one_hid_train[i] = scores["final_train_error"]
 
-    for j in range(1, (max_nodes // 2) + 1, 3):
+    for j in range(1, (max_nodes // 2) + 1, 5):
         neural = model(
             (X.shape[1], j, j, t.shape[1]),
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
         )
+        print(neural.dimensions)
         scores = neural.cross_val(
+            5,
             X,
             t,
             scheduler,
