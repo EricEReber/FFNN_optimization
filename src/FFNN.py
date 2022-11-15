@@ -253,7 +253,7 @@ class FFNN:
         scores = dict()
 
         scores["train_errors"] = train_errors
-        scores["final_train_error"] = best_test_error
+        scores["final_train_error"] = best_train_error
 
         if test_set:
             scores["test_errors"] = test_errors
