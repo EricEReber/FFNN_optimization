@@ -712,7 +712,7 @@ class FFNN:
                     use_best_weights=True,
                 )
                 if classify:
-                    test_accs = scores["test_acc"]
+                    test_accs = scores["test_accs"]
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = scores["final_test_acc"]
                 else:
