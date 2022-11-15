@@ -27,9 +27,9 @@ args = [0.01, 0.9, 0.999]
 
 funcs = [RELU, sigmoid, CostLogReg]
 
-one_hid_train, one_hid_test, two_hid_train, two_hid_test = plot_arch(
+results = plot_arch(
     FFNN,
-    50,
+    400,
     funcs,
     X,
     z,
@@ -37,19 +37,38 @@ one_hid_train, one_hid_test, two_hid_train, two_hid_test = plot_arch(
     *args,
     lam=0,
     batches=7,
-    epochs=10,
+    epochs=50,
     classify=True,
+    step_size=20
 )
 
-one_hid_train2 = list()
 
-for item in one_hid_train:
-    if not np.isnan(item):
-        one_hid_train2.append(item)
-
-
-print(f"{one_hid_train2=}")
-print(f"{one_hid_test=}")
-plt.plot(one_hid_train2)
-plt.plot(one_hid_test)
+sns.set(font_scale=2)
+plt.title("Accuracy by model complexity for cancer data")
+plt.xlabel("Total amount of hidden nodes")
+plt.ylabel("Accuracy")
+plt.plot(
+    results["node_sizes"],
+    results["one_hid_train"],
+    label="One hidden layer: train",
+    lw=4,
+)
+plt.plot(
+    results["node_sizes"], results["one_hid_test"], label="One hidden layer: test", lw=4
+)
+plt.plot(
+    results["node_sizes"],
+    results["two_hid_train"],
+    "--",
+    label="Two hidden layers: train",
+    lw=4,
+)
+plt.plot(
+    results["node_sizes"],
+    results["two_hid_test"],
+    "--",
+    label="Two hidden layers: test",
+    lw=4,
+)
+plt.legend()
 plt.show()

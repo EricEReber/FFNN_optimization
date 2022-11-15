@@ -329,7 +329,7 @@ def hessian(
     train_errors.fill(np.nan)
 
     cost_func_derivative = grad(CostOLS)
-    
+
     for e in range(epochs):
         train_error = CostOLS(beta)
         train_errors[e] = train_error
@@ -341,7 +341,7 @@ def hessian(
 
         gradient = cost_func_derivative(beta)
         beta -= inv_hessian @ gradient
-        
+
         progression = e / epochs
         length = progress_bar(
             progression,
@@ -454,28 +454,26 @@ def plot_arch(
     lam: float = 0,
     batches: int = 1,
     epochs: int = 1000,
-    size_step: int = 10,
+    step_size: int = 10,
     classify=False,
 ):
 
-    one_hid_train = np.empty(max_nodes)
-    one_hid_train.fill(np.nan)
-    one_hid_test = np.empty(max_nodes)
-    one_hid_test.fill(np.nan)
-    two_hid_train = np.empty(max_nodes)
-    two_hid_train.fill(np.nan)
-    two_hid_test = np.empty(max_nodes)
-    two_hid_test.fill(np.nan)
-
-    node_sizes = np.arange(0, max_nodes, size_step)
+    node_sizes = np.arange(0, max_nodes, step_size)
     node_sizes[0] = 1
+    node_sizes[-1] = max_nodes
 
-    for i in range(1, max_nodes, 10):
+    one_hid_train = np.zeros(node_sizes.shape[0])
+    one_hid_test = np.zeros(node_sizes.shape[0])
+    two_hid_train = np.zeros(node_sizes.shape[0])
+    two_hid_test = np.zeros(node_sizes.shape[0])
+
+    for i in range(len(node_sizes)):
         neural = model(
-            (X.shape[1], i, t.shape[1]),
+            (X.shape[1], node_sizes[i], t.shape[1]),
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
+            seed=1337
         )
         print(neural.dimensions)
         scores = neural.cross_val(
@@ -497,12 +495,14 @@ def plot_arch(
             one_hid_test[i] = scores["final_test_error"]
             one_hid_train[i] = scores["final_train_error"]
 
-    for j in range(1, (max_nodes // 2) + 1, 5):
+    for i in range(len(node_sizes)):
+        node_size = node_sizes[i] // 2 or 1
         neural = model(
-            (X.shape[1], j, j, t.shape[1]),
+            (X.shape[1], node_size, node_size, t.shape[1]),
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
+            seed=1337
         )
         print(neural.dimensions)
         scores = neural.cross_val(
@@ -517,13 +517,20 @@ def plot_arch(
             use_best_weights=True,
         )
         if classify:
-            two_hid_test[j] = scores["final_test_acc"]
-            two_hid_train[j] = scores["final_train_acc"]
+            two_hid_test[i] = scores["final_test_acc"]
+            two_hid_train[i] = scores["final_train_acc"]
         else:
-            two_hid_test[j] = scores["final_test_error"]
-            two_hid_train[j] = scores["final_train_error"]
+            two_hid_test[i] = scores["final_test_error"]
+            two_hid_train[i] = scores["final_train_error"]
 
-    return one_hid_train, one_hid_test, two_hid_train, two_hid_test
+    results = dict()
+    results["one_hid_train"] = one_hid_train
+    results["one_hid_test"] = one_hid_test
+    results["two_hid_train"] = two_hid_train
+    results["two_hid_test"] = two_hid_test
+    results["node_sizes"] = node_sizes
+
+    return results
 
 
 # ---------------------------------------------------------------------------------- OTHER METHODS

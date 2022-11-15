@@ -22,32 +22,39 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-eta = 0.00005
+eta = 0.001
 momentum = 0.5
 rho = 0.9
 rho2 = 0.99
+epochs = 1000
 
 sched = Adam
-# sched = Momentum
 params = [eta, rho, rho2]
-# params = [eta, momentum]
+
+hessianscores, _ = hessian(
+    X_train,
+    z_train,
+    epochs=epochs,
+    X_test=X_test,
+    t_test=z_test,
+)
 
 dims = (2, 80, 80, 1)
-neural = FFNN(dims, checkpoint_file="weights", hidden_func=RELU)
-# neural.read("weights")
-train_errors, test_errors, _, _ = neural.fit(
+neural = FFNN(dims, hidden_func=RELU)
+scores = neural.fit(
     X_train[:, 1:3],
     z_train,
     sched,
     *params,
     batches=30,
-    epochs=10000,
+    epochs=epochs,
     lam=0.08,
     X_test=X_test[:, 1:3],
     t_test=z_test,
 )
-plt.plot(train_errors, label="Train")
-plt.plot(test_errors, label="Train")
+
+plt.plot(scores["train_errors"], label="Train")
+plt.plot(scores["test_errors"], label="Train")
 plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("MSE")
