@@ -318,7 +318,9 @@ def hessian_cv(
         X_test = cv[2]
         t_test = cv[3]
 
-        scores, beta = hessian(X_train, t_train, epochs=epochs, X_test=X_test, t_test=t_test)
+        scores, beta = hessian(
+            X_train, t_train, epochs=epochs, X_test=X_test, t_test=t_test
+        )
         test_errors += scores["test_errors"] / K
         train_errors += scores["train_errors"] / K
         avgbeta += beta / K
@@ -578,7 +580,6 @@ def plot_arch(
         else:
             one_hid_test[i] = scores["final_test_error"]
             one_hid_train[i] = scores["final_train_error"]
-
 
     results = dict()
     results["one_hid_train"] = one_hid_train
