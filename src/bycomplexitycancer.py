@@ -25,7 +25,7 @@ folds = 5
 scheduler = Adam
 args = [0.01, 0.9, 0.999]
 
-funcs = [sigmoid, sigmoid, CostLogReg]
+funcs = [RELU, sigmoid, CostLogReg]
 
 results = plot_arch(
     FFNN,
@@ -44,7 +44,9 @@ results = plot_arch(
 
 
 sns.set(font_scale=2)
-plt.title("Accuracy by model complexity for cancer data")
+plt.title(
+    "Accuracy by model complexity for cancer data, \n using RELU as the activation function"
+)
 plt.xlabel("Total amount of hidden nodes")
 plt.ylabel("Accuracy")
 plt.plot(
