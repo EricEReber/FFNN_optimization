@@ -208,7 +208,7 @@ def derivate(func):
 
         def func(x):
             delta = 10e-4
-            return np.where(x, 1, delta)
+            return np.where(x > 0, 1, delta)
 
         return func
 
