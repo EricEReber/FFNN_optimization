@@ -30,7 +30,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 20
+epochs = 5000
 folds = 5
 
 # no hidden layers, no activation function
@@ -38,47 +38,74 @@ dims = (X.shape[1], 1)
 neural = FFNN(dims, seed=1337)
 
 # optimal params written from task_a.py
-scheduler = Adam
+adam_scheduler = Adam
 rho = 0.9
 rho2 = 0.999
-params = [rho, rho2]
-eta = np.logspace(-5, -1, 5)
-lam = np.logspace(-5, -1, 5)
+adam_params = [rho, rho2]
+eta = np.logspace(-3, -1, 3)
+lam = np.logspace(-3, -1, 3)
 
 batches_list = np.logspace(
     0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int
 )
 
-# from project 1
-best_MSE_analytically = np.zeros(epochs)
-best_MSE_analytically[:] = 0.00328322949832417
 
 # optimize Adam
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train,
     z_train,
-    scheduler,
+    adam_scheduler,
     eta,
     lam,
-    params,
-    batches=batches_list[3],
-    epochs=epochs // 2,
+    adam_params,
+    batches=batches_list[-1],
+    epochs=epochs,
     folds=folds,
 )
 
 # fit using optimal params
-scores = neural.cross_val(
+adam_scores = neural.cross_val(
     folds,
     X_train,
     z_train,
-    scheduler,
+    adam_scheduler,
     *optimal_params,
-    batches=batches_list[3],
+    batches=batches_list[-1],
     epochs=epochs,
     lam=optimal_lambda,
 )
-test_errors = scores["test_errors"]
-train_errors = scores["train_errors"]
+adam_test_errors = adam_scores["test_errors"]
+adam_train_errors = adam_scores["train_errors"]
+
+
+adagrad_scheduler = Adagrad
+adagrad_params = []
+# optimize Adagrad
+optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
+    X_train,
+    z_train,
+    adagrad_scheduler,
+    eta,
+    lam,
+    adagrad_params,
+    batches=batches_list[-1],
+    epochs=epochs,
+    folds=folds,
+)
+
+# fit using optimal params
+adagrad_scores = neural.cross_val(
+    folds,
+    X_train,
+    z_train,
+    adagrad_scheduler,
+    *optimal_params,
+    batches=batches_list[-1],
+    epochs=epochs,
+    lam=optimal_lambda,
+)
+adagrad_test_errors = adagrad_scores["test_errors"]
+adagrad_train_errors = adagrad_scores["train_errors"]
 
 # test against sklearn
 scikit_MLP = MLPRegressor(
@@ -100,13 +127,19 @@ for i in range(folds):
     scikit_train_errors[:] += scikit_MLP.loss_curve_
 scikit_train_errors /= folds
 
+# from project 1
+best_MSE_analytically = np.zeros(epochs)
+best_MSE_analytically[:] = 0.00328322949832417
+
 # plot
 plt.plot(scikit_train_errors, label="scikit Adam train")
-plt.plot(train_errors, label="Adam train")
-plt.plot(test_errors, label="Adam test")
+plt.plot(adam_train_errors, label="Adam train")
+plt.plot(adam_test_errors, label="Adam test")
+plt.plot(adagrad_train_errors, label="Adagrad train")
+plt.plot(adagrad_test_errors, label="Adagrad test")
 plt.plot(best_MSE_analytically, label="analytical MSE")
 plt.legend(loc="upper right")
 plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
-plt.title("MSE over Epochs for optimized Adam", fontsize=22)
+plt.title("MSE over Epochs for optimized Adam, Adagrad", fontsize=22)
 plt.show()

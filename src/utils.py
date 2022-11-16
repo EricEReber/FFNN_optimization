@@ -200,7 +200,7 @@ def derivate(func):
     elif func.__name__ == "RELU":
 
         def func(x):
-            return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+            return np.where(x, 1, 0)
 
         return func
 
@@ -208,9 +208,7 @@ def derivate(func):
 
         def func(x):
             delta = 10e-4
-            return np.where(
-                x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
-            )
+            return np.where(x, 1, delta)
 
         return func
 
@@ -349,6 +347,7 @@ def hessian(
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
+    print(((2 / X.shape[0]) * X.T @ X).shape)
     inv_hessian = np.linalg.inv((2 / X.shape[0]) * X.T @ X)
 
     train_errors = np.empty(epochs)
@@ -483,6 +482,7 @@ def plot_arch(
     epochs: int = 1000,
     step_size: int = 10,
     classify=False,
+    folds: int = 5,
 ):
 
     node_sizes = np.arange(0, max_nodes, step_size)
@@ -493,10 +493,13 @@ def plot_arch(
     one_hid_test = np.zeros(node_sizes.shape[0])
     two_hid_train = np.zeros(node_sizes.shape[0])
     two_hid_test = np.zeros(node_sizes.shape[0])
+    three_hid_train = np.zeros(node_sizes.shape[0])
+    three_hid_test = np.zeros(node_sizes.shape[0])
 
     for i in range(len(node_sizes)):
+        node_size = node_sizes[i] // 3 or 1
         neural = model(
-            (X.shape[1], node_sizes[i], t.shape[1]),
+            (X.shape[1], node_size, node_size, node_size, t.shape[1]),
             hidden_func=funcs[0],
             output_func=funcs[1],
             cost_func=funcs[2],
@@ -504,7 +507,7 @@ def plot_arch(
         )
         print(neural.dimensions)
         scores = neural.cross_val(
-            5,
+            folds,
             X,
             t,
             scheduler,
@@ -512,15 +515,15 @@ def plot_arch(
             batches=batches,
             epochs=epochs,
             lam=lam,
-            use_best_weights=True,
         )
         if classify:
-            print("heheheh")
-            one_hid_test[i] = scores["final_test_acc"]
-            one_hid_train[i] = scores["final_train_acc"]
+            three_hid_test[i] = scores["final_test_acc"]
+            three_hid_train[i] = scores["final_train_acc"]
         else:
-            one_hid_test[i] = scores["final_test_error"]
-            one_hid_train[i] = scores["final_train_error"]
+            three_hid_test[i] = scores["final_test_error"]
+            print(f"{scores['final_test_error']=}")
+            print(f"{scores['final_train_error']=}")
+            three_hid_train[i] = scores["final_train_error"]
 
     for i in range(len(node_sizes)):
         node_size = node_sizes[i] // 2 or 1
@@ -533,7 +536,33 @@ def plot_arch(
         )
         print(neural.dimensions)
         scores = neural.cross_val(
-            5,
+            folds,
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+        )
+        if classify:
+            two_hid_test[i] = scores["final_test_acc"]
+            two_hid_train[i] = scores["final_train_acc"]
+        else:
+            two_hid_test[i] = scores["final_test_error"]
+            two_hid_train[i] = scores["final_train_error"]
+
+    for i in range(len(node_sizes)):
+        neural = model(
+            (X.shape[1], node_sizes[i], t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+            seed=1337,
+        )
+        print(neural.dimensions)
+        scores = neural.cross_val(
+            folds,
             X,
             t,
             scheduler,
@@ -544,17 +573,20 @@ def plot_arch(
             use_best_weights=True,
         )
         if classify:
-            two_hid_test[i] = scores["final_test_acc"]
-            two_hid_train[i] = scores["final_train_acc"]
+            one_hid_test[i] = scores["final_test_acc"]
+            one_hid_train[i] = scores["final_train_acc"]
         else:
-            two_hid_test[i] = scores["final_test_error"]
-            two_hid_train[i] = scores["final_train_error"]
+            one_hid_test[i] = scores["final_test_error"]
+            one_hid_train[i] = scores["final_train_error"]
+
 
     results = dict()
     results["one_hid_train"] = one_hid_train
     results["one_hid_test"] = one_hid_test
     results["two_hid_train"] = two_hid_train
     results["two_hid_test"] = two_hid_test
+    results["three_hid_train"] = three_hid_train
+    results["three_hid_test"] = three_hid_test
     results["node_sizes"] = node_sizes
 
     return results

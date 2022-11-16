@@ -29,7 +29,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 200
+epochs = 100
 folds = 5
 
 # no hidden layers, no activation function
@@ -39,7 +39,7 @@ neural = FFNN(dims, seed=1337)
 # parameters to test for
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
-momentums = np.linspace(0, 0.1, 5)
+momentums = np.linspace(0, 1, 5)
 lam[0] = 0
 rho = 0.9
 rho2 = 0.999
@@ -51,6 +51,7 @@ batches_list = np.logspace(
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
+schedulers = [Momentum]
 #
 # parameters for schedulers
 constant_params = []
@@ -62,12 +63,12 @@ adam_params = [rho, rho2]
 
 # list of scheduler parameters
 params_list = [
-    constant_params,
+    # constant_params,
     momentum_params,
-    adagrad_params,
-    adagrad_momentum_params,
-    rms_params,
-    adam_params,
+#     adagrad_params,
+#     adagrad_momentum_params,
+#     rms_params,
+#     adam_params,
 ]
 
 # results
@@ -87,8 +88,8 @@ for i in range(len(schedulers)):
         eta,
         lam,
         params_list[i],
-        batches=batches_list[3],
-        epochs=epochs // 2,
+        batches=batches_list[-1],
+        epochs=epochs,
         folds=folds,
     )
 
@@ -115,6 +116,7 @@ for i in range(len(schedulers)):
 plt.show()
 
 # search batch size
+optimal_batches = np.zeros(len(schedulers))
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=22)
@@ -130,6 +132,7 @@ for i in range(len(schedulers)):
         epochs=epochs,
     )
 
+    optimal_batches[i] = optimal_batch
     for j in range(len(batches_list)):
         plt.plot(
             batches_list_search[j, :],
@@ -143,14 +146,13 @@ plt.show()
 
 # plot best run for each scheduler
 for i in range(len(schedulers)):
-    neural = FFNN(dims, seed=1337)
     scores = neural.cross_val(
         folds,
         X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        batches=optimal_batch,
+        batches=optimal_batches[i],
         epochs=epochs,
         lam=optimal_lambdas[i],
     )
@@ -169,15 +171,3 @@ plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
 plt.title("MSE over Epochs for different schedulers", fontsize=22)
 plt.show()
-
-# # plot bias-variance trade-off
-# for i in range(len(schedulers)):
-#     plt.subplot(321 + i)
-#     plt.suptitle("Bias-variance trade-off", fontsize=22)
-#
-#     plt.title(schedulers[i].__name__, fontsize=22)
-#     plt.plot(test_errors[i], label="MSE score")
-#     plt.plot(all_biases[i], label="bias")
-#     plt.plot(all_variances[i], label="variance")
-#     plt.legend(loc=(1.04, 0))
-# plt.show()
