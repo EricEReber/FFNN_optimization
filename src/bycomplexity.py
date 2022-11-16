@@ -54,12 +54,15 @@ plt.plot(
     lw=4,
 )
 plt.plot(
-    results["node_sizes"], results["one_hid_test"], label="One hidden layer: test", lw=4
+    results["node_sizes"],
+    results["one_hid_test"],
+    "--",
+    label="One hidden layer: test",
+    lw=4,
 )
 plt.plot(
     results["node_sizes"],
     results["two_hid_train"],
-    "--",
     label="Two hidden layers: train",
     lw=4,
 )
@@ -68,6 +71,19 @@ plt.plot(
     results["two_hid_test"],
     "--",
     label="Two hidden layers: test",
+    lw=4,
+)
+plt.plot(
+    results["node_sizes"],
+    results["three_hid_train"],
+    label="Three hidden layers: train",
+    lw=4,
+)
+plt.plot(
+    results["node_sizes"],
+    results["three_hid_test"],
+    "--",
+    label="Three hidden layers: test",
     lw=4,
 )
 plt.legend(loc=(1.04, 0))
