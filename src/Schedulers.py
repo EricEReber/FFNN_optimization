@@ -53,7 +53,8 @@ class Momentum(Scheduler):
         return self.change
 
     def reset(self):
-        self.change = 0
+        # self.change = 0
+        pass
 
 
 class Adagrad(Scheduler):
@@ -101,7 +102,7 @@ class AdagradMomentum(Scheduler):
 
     def reset(self):
         self.G_t = None
-        self.change = 0
+        # self.change = 0
 
 
 class RMS_prop(Scheduler):
