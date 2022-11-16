@@ -79,10 +79,11 @@ print(f"Hessian time to train {epochs} epochs: {time[1]}")
 hessian_test_errors = hessian_scores["test_errors"]
 
 # plot
-plt.plot(constant_test_errors, label="Constant test")
-plt.plot(hessian_test_errors, label="Hessian test")
+sns.set(font_scale=3)
+plt.plot(constant_test_errors, label="Constant test", linewidth=5)
+plt.plot(hessian_test_errors, label="Hessian test", linewidth=5)
 plt.legend(loc="upper right")
-plt.xlabel("epochs", fontsize=18)
-plt.ylabel("MSE", fontsize=18)
-plt.title("Constant vs Hessian MSE over epochs", fontsize=22)
+plt.xlabel("epochs", fontsize=32)
+plt.ylabel("MSE", fontsize=32)
+plt.title("Constant vs Hessian MSE over epochs", fontsize=42)
 plt.show()
