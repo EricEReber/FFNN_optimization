@@ -172,6 +172,11 @@ class FFNN:
                 train_error = cost_function_train(prediction)
                 if train_error > 10e20:
                     # if this happens, we have a problem
+                    length = 10
+                    train_error=None
+                    test_error=None
+                    train_acc=None
+                    test_acc=None
                     break
                 if test_set:
                     prediction_test = self.predict(X_test, raw=True)
@@ -189,6 +194,7 @@ class FFNN:
 
                 else:
                     test_errors = np.nan  # a
+
 
                 train_acc = None
                 test_acc = None
