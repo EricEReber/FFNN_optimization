@@ -58,7 +58,7 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     eta,
     lam,
     adam_params,
-    batches=batches_list[3],
+    batches=batches_list[-1],
     epochs=epochs,
     folds=folds,
 )
@@ -70,7 +70,7 @@ adam_scores = neural.cross_val(
     z_train,
     adam_scheduler,
     *optimal_params,
-    batches=batches_list[3],
+    batches=batches_list[-1],
     epochs=epochs,
     lam=optimal_lambda,
 )
@@ -88,7 +88,7 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     eta,
     lam,
     adagrad_params,
-    batches=batches_list[3],
+    batches=batches_list[-1],
     epochs=epochs,
     folds=folds,
 )
@@ -100,7 +100,7 @@ adagrad_scores = neural.cross_val(
     z_train,
     adagrad_scheduler,
     *optimal_params,
-    batches=batches_list[3],
+    batches=batches_list[-1],
     epochs=epochs,
     lam=optimal_lambda,
 )
