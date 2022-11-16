@@ -721,17 +721,19 @@ class FFNN:
                     test_accs = scores["test_accs"]
                     loss_heatmap[y, x] = test_accs[-1]
                     min_heatmap[y, x] = scores["final_test_acc"]
+                    min_heatmap[y, x] = np.nanmax(test_accs)
                 else:
                     test_scores = scores["test_errors"]
                     loss_heatmap[y, x] = test_scores[-1]
                     min_heatmap[y, x] = scores["final_test_error"]
+                    min_heatmap[y, x] = np.nanmin(test_scores)
                 self.reset_weights()
 
         # select optimal eta, lambda
         if classify:
-            y, x = np.unravel_index(loss_heatmap.argmax(), loss_heatmap.shape)
+            y, x = np.unravel_index(loss_heatmap.nanargmax(), loss_heatmap.shape)
         else:
-            y, x = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+            y, x = np.unravel_index(loss_heatmap.nanargmin(), loss_heatmap.shape)
 
         optimal_eta = eta[y]
         optimal_lambda = lam[x]
@@ -778,24 +780,23 @@ class FFNN:
                         # todo wont work with bootstrap
                         test_accs = scores["test_accs"]
                         loss_heatmap[y, x, z] = test_accs[-1]
-                        min_heatmap[y, x, z] = np.min(test_accs)
+                        min_heatmap[y, x, z] = np.nanmax(test_accs)
                     else:
                         test_errors = scores["test_errors"]
                         loss_heatmap[y, x, z] = test_errors[-1]
-                        min_heatmap[y, x, z] = np.min(test_errors)
+                        min_heatmap[y, x, z] = np.nanmin(test_errors)
                     self.reset_weights()
 
         if classify:
-            y, x, z = np.unravel_index(loss_heatmap.argmax(), loss_heatmap.shape)
+            y, x, z = np.unravel_index(np.nanargmax(loss_heatmap), loss_heatmap.shape)
         else:
-            y, x, z = np.unravel_index(loss_heatmap.argmin(), loss_heatmap.shape)
+            y, x, z = np.unravel_index(np.nanargmin(loss_heatmap), loss_heatmap.shape)
 
         optimal_eta = eta[y]
         optimal_lambda = lam[x]
         optimal_momentum = momentums[z]
 
         optimal_params = [optimal_eta, optimal_momentum]
-        batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
         return (
             loss_heatmap[:, :, z],
