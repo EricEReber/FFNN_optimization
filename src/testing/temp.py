@@ -1,75 +1,98 @@
 from utils import *
-from autograd import grad, elementwise_grad
-import autograd.numpy as np
-import matplotlib.pyplot as plt
+from Schedulers import *
+from FFNN import FFNN
 
-dims = (2, 10, 10, 10, 1)
-np.random.seed(0)
+np.random.seed(42069)
+(
+    betas_to_plot,
+    N,
+    X,
+    X_train,
+    X_test,
+    z,
+    z_train,
+    z_test,
+    centering,
+    x,
+    y,
+    z,
+) = read_from_cmdline()
 
 
-# beta = np.array([0.5, 0.5], dtype="float64")
-# target = np.array([[1], [2]], dtype="float64")
-# X = np.array([[1, 1], [2, 2]], dtype="float64")
-#
-# func = CostOLS(X, target)
-#
-# deri = grad(func)
-# print(deri)
-#
-# print(deri(beta))
-# print(X @ beta)
+z_train = z_train.reshape(z_train.shape[0], 1)
+z_test = z_test.reshape(z_test.shape[0], 1)
 
-neural = FFNN(dims, epochs=1)
+eta = 0.1
+momentum = 1
+rho = 0.9
+rho2 = 0.99
+epochs = 1000
 
-X = np.array(
-    [
-        [0.5, 0.5],
-        [0.3, 0.5],
-        [0.2, 0.5],
-        [0.1, 0.5],
-        [0.5, 0.3],
-        [0.3, 0.3],
-        [0.2, 0.3],
-        [0.1, 0.3],
-    ]
+sched = Momentum
+params = [eta, momentum]
+
+# hessianscores, _ = hessian(
+#     X_train,
+#     z_train,
+#     epochs=epochs,
+#     X_test=X_test,
+#     t_test=z_test,
+# )
+
+dims = (X_train.shape[1], 1)
+neural = FFNN(dims, hidden_func=RELU)
+scores = neural.fit(
+    X_train,
+    z_train,
+    sched,
+    *params,
+    batches=320,
+    epochs=epochs,
+    lam=0.0,
+    X_test=X_test,
+    t_test=z_test,
 )
 
-target = (X[:, 0] ** 2 + X[:, 1] ** 3).reshape(X.shape[0], 1)
-# np.seterr(all="raise")
-learnings = np.logspace(-5, 2, 10)
-print(learnings[5])
-print(f"{neural.predict(X)=}")
-neural.fit(X, target, scheduler=Scheduler(learnings[5]))
-print(f"{neural.predict(X)=}")
-print(f"{target=}")
-print("-" * 30)
-print(f"{neural.predict(X) - target=}")
-
-error = np.zeros(learnings.shape)
-for i in range(len(learnings)):
-    neural = FFNN(dims, epochs=2000)
-    neural.fit(X, target, scheduler=Scheduler(learnings[i]))
-
-    error[i] = MSE(target, neural.predict(X))
-
-plt.plot(error)
-plt.xlabel("iterations")
-plt.ylabel("mse")
+plt.plot(scores["train_errors"], label="Train")
+plt.plot(scores["test_errors"], label="Train")
+plt.legend()
+plt.xlabel("Epochs")
+plt.ylabel("MSE")
+plt.title("MSE over Epochs")
 plt.show()
 
-print(error)
+z_pred = neural.predict(X[:, 1:3])
 
-# neural.fit(X, target)
-
-# neural = FFNN(dims, epochs=1)
-
-x = np.array([[2, 3, 4, 5], [2, 3, 4, 5]])
-t = np.array([[1, 5], [2, 3]])
-
-# print(f"{neural.predict(x)=}")
-# neural.fit(x, t)
-# print(f"{neural.predict(x)=}")
+pred_map = z_pred.reshape(z.shape)
 
 
-# x = np.array([2, 3, 4, 5])
-# print(neural.hidden_outs)
+# ------------ PLOTTING 3D -----------------------
+fig = plt.figure(figsize=plt.figaspect(0.3))
+
+# Subplot for terrain
+ax = fig.add_subplot(121, projection="3d")
+# Plot the surface.
+surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+ax.zaxis.set_major_locator(LinearLocator(10))
+ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+ax.set_title("Scaled terrain", size=24)
+# Add a color bar which maps values to colors.
+# fig.colorbar(surf_real, shrink=0.5, aspect=5)
+
+# Subplot for the prediction
+# Plot the surface.
+ax = fig.add_subplot(122, projection="3d")
+# Plot the surface.
+surf = ax.plot_surface(
+    x,
+    y,
+    pred_map,
+    cmap=cm.coolwarm,
+    linewidth=0,
+    antialiased=False,
+)
+ax.zaxis.set_major_locator(LinearLocator(10))
+ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.show()
