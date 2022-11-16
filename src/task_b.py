@@ -10,7 +10,7 @@ np.random.seed(1337)
     X,
     X_train,
     X_test,
-    t,
+    z,
     z_train,
     z_test,
     centering,
@@ -32,10 +32,7 @@ params = [eta, rho, rho2]
 #dims = (2, 266, 133, 1) # second best
 #dims = (2, 133, 133, 1)
 #dims = (2, 320, 160, 1) # second best 
-#dims = (2, 133, 133, 133, 1) # best so far 
-#dims = (2, 133, 133, 133, 1)
-dims = (2, 66,66,66, 1) 
-
+dims = (2, 133, 133, 133, 1) # best so far 
 train_epochs = 100
 
 
@@ -69,20 +66,17 @@ optimal_batch = neural.optimize_batch(
     epochs=30,
 )
 """
-scores = neural.cross_val(
-    5,
-    X[:, 1:3],
-    z.reshape(400, 1) ,
+scores = neural.fit(
+    X_train[:, 1:3],
+    z_train,
     sched,
     *params,
     batches=X_train.shape[0],
     epochs=train_epochs,
-    lam=10e-6,
-    #X_test=X_test[:, 1:3],
-    #t_test=z_test,
+    lam=0.0001,
+    X_test=X_test[:, 1:3],
+    t_test=z_test,
 )
-
-print(f"Final test_error: {scores['final_test_error']}")
 
 # ------------------------- MLPRegressor -------------------------
 mlp = MLPRegressor(
