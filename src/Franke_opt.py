@@ -35,19 +35,19 @@ lams[0] = 0.0
 
 # batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
-schedulers = [Adagrad]
+schedulers = [Adam]
 adagrad_params = []
 adam_params = [rho, rho2]
 
 params_list = [ 
-        adagrad_params,
+        adam_params,
         ]
 
 optimal_params_list = []
 optimal_eta = np.zeros(len(schedulers))
 optimal_lambdas = np.zeros(len(schedulers))
 # ------------------------- FFNN -------------------------
-neural = FFNN(dims, hidden_func=RELU, seed=1337)
+neural = FFNN(dims, hidden_func=LRELU, seed=1337)
 
 # gridsearch params eta and lambda for schedulers
 for i in range(len(schedulers)):
@@ -55,14 +55,14 @@ for i in range(len(schedulers)):
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
     
     optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
-        X_train[:, 1:3],
-        z_train,
+        X[:, 1:3],
+        z.reshape(400,1),
         schedulers[i],
         eta,
         lams,
         params_list[i],
-        batches=25,
-        epochs=200,
+        batches=X.shape[0],
+        epochs=100,
         folds=5,
     )
 

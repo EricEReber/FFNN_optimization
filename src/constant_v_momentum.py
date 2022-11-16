@@ -22,7 +22,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # define params
-epochs = 11
+epochs = 200
 folds = 5
 
 full_batch = 1
@@ -42,6 +42,7 @@ batches_list = np.logspace(
     0, np.log(X_train.shape[0] + 1), 7, base=np.exp(1), dtype=int
 )
 
+sns.set(font_scale=3)
 # optimize constant, momentum hyperparameters
 for i in range(len(schedulers)):
     optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
@@ -74,12 +75,12 @@ for i in range(len(schedulers)):
     test_errors = constant_scores["test_errors"]
     plt.figure(1)
     if schedulers[i].__name__ == "Constant":
-        plt.plot(test_errors, "b--", label=f"{schedulers[i].__name__} test")
+        plt.plot(test_errors, "b--", label=f"{schedulers[i].__name__} test", linewidth=5)
     else:
-        plt.plot(test_errors, "r", label=f"{schedulers[i].__name__} test")
+        plt.plot(test_errors, "r", label=f"{schedulers[i].__name__} test", linewidth=5)
 
     
-    # force momentum to 0.5, since optimal for full batch == 0
+    # force momentum to random value between 0 and 1, since optimal for full batch == 0
     if schedulers[i].__name__ == "Momentum":
         optimal_params = [optimal_params[0], 0.3]
 
@@ -99,26 +100,26 @@ for i in range(len(schedulers)):
     for j in range(len(batches_list)):
         if schedulers[i].__name__ == "Constant":
             plt.plot(
-                batches_list_search[j, :], f"{colors[j]}--", linewidth=3,
+                batches_list_search[j, :], f"{colors[j]}--", linewidth=5,
                 label=f"{schedulers[i].__name__} batch size {X_train.shape[0]//batches_list[j]}",
             )
         else:
             plt.plot(
-                batches_list_search[j, :], colors[j],
+                batches_list_search[j, :], colors[j], linewidth=3,
                 label=f"{schedulers[i].__name__} batch size {X_train.shape[0]//batches_list[j]}",
             )
 
 # plot
-sns.set(font_scale=2)
-plt.legend(loc="upper right")
-plt.xlabel("epochs")
-plt.ylabel("MSE")
-plt.title("Constant vs Momentum MSE over epochs")
 plt.figure(1)
-
 plt.legend(loc="upper right")
-plt.xlabel("epochs")
-plt.ylabel("MSE")
-plt.title("Constant vs Momentum MSE over epochs \n for different batch sizes")
+plt.xlabel("epochs", fontsize=22)
+plt.ylabel("MSE", fontsize=22)
+plt.title("Constant vs Momentum MSE over epochs", fontsize=32)
+
+sns.set(font_scale=2)
 plt.figure(2)
+plt.legend(loc=(1.04, 0))
+plt.xlabel("epochs", fontsize=22)
+plt.ylabel("MSE", fontsize=22)
+plt.title("Constant vs Momentum MSE over epochs \n for different batch sizes", fontsize=32)
 plt.show()
