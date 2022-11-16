@@ -39,7 +39,7 @@ neural = FFNN(dims, seed=1337)
 # parameters to test for
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
-momentums = np.linspace(0, 0.1, 5)
+momentums = np.linspace(0, 1, 5)
 lam[0] = 0
 rho = 0.9
 rho2 = 0.999
@@ -51,6 +51,7 @@ batches_list = np.logspace(
 
 # schedulers to test for
 schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
+schedulers = [Momentum]
 #
 # parameters for schedulers
 constant_params = []
@@ -62,12 +63,12 @@ adam_params = [rho, rho2]
 
 # list of scheduler parameters
 params_list = [
-    constant_params,
+    # constant_params,
     momentum_params,
-    adagrad_params,
-    adagrad_momentum_params,
-    rms_params,
-    adam_params,
+#     adagrad_params,
+#     adagrad_momentum_params,
+#     rms_params,
+#     adam_params,
 ]
 
 # results
@@ -143,7 +144,6 @@ for i in range(len(schedulers)):
     plt.title(schedulers[i].__name__, fontsize=22)
 plt.show()
 
-print(f"{optimal_batches=}")
 # plot best run for each scheduler
 for i in range(len(schedulers)):
     scores = neural.cross_val(
@@ -171,15 +171,3 @@ plt.xlabel("Epochs", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
 plt.title("MSE over Epochs for different schedulers", fontsize=22)
 plt.show()
-
-# # plot bias-variance trade-off
-# for i in range(len(schedulers)):
-#     plt.subplot(321 + i)
-#     plt.suptitle("Bias-variance trade-off", fontsize=22)
-#
-#     plt.title(schedulers[i].__name__, fontsize=22)
-#     plt.plot(test_errors[i], label="MSE score")
-#     plt.plot(all_biases[i], label="bias")
-#     plt.plot(all_variances[i], label="variance")
-#     plt.legend(loc=(1.04, 0))
-# plt.show()
