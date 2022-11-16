@@ -731,9 +731,9 @@ class FFNN:
 
         # select optimal eta, lambda
         if classify:
-            y, x = np.unravel_index(loss_heatmap.nanargmax(), loss_heatmap.shape)
+            y, x = np.unravel_index(np.nanargmax(loss_heatmap), loss_heatmap.shape)
         else:
-            y, x = np.unravel_index(loss_heatmap.nanargmin(), loss_heatmap.shape)
+            y, x = np.unravel_index(np.nanargmin(loss_heatmap), loss_heatmap.shape)
 
         optimal_eta = eta[y]
         optimal_lambda = lam[x]
