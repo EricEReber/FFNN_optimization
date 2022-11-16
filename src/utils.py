@@ -74,7 +74,7 @@ def plot_terrain(x, y, z, pred_map, *args):
     )
     ax.zaxis.set_major_locator(LinearLocator(10))
     ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
-    ax.set_title(f"Neural netbork *wuff* *wuff*", size=24)
+    ax.set_title(f"Neural network", size=24)
     fig.colorbar(surf, shrink=0.5, aspect=5)
     plt.show()
 

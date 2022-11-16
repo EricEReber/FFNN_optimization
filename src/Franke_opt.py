@@ -3,7 +3,7 @@ from Schedulers import *
 from FFNN import FFNN
 from sklearn.neural_network import MLPRegressor
 
-np.random.seed(42069)
+np.random.seed(1337)
 (
     betas_to_plot,
     N,
@@ -26,22 +26,21 @@ z_test = z_test.reshape(z_test.shape[0], 1)
 rho = 0.9
 rho2 = 0.99
 
-dims = (2, 100, 1)
+dims = (2, 66,66,66, 1)
 train_epochs = 1000
 
-eta = np.logspace(-3, -1, 3)
-lams = np.logspace(-3, -1, 3)
+eta = np.logspace(-4, -1, 4)
+lams = np.logspace(-4, -1, 4)
 lams[0] = 0.0
 
 # batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
 
-schedulers = [Adagrad, Adam]
+schedulers = [Adagrad]
 adagrad_params = []
 adam_params = [rho, rho2]
 
-params_list = [
-        adagrad_params, 
-        adam_params,
+params_list = [ 
+        adagrad_params,
         ]
 
 optimal_params_list = []
