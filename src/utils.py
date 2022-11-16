@@ -200,7 +200,7 @@ def derivate(func):
     elif func.__name__ == "RELU":
 
         def func(x):
-            return np.where(x, 1, 0)
+            return np.where(x > 0, 1, 0)
 
         return func
 
@@ -208,7 +208,7 @@ def derivate(func):
 
         def func(x):
             delta = 10e-4
-            return np.where(x, 1, delta)
+            return np.where(x > 0, 1, delta)
 
         return func
 
