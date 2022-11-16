@@ -57,9 +57,9 @@ results = plot_arch(
 
 
 sns.set(font_scale=2)
-plt.title("Accuracy by model complexity for franke")
+plt.title("MSE by model complexity for the Franke function")
 plt.xlabel("Total amount of hidden nodes")
-plt.ylabel("Accuracy")
+plt.ylabel("MSE")
 plt.plot(
     results["node_sizes"],
     results["one_hid_train"],
