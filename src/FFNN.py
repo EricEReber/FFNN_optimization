@@ -253,7 +253,7 @@ class FFNN:
         scores = dict()
 
         scores["train_errors"] = train_errors
-        scores["final_train_error"] = best_test_error
+        scores["final_train_error"] = best_train_error
 
         if test_set:
             scores["test_errors"] = test_errors
@@ -307,7 +307,7 @@ class FFNN:
             X_test = scaler.transform(X_test)
 
             ratio = X.shape[0] / X_train.shape[0]
-            scaled_batches = int(batches / ratio)
+            scaled_batches = int(batches / ratio) or 1
             self.reset_weights()
             scores = self.fit(
                 X_train,

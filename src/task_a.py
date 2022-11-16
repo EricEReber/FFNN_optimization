@@ -29,7 +29,7 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 200
+epochs = 100
 folds = 5
 
 # no hidden layers, no activation function
@@ -87,8 +87,8 @@ for i in range(len(schedulers)):
         eta,
         lam,
         params_list[i],
-        batches=batches_list[3],
-        epochs=epochs // 2,
+        batches=batches_list[-1],
+        epochs=epochs,
         folds=folds,
     )
 
@@ -115,6 +115,7 @@ for i in range(len(schedulers)):
 plt.show()
 
 # search batch size
+optimal_batches = np.zeros(len(schedulers))
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=22)
@@ -130,6 +131,7 @@ for i in range(len(schedulers)):
         epochs=epochs,
     )
 
+    optimal_batches[i] = optimal_batch
     for j in range(len(batches_list)):
         plt.plot(
             batches_list_search[j, :],
@@ -141,16 +143,16 @@ for i in range(len(schedulers)):
     plt.title(schedulers[i].__name__, fontsize=22)
 plt.show()
 
+print(f"{optimal_batches=}")
 # plot best run for each scheduler
 for i in range(len(schedulers)):
-    neural = FFNN(dims, seed=1337)
     scores = neural.cross_val(
         folds,
         X_train,
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        batches=optimal_batch,
+        batches=optimal_batches[i],
         epochs=epochs,
         lam=optimal_lambdas[i],
     )
