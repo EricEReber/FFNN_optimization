@@ -1,12 +1,22 @@
+# Imports
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
+# Imports from our own library
 from utils import *
 from Schedulers import *
 from FFNN import FFNN
 from sklearn.neural_network import MLPRegressor
 
+"""
+This script is used for comparision of results achieved when fitting our FFNN model 
+with functions sigmoid, RELU and LRELU as activation functions in the hidden layers. 
+THe program first gridsearches optimal eta, lambda and batch size for each activation 
+function, before finally plotting the mse achieved by the model when using each of the 
+functions mentioned. 
+"""
+
+# -------------------------- Loading data --------------------------
 np.random.seed(42069)
 (
     betas_to_plot,
@@ -26,7 +36,7 @@ np.random.seed(42069)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-# ------------------------- Params -------------------------
+# ------------------------- Setting params -------------------------
 eta = 0.00005
 momentum = 0.5
 rho = 0.9
@@ -49,7 +59,8 @@ hidden_func_list = [sigmoid, RELU, LRELU]
 
 for i in range(len(hidden_func_list)):
     neural = FFNN(dimensions=dims, hidden_func=hidden_func_list[i], seed=42069)
-
+    
+    # Gridsearching optimal parameters for each of the hidden activation functions
     optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
         X_train[:, 1:3],
         z_train,
@@ -64,7 +75,8 @@ for i in range(len(hidden_func_list)):
     )
 
     params = [optimal_params[0], rho, rho2]
-
+    
+    # Gridsearching optimal batchsize for each hidden activation functions using optimal eta and lambda 
     optimal_batch = neural.optimize_batch(
         X_train[:, 1:3],
         z_train,
@@ -76,7 +88,8 @@ for i in range(len(hidden_func_list)):
         batches_list=batch_sizes,
         epochs=20,
     )
-
+    
+    # Fitting the model after achieving optimal hyperparameters eta, lambda and batchsize
     scores = neural.fit(
         X_train[:, 1:3],
         z_train,
@@ -92,6 +105,8 @@ for i in range(len(hidden_func_list)):
     test_error = scores["train_error"]
     plt.plot(test_error, label=f"{hidden_func_list[i].__name__}")
     plt.legend(loc=(1.04, 0))
+
+# ------------------------------- Plots -------------------------------
 
 plt.xlabel("Epoch", fontsize=18)
 plt.ylabel("MSE", fontsize=18)
