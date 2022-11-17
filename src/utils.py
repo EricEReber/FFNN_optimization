@@ -1,4 +1,5 @@
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -11,9 +12,9 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils import resample
 from typing import Tuple, Callable
 from imageio import imread
+import seaborn as sns
 import sys
 import argparse
-import re
 
 
 def FrankeFunction(x, y):
@@ -26,7 +27,7 @@ def FrankeFunction(x, y):
 
 # debug function
 def SkrankeFunction(x, y):
-    return 0 + 1 * x + 2 * y + 3 * x**2 + 4 * x * y + 5 * y**2
+    return 3 * x + 8 * y + 4 * x**2 - 4 * x * y - 5 * y**2
 
 
 def create_X(x, y, n):
@@ -46,6 +47,38 @@ def create_X(x, y, n):
     return X
 
 
+def plot_terrain(x, y, z, pred_map, *args):
+    fig = plt.figure(figsize=plt.figaspect(0.3))
+
+    # Subplot for terrain
+    ax = fig.add_subplot(121, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title("Scaled terrain", size=24)
+    # Add a color bar which maps values to colors.
+    # fig.colorbar(surf_real, shrink=0.5, aspect=5)
+
+    # Subplot for the prediction
+    # Plot the surface.
+    ax = fig.add_subplot(122, projection="3d")
+    # Plot the surface.
+    surf = ax.plot_surface(
+        x,
+        y,
+        pred_map,
+        cmap=cm.coolwarm,
+        linewidth=0,
+        antialiased=False,
+    )
+    ax.zaxis.set_major_locator(LinearLocator(10))
+    ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
+    ax.set_title(f"Neural network", size=24)
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
+
+
 def R2(y_data, y_model):
     return 1 - np.sum((y_data - y_model) ** 2) / np.sum((y_data - np.mean(y_data)) ** 2)
 
@@ -53,96 +86,6 @@ def R2(y_data, y_model):
 def MSE(y_data, y_model):
     n = np.size(y_model)
     return np.sum((y_data - y_model) ** 2) / n
-
-
-def OLS(X_train: np.ndarray, z_train: np.ndarray):
-    beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
-    return beta
-
-
-def ridge(X_train, z_train, lam):
-    L = X_train.shape[1]
-    beta = np.linalg.pinv(X_train.T @ X_train + lam * np.eye(L)) @ X_train.T @ z_train
-    return beta
-
-
-def bootstrap(
-    X: np.ndarray,
-    X_train: np.ndarray,
-    X_test: np.ndarray,
-    z_train: np.ndarray,
-    z_test: np.ndarray,
-    bootstraps: int,
-    *,
-    centering: bool = False,
-    model: Callable = OLS,
-    lam: float = 0,
-):
-    z_preds_train = np.empty((z_train.shape[0], bootstraps))
-    z_preds_test = np.empty((z_test.shape[0], bootstraps))
-
-    # non resampled train
-    _, z_pred_train, _, _ = evaluate_model(
-        X, X_train, X_test, z_train, model, lam=lam, centering=centering
-    )
-
-    for i in range(bootstraps):
-        X_, z_ = resample(X_train, z_train)
-        _, _, z_pred_test, _ = evaluate_model(
-            X, X_, X_test, z_, model, lam=lam, centering=centering
-        )
-        # z_preds_train[:, i] = z_pred_train
-        z_preds_test[:, i] = z_pred_test
-
-    return z_preds_test, z_pred_train
-
-
-def crossval(
-    X: np.ndarray,
-    z: np.ndarray,
-    K: int,
-    *,
-    centering: bool = False,
-    model=OLS,
-    lam: float = 0,
-):
-    chunksize = X.shape[0] // K
-
-    errors = np.zeros(K)
-    X, z = resample(X, z)
-
-    for k in range(K):
-        if k == K - 1:
-            # if we are on the last, take all thats left
-            X_test = X[k * chunksize :, :]
-            z_test = z[k * chunksize :]
-        else:
-            X_test = X[k * chunksize : (k + 1) * chunksize, :]
-            z_test = z[k * chunksize : (k + 1) * chunksize :]
-
-        X_train = np.delete(
-            X,
-            [i for i in range(k * chunksize, k * chunksize + X_test.shape[0])],
-            axis=0,
-        )
-        z_train = np.delete(
-            z,
-            [i for i in range(k * chunksize, k * chunksize + z_test.shape[0])],
-            axis=0,
-        )
-
-        _, _, z_pred_test, _ = evaluate_model(
-            X,
-            X_train,
-            X_test,
-            z_train,
-            model,
-            lam=lam,
-            centering=centering,
-        )
-        errors[k] = MSE(z_test, z_pred_test)
-
-    return np.mean(errors)
 
 
 def bias_variance(z_test: np.ndarray, z_preds_test: np.ndarray):
@@ -163,82 +106,6 @@ def preprocess(x: np.ndarray, y: np.ndarray, z: np.ndarray, N, test_size):
     X_train, X_test, z_train, z_test = train_test_split(X, zflat, test_size=test_size)
 
     return X, X_train, X_test, z_train, z_test
-
-
-def evaluate_model(
-    X,
-    X_train,
-    X_test,
-    z_train,
-    model,
-    *,
-    lam: float = 0,
-    centering: bool = False,
-):
-    if isinstance(model, Callable):
-        intercept = 0
-        if centering:
-            X_train = X_train[:, 1:]
-            X_test = X_test[:, 1:]
-            X = X[:, 1:]
-            z_train_mean = np.mean(z_train, axis=0)
-            X_train_mean = np.mean(X_train, axis=0)
-
-            if model.__name__ == "OLS":
-                beta = model((X_train - X_train_mean), (z_train - z_train_mean))
-
-            elif model.__name__ == "ridge":
-                beta = model((X_train - X_train_mean), (z_train - z_train_mean), lam)
-
-            intercept = z_train_mean - X_train_mean @ beta
-
-        else:
-            if model.__name__ == "OLS":
-                beta = model(X_train, z_train)
-
-            elif model.__name__ == "ridge":
-                beta = model(
-                    X_train,
-                    z_train,
-                    lam,
-                )
-        # intercept is zero if no centering
-        z_pred_train = X_train @ beta + intercept
-        z_pred_test = X_test @ beta + intercept
-        z_pred = X @ beta + intercept
-
-    # presumed scikit model
-    else:
-        intercept = 0
-        if centering:
-            # if width is 1, simply return the intercept
-            if X_train.shape[1] == 1:
-                beta = np.zeros(1)
-                intercept = np.mean(z_train, axis=0)
-                z_pred_train = np.ones(X_train.shape[0]) * intercept
-                z_pred_test = np.ones(X_test.shape[0]) * intercept
-                z_pred = np.ones(X.shape[0]) * intercept
-
-                return beta, z_pred_train, z_pred_test, z_pred
-
-            X_train = X_train[:, 1:]
-            X_test = X_test[:, 1:]
-            X = X[:, 1:]
-            z_train_mean = np.mean(z_train, axis=0)
-            X_train_mean = np.mean(X_train, axis=0)
-
-            model.fit((X_train - X_train_mean), (z_train - z_train_mean))
-            beta = model.coef_
-            intercept = np.mean(z_train_mean - X_train_mean @ beta)
-        else:
-            model.fit(X_train, z_train)
-
-        beta = model.coef_
-        z_pred = model.predict(X) + intercept
-        z_pred_train = model.predict(X_train) + intercept
-        z_pred_test = model.predict(X_test) + intercept
-
-    return beta, z_pred_train, z_pred_test, z_pred
 
 
 def minmax_dataset(X, X_train, X_test, z, z_train, z_test):
@@ -266,46 +133,6 @@ def minmax_dataset(X, X_train, X_test, z, z_train, z_test):
     return X, X_train, X_test, z, z_train, z_test
 
 
-def linreg_to_N(
-    X: np.ndarray,
-    X_train: np.ndarray,
-    X_test: np.ndarray,
-    z_train: np.ndarray,
-    z_test: np.ndarray,
-    N: int,
-    *,
-    centering: bool = False,
-    model: Callable = OLS,
-    lam: float = 0,
-):
-    L = X_train.shape[1]
-
-    betas = np.zeros((L, N + 1))
-    z_preds_train = np.empty((z_train.shape[0], N + 1))
-    z_preds_test = np.empty((z_test.shape[0], N + 1))
-    z_preds = np.empty((X.shape[0], N + 1))
-
-    for n in range(N + 1):
-        print(n)
-        l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
-        beta, z_pred_train, z_pred_test, z_pred = evaluate_model(
-            X[:, :l],
-            X_train[:, :l],
-            X_test[:, :l],
-            z_train,
-            model,
-            lam=lam,
-            centering=centering,
-        )
-
-        betas[0 : len(beta), n] = beta
-        z_preds_test[:, n] = z_pred_test
-        z_preds_train[:, n] = z_pred_train
-        z_preds[:, n] = z_pred
-
-    return betas, z_preds_train, z_preds_test, z_preds
-
-
 def scores(z, z_preds):
     N = z_preds.shape[1]
     MSEs = np.zeros((N))
@@ -316,31 +143,6 @@ def scores(z, z_preds):
         R2s[n] = R2(z, z_preds[:, n])
 
     return MSEs, R2s
-
-
-def find_best_lambda(X, z, model, lambdas, N, K):
-    kfolds = KFold(n_splits=K, shuffle=True)
-    model = GridSearchCV(
-        estimator=model,
-        param_grid={"alpha": list(lambdas)},
-        scoring="neg_mean_squared_error",
-        cv=kfolds,
-    )
-    best_polynomial = 0
-    best_lambda = 0
-    best_MSE = 10**10
-
-    for n in range(N + 1):
-        print(n)
-        l = int((n + 1) * (n + 2) / 2)  # Number of elements in beta
-        model.fit(X[:, :l], z)
-
-        if -model.best_score_ < best_MSE:
-            best_MSE = -model.best_score_
-            best_lambda = model.best_params_["alpha"]
-            best_polynomial = n
-
-    return best_lambda, best_MSE, best_polynomial
 
 
 def CostOLS(target):
@@ -367,12 +169,24 @@ def CostLogReg(target):
     return func
 
 
+def CostCrossEntropy(target):
+    def func(X):
+        return -(1.0 / target.size) * np.sum(target * np.log(X + 10e-10))
+
+    return func
+
+
 # Activation functions
 def sigmoid(x):
     try:
         return 1.0 / (1 + np.exp(-x))
     except FloatingPointError:
         return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+
+
+def softmax(x):
+    x = x - np.max(x, axis=-1, keepdims=True)
+    return np.exp(x) / (np.sum(np.exp(x), axis=-1, keepdims=True) + 10e-10)
 
 
 def derivate(func):
@@ -386,16 +200,15 @@ def derivate(func):
     elif func.__name__ == "RELU":
 
         def func(x):
-            return np.where(x > np.zeros(x.shape), np.ones(x.shape), np.zeros(x.shape))
+            return np.where(x > 0, 1, 0)
 
         return func
 
     elif func.__name__ == "LRELU":
 
         def func(x):
-            return np.where(
-                x > np.zeros(x.shape), np.ones(x.shape), np.full((x.shape), delta)
-            )
+            delta = 10e-4
+            return np.where(x > 0, 1, delta)
 
         return func
 
@@ -407,500 +220,240 @@ def RELU(x: np.ndarray):
     return np.where(x > np.zeros(x.shape), x, np.zeros(x.shape))
 
 
-def LRELU(x: np.ndarray, delta: float):
+def LRELU(x: np.ndarray):
+    delta = 10e-4
     return np.where(x > np.zeros(x.shape), x, delta * x)
 
 
 def accuracy(prediction: np.ndarray, target: np.ndarray):
+    assert prediction.size == target.size
     return np.average((target == prediction))
 
 
-# ------------------- Gradient Descent Optimizing Methods -------------------#
-
-# abstract class for schedulers
-class Scheduler:
-    def __init__(self, eta):
-        self.eta = eta
-
-    # should be overwritten
-    def update_change(self, gradient):
-        raise NotImplementedError
-
-
-class Constant(Scheduler):
-    def __init__(self, eta):
-        super().__init__(eta)
-
-    def update_change(self, gradient):
-        return self.eta * gradient
-
-
-class Momentum(Scheduler):
-    def __init__(self, eta: float, momentum: float):
-        super().__init__(eta)
-        self.momentum = momentum
-        self.change = 0
-
-    def update_change(self, gradient):
-        self.change = self.eta * gradient + self.momentum * self.change
-        return self.change
-
-
-class Adagrad(Scheduler):
-    def __init__(self, eta, batch_size):
-        super().__init__(eta)
-        self.G_t = None
-        self.batch_size = batch_size
-        self.change = 0
-
-    def update_change(self, gradient):
-        delta = 1e-8  # avoid division ny zero
-
-        if self.G_t is None:
-            self.G_t = np.zeros((gradient.shape[0], gradient.shape[0]))
-
-        gradient = gradient / self.batch_size
-
-        self.G_t += gradient @ gradient.T
-
-        G_t_inverse = 1 / (
-            delta + np.sqrt(np.reshape(np.diagonal(self.G_t), (self.G_t.shape[0], 1)))
-        )
-        self.change = self.eta * gradient * G_t_inverse
-        return self.change
-
-    def reset(self):
-        self.G_t = None
-
-
-class RMS_prop2(Scheduler):
-    def __init__(self, eta, batch_size, rho):
-        super().__init__(eta)
-        self.batch_size = batch_size
-        self.rho = rho
-        self.giter = None
-        self.change = 0
-
-    def update_change(self, gradient):
-        delta = 1e-8  # avoid division ny zero
-
-        if not isinstance(self.giter, np.ndarray):
-            self.giter = np.zeros((gradient.shape[0], gradient.shape[0]))
-
-        gradient = (1 / self.batch_size) * gradient
-        self.prev_giter = self.giter
-        self.giter += gradient @ gradient.T
-
-        gnew = self.rho * self.prev_giter + (1 - self.rho) * self.giter
-        ginverse = np.c_[self.eta / (delta + np.sqrt(np.diagonal(gnew)))]
-        self.change = np.multiply(ginverse, gradient)
-        return self.change
-
-    def reset(self):
-        self.giter = None
-
-
-class RMS_prop(Scheduler):
-    def __init__(self, eta, batch_size, rho):
-        super().__init__(eta)
-        self.batch_size = batch_size
-        self.rho = rho
-        self.second = 0.0
-
-    def update_change(self, gradient):
-        delta = 1e-8  # avoid division ny zero
-        gradient = gradient / self.batch_size
-        self.second = self.rho * self.second + (1 - self.rho) * gradient * gradient
-        self.change = self.eta * gradient / (np.sqrt(self.second + delta))
-        return self.change
-
-    def reset(self):
-        self.second = 0.0
-
-
-class Adam(Scheduler):
-    def __init__(self, eta, batch_size, rho, rho2):
-        super().__init__(eta)
-        self.rho = rho
-        self.rho2 = rho2
-
-        self.batch_size = batch_size
-
-        self.rho_t = rho
-        self.rho2_t = rho2
-
-        self.moment = 0
-        self.second = 0
-
-    def update_change(self, gradient):
-        delta = 1e-8  # avoid division ny zero
-
-        gradient = gradient / self.batch_size
-
-        self.moment = self.rho * self.moment + (1 - self.rho) * gradient
-        self.second = self.rho2 * self.second + (1 - self.rho2) * gradient * gradient
-
-        self.rho_t *= self.rho_t
-        self.rho2_t *= self.rho2_t
-
-        self.moment = self.moment / (1 - self.rho_t)
-        self.second = self.second / (1 - self.rho2_t)
-
-        self.change = self.eta * self.moment / (np.sqrt(self.second + delta))
-
-        return self.change
-
-    def reset(self):
-        self.rho_t = self.rho
-        self.rho2_t = self.rho2
-        self.moment = 0
-        self.second = 0
-
-
-class FFNN:
-    """
-    Feed Forward Neural Network
-
-    Attributes:
-        dimensions (list[int]): A list of positive integers, which defines our layers. The first number
-        is the input layer, and how many nodes it has. The last number is our output layer. The numbers
-        in between define how many hidden layers we have, and how many nodes they have.
-
-        hidden_func (Callable): The activation function for the hidden layers
-
-        output_func (Callable): The activation function for the output layer
-
-        cost_func (Callable): Our cost function
-
-        checkpoint_file (string): A file path where our weights will be saved
-
-        weights (list): A list of numpy arrays, containing our weights
-    """
-
-    def __init__(
-        self,
-        dimensions: tuple[int],
-        hidden_func: Callable = sigmoid,
-        output_func: Callable = lambda x: x,
-        cost_func: Callable = CostOLS,
-        checkpoint_file: str = None,
-    ):
-        self.weights = list()
-        self.schedulers_weight = list()
-        self.schedulers_bias = list()
-        self.a_matrices = list()
-        self.dimensions = dimensions
-        self.hidden_func = hidden_func
-        self.output_func = output_func
-        self.cost_func = cost_func
-        self.z_matrices = list()
-        self.checkpoint_file = checkpoint_file
-
-        for i in range(len(dimensions) - 1):
-            # weight_array = np.ones((dimensions[i] + 1, dimensions[i + 1])) * 2
-            weight_array = np.random.randn(dimensions[i] + 1, dimensions[i + 1])
-            weight_array[0, :] = np.random.randn(dimensions[i + 1]) * 0.01
-
-            # weight_array[0, :] = np.ones(dimensions[i + 1])
-            self.weights.append(weight_array)
-
-    def write(self, path: str):
-        """Write weights and biases to file
-        Parameters:
-            path (str): The path to the file to be written to
-        """
-        print(f'Writing weights to file "{path}"')
-        np.set_printoptions(threshold=np.inf)
-        with open(path, "w") as file:
-            text = str(self.dimensions) + "\n"
-            for weight in self.weights:
-                text += str(weight.shape) + "\n"
-                array_str = np.array2string(weight, max_line_width=1e8, separator=",")
-                text += array_str + "\n"
-            file.write(text)
-        # default value
-        np.set_printoptions(threshold=1000)
-
-    def read(self, path: str):
-        """Read weights and biases from file. This overwrites the weights and biases for the calling instance,
-        and may well change the dimensions completely if the saved dimensions are not the same as the current
-        ones.
-        Parameters:
-            path (str): The path to the file to be read from
-        """
-        print(f'Reading weights to file "{path}"')
-        self.weights = list()
-        with open(path, "r") as file:
-            self.dimensions = eval(file.readline())
-            while True:
-                shape_string = file.readline()
-                if not shape_string:
-                    # we have reached EOF
-                    break
-                shape = eval(shape_string)
-                string = ""
-                for i in range(shape[0]):
-                    string += file.readline()
-                python_array = eval(string)
-                numpy_array = np.array(python_array, dtype="float64")
-                self.weights.append(numpy_array)
-
-    def feedforward(self, X: np.ndarray):
-        """
-        Return a prediction vector for each row in X
-
-        Parameters:
-            X (np.ndarray): The design matrix, with n rows of p features each
-
-            Returns:
-            z (np.ndarray): A prediction vector (row) for each row in our design matrix
-        """
-
-        # reset matrices
-        self.a_matrices = list()
-        self.z_matrices = list()
-
-        # if X is just a vector, make it into a design matrix
-        if len(X.shape) == 1:
-            X = X.reshape((1, X.shape[0]))
-
-        # put a coloumn of ones as the first coloumn of the design matrix, so that
-        # we have a bias term
-        X = np.hstack([np.ones((X.shape[0], 1)), X])
-
-        # a^0, the nodes in the input layer (one a^0 for each row in X)
-        a = X
-        self.a_matrices.append(a)
-        self.z_matrices.append(a)
-
-        # the feed forward part
-        for i in range(len(self.weights)):
-            if i < len(self.weights) - 1:
-                z = a @ self.weights[i]
-                self.z_matrices.append(z)
-                a = self.hidden_func(z)
-                a = np.hstack([np.ones((a.shape[0], 1)), a])
-                self.a_matrices.append(a)
-            else:
-                # a^L, the nodes in our output layer
-                z = a @ self.weights[i]
-                a = self.output_func(z)
-                self.a_matrices.append(a)
-                self.z_matrices.append(z)
-
-        # this will be a^L
-        return a
-
-    def predict(self, X: np.ndarray, *, raw=False, threshold=0.5):
-        """
-        Return a prediction vector for each row in X
-
-        Parameters:
-            X (np.ndarray): The design matrix, with n rows of p features each
-
-        Returns:
-            z (np.ndarray): A prediction vector (row) for each row in our design matrix
-        """
-
-        # if self.output_func.__name__ == "sigmoid":
-        #   return np.where(self.feedforward(X) > 0.5, 1, 0)
-        # else:
-        predict = self.feedforward(X)
-        if raw:
-            return predict
-        elif self.cost_func.__name__ == "CostLogReg":
-            return np.where(
-                predict > np.ones(predict.shape) * threshold,
-                np.ones(predict.shape),
-                np.zeros(predict.shape),
-            )
+def onehot(target: np.ndarray):
+    onehot = np.zeros((target.size, target.max() + 1))
+    onehot[np.arange(target.size), target] = 1
+    return onehot
+
+
+def crossval(
+    X: np.ndarray,
+    z: np.ndarray,
+    K: int,
+):
+    batch_size = X.shape[0] // K
+    np.random.seed(1337)
+    X, z = resample(X, z)
+    tuples = list()
+
+    for k in range(K):
+        if k == K - 1:
+            # if we are on the last, take all thats left
+            X_left_out = X[k * batch_size :, :]
+            z_left_out = z[k * batch_size :, :]
         else:
-            return predict
+            X_left_out = X[k * batch_size : (k + 1) * batch_size, :]
+            z_left_out = z[k * batch_size : (k + 1) * batch_size, :]
 
-    def fit(
-        self,
-        X: np.ndarray,
-        t: np.ndarray,
-        scheduler_class,
-        *args,  # arguments for the scheduler
-        batches: int = 1,
-        epochs: int = 1000,
-        lam: float = 0,
-        X_test: np.ndarray = None,
-        t_test: np.ndarray = None,
-    ):
-        train_errors = np.zeros(epochs)
-        test_errors = np.zeros(epochs)
-        chunksize = X.shape[0] // batches
-        X, t = resample(X, t)
+        X_train = np.delete(
+            X,
+            [i for i in range(k * batch_size, k * batch_size + X_left_out.shape[0])],
+            axis=0,
+        )
+        z_train = np.delete(
+            z,
+            [i for i in range(k * batch_size, k * batch_size + z_left_out.shape[0])],
+            axis=0,
+        )
 
-        checkpoint_length = epochs // 10
-        checkpoint_num = 0
+        tuples.append((X_train, z_train, X_left_out, z_left_out))
 
-        self.schedulers_weight = list()
-        self.schedulers_bias = list()
+    return tuples
 
-        # this function returns a function valued only at X
-        cost_function_train = self.cost_func(t)
-        if X_test is not None and t_test is not None:
-            cost_function_test = self.cost_func(t_test)
 
-        for i in range(len(self.weights)):
-            self.schedulers_weight.append(scheduler_class(*args))
-            self.schedulers_bias.append(scheduler_class(*args))
+def bias_variance(z_test: np.ndarray, z_preds_test: np.ndarray):
+    MSEs, _ = scores(z_test, z_preds_test)
+    error = np.mean(MSEs)
+    bias = np.mean(
+        (z_test - np.mean(z_preds_test, axis=1, keepdims=True).flatten()) ** 2
+    )
+    variance = np.mean(np.var(z_preds_test, axis=1, keepdims=True))
 
-        print(scheduler_class.__name__)
-        try:
-            for e in range(epochs):
-                for i in range(batches):
-                    # print(f"Batch: {i}")
-                    if i == batches - 1:
-                        # if we are on the last, take all thats left
-                        X_batch = X[i * chunksize :, :]
-                        t_batch = t[i * chunksize :, :]
-                    else:
-                        X_batch = X[i * chunksize : (i + 1) * chunksize, :]
-                        t_batch = t[i * chunksize : (i + 1) * chunksize :, :]
+    return error, bias, variance
 
-                    self.feedforward(X_batch)
-                    self.backpropagate(X_batch, t_batch, lam)
 
-                    if (
-                        isinstance(self.schedulers_weight[0], RMS_prop)
-                        or isinstance(self.schedulers_weight[0], Adam)
-                        or isinstance(self.schedulers_weight[0], Adagrad)
-                    ):
-                        for scheduler in self.schedulers_weight:
-                            scheduler.reset()
+def progress_bar(progression, **kwargs):
+    length = 40
+    num_equals = int(progression * length)
+    num_not = length - num_equals
+    arrow = ">" if num_equals > 0 else ""
+    bar = "[" + "=" * (num_equals - 1) + arrow + "-" * num_not + "]"
+    perc_print = fmt(progression * 100, N=5)
+    line = f"  {bar} {perc_print}% "
 
-                        for scheduler in self.schedulers_bias:
-                            scheduler.reset()
-                train_error = cost_function_train(self.predict(X, raw=True))
-                if X_test is not None and t_test is not None:
-                    test_error = cost_function_test(self.predict(X_test, raw=True))
-                else:
-                    test_error = 0
+    for key in kwargs:
+        if kwargs[key]:
+            value = fmt(kwargs[key], N=4)
+            line += f"| {key}: {value} "
+    print(line, end="\r")
+    return len(line)
 
-                train_acc = None
-                test_acc = None
-                if self.cost_func.__name__ == "CostLogReg":
-                    train_acc = accuracy(self.predict(X, raw=False), t)
-                    if X_test is not None and t_test is not None:
-                        test_acc = accuracy(self.predict(X_test, raw=False), t_test)
 
-                train_errors[e] = train_error
-                test_errors[e] = test_error
-                progression = e / epochs
+def hessian_cv(
+    K,
+    X,
+    t,
+    epochs: int = 1000,
+):
+    matrices = crossval(X, t, K)
 
-                length = self._progress_bar(
-                    progression,
-                    train_error=train_error,
-                    test_error=test_error,
-                    train_acc=train_acc,
-                    test_acc=test_acc,
-                )
+    avgbeta = np.zeros((X.shape[1], 1))
 
-                if (e % checkpoint_length == 0 and self.checkpoint_file and e) or (
-                    e == epochs - 1 and self.checkpoint_file
-                ):
-                    checkpoint_num += 1
-                    print()
-                    print(" " * length, end="\r")
-                    print(f"{checkpoint_num}/10: Checkpoint reached")
-                    self.write(self.checkpoint_file)
+    test_errors = np.zeros(epochs)
+    train_errors = np.zeros(epochs)
 
-        except KeyboardInterrupt:
-            pass
+    for cv in matrices:
+        X_train = cv[0]
+        t_train = cv[1]
+        X_test = cv[2]
+        t_test = cv[3]
 
-        print(" " * length, end="\r")
-        self._progress_bar(
-            1,
+        scores, beta = hessian(
+            X_train, t_train, epochs=epochs, X_test=X_test, t_test=t_test
+        )
+        test_errors += scores["test_errors"] / K
+        train_errors += scores["train_errors"] / K
+        avgbeta += beta / K
+
+    return {"test_errors": test_errors, "train_errors": train_errors}, avgbeta
+
+
+def hessian(
+    X,
+    t,
+    epochs: int = 1000,
+    X_test: np.ndarray = None,
+    t_test: np.ndarray = None,
+):
+    beta = np.random.rand(X.shape[1], 1)
+    beta[0] = 0.1
+
+    def CostOLS(beta):
+        return (1.0 / X.shape[0]) * np.sum((t - X @ beta) ** 2)
+
+    if X_test is not None:
+
+        def CostOLS_test(beta):
+            return (1.0 / X_test.shape[0]) * np.sum((t_test - X_test @ beta) ** 2)
+
+        test_errors = np.empty(epochs)
+        test_errors.fill(np.nan)
+
+    print(((2 / X.shape[0]) * X.T @ X).shape)
+    inv_hessian = np.linalg.inv((2 / X.shape[0]) * X.T @ X)
+
+    train_errors = np.empty(epochs)
+    train_errors.fill(np.nan)
+
+    cost_func_derivative = grad(CostOLS)
+
+    for e in range(epochs):
+        train_error = CostOLS(beta)
+        train_errors[e] = train_error
+
+        test_error = None
+        if X_test is not None:
+            test_error = CostOLS_test(beta)
+            test_errors[e] = test_error
+
+        gradient = cost_func_derivative(beta)
+        beta -= inv_hessian @ gradient
+
+        progression = e / epochs
+        length = progress_bar(
+            progression,
             train_error=train_error,
             test_error=test_error,
-            train_acc=train_acc,
-            test_acc=test_acc,
         )
-        print()
 
-        return train_errors, test_errors
+    scores = dict()
+    print()
 
-    def update_w_and_b(self, update_list):
-        """Updates weights and biases using a list of arrays that matches
-        self.weights
-        """
-        for i in range(len(self.weights)):
-            self.weights[i] -= update_list[i]
+    scores["train_errors"] = train_errors
 
-    # def scale_X(
+    if X_test is not None:
+        scores["test_errors"] = test_errors
 
-    def backpropagate(self, X, t, lam):
-        out_derivative = derivate(self.output_func)
-        hidden_derivative = derivate(self.hidden_func)
-        update_list = list()
-
-        for i in range(len(self.weights) - 1, -1, -1):
-
-            # creating the delta terms
-            if i == len(self.weights) - 1:
-                cost_func_derivative = grad(self.cost_func(t))
-                delta_matrix = out_derivative(
-                    self.z_matrices[i + 1]
-                ) * cost_func_derivative(self.a_matrices[i + 1])
-
-            else:
-                delta_matrix = (
-                    self.weights[i + 1][1:, :] @ delta_matrix.T
-                ).T * hidden_derivative(self.a_matrices[i + 1][:, 1:])
-
-            gradient_weights_matrix = np.zeros(
-                (
-                    self.a_matrices[i][:, 1:].shape[0],
-                    self.a_matrices[i][:, 1:].shape[1],
-                    delta_matrix.shape[1],
-                )
-            )
-
-            for j in range(len(delta_matrix)):
-                gradient_weights_matrix[j, :, :] = np.outer(
-                    self.a_matrices[i][j, 1:], delta_matrix[j, :]
-                )
-
-            gradient_weights = np.sum(gradient_weights_matrix, axis=0)
-            delta_accumulated = np.sum(delta_matrix, axis=0)
-
-            gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
-            gradient_weights += self.weights[i][1:, :] * lam
-
-            update_matrix = np.vstack(
-                [
-                    self.schedulers_bias[i].update_change(
-                        delta_accumulated.reshape(1, delta_accumulated.shape[0])
-                    ),
-                    self.schedulers_weight[i].update_change(gradient_weights),
-                ]
-            )
-            # print(f"{update_matrix=}")
-            update_list.insert(0, update_matrix)
-
-        self.update_w_and_b(update_list)
-
-    def _progress_bar(self, progression, **kwargs):
-        length = 40
-        num_equals = int(progression * length)
-        num_not = length - num_equals
-        arrow = ">" if num_equals > 0 else ""
-        bar = "[" + "=" * (num_equals - 1) + arrow + "-" * num_not + "]"
-        perc_print = fmt(progression * 100, N=5)
-        line = f"  {bar} {perc_print}% "
-
-        for key in kwargs:
-            if kwargs[key]:
-                value = fmt(kwargs[key], N=4)
-                line += f"| {key}: {value} "
-        print(line, end="\r")
-        return len(line)
+    return scores, beta
 
 
+def bootstrap(
+    X_train: np.ndarray,
+    z_train: np.ndarray,
+    bootstraps: int,
+):
+    tuples = list()
+
+    for i in range(bootstraps):
+        X_, z_ = resample(X_train, z_train)
+        tuples.append((X_, z_))
+
+    return tuples
+
+
+def confusion(prediction: np.ndarray, target: np.ndarray):
+    # expects that both are vector of zero and one
+    # print(np.hstack([target,prediction]))
+    target = np.where(target, True, False)
+    pred = np.where(prediction, True, False)
+    not_target = np.bitwise_not(target)
+    not_pred = np.bitwise_not(pred)
+
+    true_pos = np.sum(pred * target)
+    true_neg = np.sum(not_pred * not_target)
+
+    false_pos = np.sum(pred * not_target)
+    false_neg = np.sum(not_pred * target)
+
+    if false_neg + true_neg > 0:
+        false_neg_perc = false_neg / (false_neg + true_neg)
+        true_neg_perc = true_neg / (false_neg + true_neg)
+    else:
+        false_neg_perc = 0
+        true_neg_perc = 0
+
+    if false_pos + true_pos > 0:
+        true_pos_perc = true_pos / (false_pos + true_pos)
+        false_pos_perc = false_pos / (false_pos + true_pos)
+    else:
+        false_pos_perc = 0
+        true_pos_perc = 0
+
+    return np.array([[true_neg_perc, false_neg_perc], [false_pos_perc, true_pos_perc]])
+
+
+def plot_confusion(confusion_matrix: np.ndarray, title=None):
+    fontsize = 40
+
+    sns.set(font_scale=3)
+    sns.heatmap(
+        confusion_matrix,
+        annot=True,
+        fmt=".2%",
+        cmap="Blues",
+    )
+    if title:
+        plt.title(title)
+    else:
+        plt.title("Confusion matrix")
+
+    plt.xlabel("Predicted class")
+    plt.ylabel("True class")
+    plt.show()
+
+
+# formatting for prints stolen from stack overflow.
+# makes decimal values have the same number of digits
 def fmt(value, N=4):
     import math
 
@@ -918,34 +471,131 @@ def fmt(value, N=4):
     return f"{value:.{N-n-1}f}"
 
 
-# todo: update this function
-def gradient_descent_linreg(
-    cost_func,
+def plot_arch(
+    model,
+    max_nodes,
+    funcs,
     X,
-    X_train,
-    X_test,
-    beta,
-    target,
+    t,
+    scheduler,
     *args,
-    scheduler_class=Scheduler,
+    lam: float = 0,
+    batches: int = 1,
+    epochs: int = 1000,
+    step_size: int = 10,
+    classify=False,
+    folds: int = 5,
 ):
-    scheduler = scheduler_class(args)
 
-    ols_grad = grad(cost_func, 1)
+    node_sizes = np.arange(0, max_nodes, step_size)
+    node_sizes[0] = 1
+    node_sizes[-1] = max_nodes
 
-    eta = scheduler.update_eta()
-    beta -= eta * ols_grad(X_train, beta, target)
+    one_hid_train = np.zeros(node_sizes.shape[0])
+    one_hid_test = np.zeros(node_sizes.shape[0])
+    two_hid_train = np.zeros(node_sizes.shape[0])
+    two_hid_test = np.zeros(node_sizes.shape[0])
+    three_hid_train = np.zeros(node_sizes.shape[0])
+    three_hid_test = np.zeros(node_sizes.shape[0])
 
-    z_pred = X @ beta
-    z_pred_train = X_train @ beta
-    z_pred_test = X_test @ beta
-    return beta, z_pred_train, z_pred_test, z_pred
+    for i in range(len(node_sizes)):
+        node_size = node_sizes[i] // 3 or 1
+        neural = model(
+            (X.shape[1], node_size, node_size, node_size, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+            seed=1337,
+        )
+        print(neural.dimensions)
+        scores = neural.cross_val(
+            folds,
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+        )
+        if classify:
+            three_hid_test[i] = scores["final_test_acc"]
+            three_hid_train[i] = scores["final_train_acc"]
+        else:
+            three_hid_test[i] = scores["final_test_error"]
+            print(f"{scores['final_test_error']=}")
+            print(f"{scores['final_train_error']=}")
+            three_hid_train[i] = scores["final_train_error"]
 
+    for i in range(len(node_sizes)):
+        node_size = node_sizes[i] // 2 or 1
+        neural = model(
+            (X.shape[1], node_size, node_size, t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+            seed=1337,
+        )
+        print(neural.dimensions)
+        scores = neural.cross_val(
+            folds,
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+        )
+        if classify:
+            two_hid_test[i] = scores["final_test_acc"]
+            two_hid_train[i] = scores["final_train_acc"]
+        else:
+            two_hid_test[i] = scores["final_test_error"]
+            two_hid_train[i] = scores["final_train_error"]
 
-# ---------------------------------------------------------------------------------- OTHER METHODS
+    for i in range(len(node_sizes)):
+        neural = model(
+            (X.shape[1], node_sizes[i], t.shape[1]),
+            hidden_func=funcs[0],
+            output_func=funcs[1],
+            cost_func=funcs[2],
+            seed=1337,
+        )
+        print(neural.dimensions)
+        scores = neural.cross_val(
+            folds,
+            X,
+            t,
+            scheduler,
+            *args,
+            batches=batches,
+            epochs=epochs,
+            lam=lam,
+            use_best_weights=True,
+        )
+        if classify:
+            one_hid_test[i] = scores["final_test_acc"]
+            one_hid_train[i] = scores["final_train_acc"]
+        else:
+            one_hid_test[i] = scores["final_test_error"]
+            one_hid_train[i] = scores["final_train_error"]
+
+    results = dict()
+    results["one_hid_train"] = one_hid_train
+    results["one_hid_test"] = one_hid_test
+    results["two_hid_train"] = two_hid_train
+    results["two_hid_test"] = two_hid_test
+    results["three_hid_train"] = three_hid_train
+    results["three_hid_test"] = three_hid_test
+    results["node_sizes"] = node_sizes
+
+    return results
+
 
 # ---------------------------------------------------------------------------------- OTHER METHODS
 def read_from_cmdline():
+    np.random.seed(1337)
     argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Read in arguments for tasks")
