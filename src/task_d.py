@@ -25,7 +25,7 @@ z = z.reshape(z.shape[0], 1)
 
 # epochs to run for
 epochs = 200
-folds = 7
+folds = 9
 batches = 23
 
 rho = 0.9
@@ -35,9 +35,10 @@ X_train, X_test, t_train, t_test = train_test_split(X, z)
 
 # dims = (30, 60, 1)
 dims = (30, 100, 1)
+# dims = (30, 66, 1)
 neural = FFNN(
     dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg, seed=1337
-)
+    )
 
 optimal_params = [0.001, 0.9, 0.999]
 optimal_lambda = 0.0001
@@ -56,7 +57,7 @@ neuralscores = neural.cross_val(
     Adam,
     *optimal_params,
     batches=batches,
-    epochs=epochs,
+    epochs=200,
     lam=optimal_lambda,
     use_best_weights=True,
 )
