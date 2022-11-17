@@ -1,39 +1,43 @@
 \begin{thebibliography}{}
 
-\bibitem[Fahrmeir et~al., 2013]{linreg}
-Fahrmeir, L., Kneib, T., Lang, S., and Marx, B. (2013).
-\newblock {\em Regression Models, Methods and Applications}.
-\newblock Springer, London.
+\bibitem[Bishop, 2006]{cmb}
+Bishop, C.~M. (2006).
+\newblock {\em Pattern Recognition and Machine Learning}.
+\newblock Springer, New York, NY.
 
-\bibitem[Gonzales and Woods, 2018]{dip}
-Gonzales, R.~C. and Woods, R.~E. (2018).
-\newblock {\em Digital Image Processing}.
-\newblock Pearson, New Nork, NY.
+\bibitem[Brunton and Kutz, 2018]{dds}
+Brunton, S.~L. and Kutz, J.~N. (2018).
+\newblock {\em Data Driven Science \& Engineering: Machine Learning, Dynamical
+  Systems, and Control}.
+\newblock Brunton \& Kutz, Seattle, WA.
 
-\bibitem[Hastie et~al., 2009]{hastie}
-Hastie, T., Tibshirani, R., and Friedman, J. (2009).
-\newblock {\em The Elements of Statistical Learning}.
-\newblock Springer, New Nork, NY.
-
-\bibitem[Pishro-Nik, 2014]{CLT}
-Pishro-Nik, H. (2014).
-\newblock Miscellaneous {Introduction to Probability, Statistics, and Random
-  Processes}.
-\newblock On the WWW.
+\bibitem[Chandra, 2019]{datasci}
+Chandra, A.~L. (2019).
+\newblock Learning parameters part 5.
 \newblock URL
-  \verb+https://www.probabilitycourse.com/chapter7/7_1_2_central_limit_theorem.php+.
+  \verb+https://towardsdatascience.com/learning-parameters-part-5-65a2f3583f7d+.
 
-\bibitem[Routledge, 2022]{LLN}
-Routledge, R. (2022).
-\newblock Miscellaneous {Law of Large Numbers}.
-\newblock On the WWW.
-\newblock URL \verb+https://www.britannica.com/science/law-of-large-numbers+.
+\bibitem[Goodfellow et~al., 2016]{gbc}
+Goodfellow, I., Bengio, Y., and Courville, A. (2016).
+\newblock {\em Deep Learning}.
+\newblock MIT Press.
+\newblock http://www.deeplearningbook.org.
 
-\bibitem[Scikit-Learn, 2022]{lasso}
-Scikit-Learn (2022).
-\newblock Miscellaneous {sklearn.linear\_model.Lasso}.
-\newblock On the WWW.
+\bibitem[Hjorth-Jensen, 2022a]{mortensched}
+Hjorth-Jensen, M. (2022a).
+\newblock Week 39: Optimization and gradient methods.
 \newblock URL
-  \verb+https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html+.
+  \verb+https://compphysics.github.io/MachineLearning/doc/pub/week39/html/week39.html+.
+
+\bibitem[Hjorth-Jensen, 2022b]{morten}
+Hjorth-Jensen, M. (2022b).
+\newblock Week 40: Neural networks.
+\newblock URL
+  \verb+https://compphysics.github.io/MachineLearning/doc/pub/week40/html/week40.html+.
+
+\bibitem[Raschka and Mirjalili, 2019]{sr}
+Raschka, S. and Mirjalili, V. (2019).
+\newblock {\em Python Machine Learning}.
+\newblock Packt, Birmingham.
 
 \end{thebibliography}
