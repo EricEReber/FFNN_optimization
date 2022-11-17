@@ -1,12 +1,22 @@
+# Our own library
 from utils import *
 from Schedulers import *
 from FFNN import FFNN
+# Other libraries
 import timeit
 from tabulate import tabulate
 
+
+"""
+The following script first performs a gridsearch for optimal parameters lambda and eta for use 
+with regular full-batch gradient descent. It the proceeds with the measurement of the runtime 
+of our FFNN and Newton-Raphon's method, before it finally prints said runtime and test error 
+acieved by each technique for the sake of comparison of both methods against eachother.
+"""
+
 np.random.seed(1337)
 
-# read in data
+# ---------------------- Loading data ---------------------- 
 (
     betas_to_plot,
     N,
@@ -24,7 +34,7 @@ np.random.seed(1337)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-# define params
+# --------------------- Setting params --------------------- 
 epochs = 200
 folds = 5
 
@@ -35,11 +45,11 @@ lam = np.logspace(-5, -1, 5)
 constant_scheduler = Constant
 constant_params = []
 
-# linear regression NN
+# ------------------ Linear Regression NN ------------------
 dims = (X.shape[1], 1)
 neural = FFNN(dims, seed=1337)
 
-# optimize constant learning rate, regularization
+# Gridsearching parameters learning rate and lambda for "Constant" scheduler, i.e full-batch gradient descent
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train,
     z_train,
@@ -52,7 +62,7 @@ optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     folds=folds,
 )
 
-# take average runtime constant
+# Measurement of average runtime of our FFNN model
 time = np.zeros(2)
 start = timeit.default_timer()
 constant_scores = neural.cross_val(
@@ -70,7 +80,7 @@ time[0] = (stop - start) / folds
 print(f"Constant time to train {epochs} epochs: {time[0]}")
 constant_test_errors = constant_scores["test_errors"]
 
-# take average runtime Newton's
+# Measurement of average runtime of Newton-Raphson's method 
 start = timeit.default_timer()
 hessian_scores, _ = hessian_cv(folds, X_train, z_train, epochs=epochs)
 stop = timeit.default_timer()
@@ -78,7 +88,7 @@ time[1] = (stop - start) / folds
 print(f"Hessian time to train {epochs} epochs: {time[1]}")
 hessian_test_errors = hessian_scores["test_errors"]
 
-# plot
+# ----------------------- Plots -----------------------
 sns.set(font_scale=3)
 plt.plot(constant_test_errors, label="Constant test", linewidth=5)
 plt.plot(hessian_test_errors, label="Hessian test", linewidth=5)

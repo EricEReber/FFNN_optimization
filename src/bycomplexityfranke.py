@@ -12,7 +12,14 @@ from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 
 np.random.seed(1337)
 
-# read in data
+"""
+When run, the following code generates a plot the accuracy achieved by a model
+as function of its complexity, i.e the number og hidden layers and nodes 
+in each of said layers. 
+"""
+
+# ------------------------ Loading data ------------------------
+
 (
     betas_to_plot,
     N,
@@ -32,7 +39,7 @@ z_test = z_test.reshape(z_test.shape[0], 1)
 z = z.ravel()
 z = z.reshape(z.shape[0], 1)
 
-# epochs to run for
+# ----------------------- Setting params -----------------------
 epochs = 10
 folds = 5
 scheduler = Adam
@@ -40,6 +47,7 @@ args = [0.001, 0.9, 0.999]
 
 funcs = [sigmoid, lambda x: x, CostOLS]
 
+# ------------------------ Plots ------------------------
 results = plot_arch(
     FFNN,
     400,

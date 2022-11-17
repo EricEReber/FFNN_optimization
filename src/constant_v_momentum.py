@@ -3,7 +3,15 @@ from Schedulers import *
 from FFNN import FFNN
 import timeit
 
-# read in data
+
+
+"""
+The following script first performs a gridsearch for optimal parameters lambda and eta for use 
+with regular full-batch gradient descent and momentum gradient descent. It the proceeds with the 
+measurement of the runtime of each of said methods, before it finally prints said runtime and 
+test error acieved by each technique for the sake of comparison of both schedulers against eachother.
+"""
+# ---------------------- Loading data ---------------------- 
 (
     betas_to_plot,
     N,
@@ -21,7 +29,7 @@ import timeit
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-# define params
+# --------------------- Setting params --------------------- 
 epochs = 200
 folds = 5
 
@@ -34,7 +42,7 @@ constant_params = []
 momentum_params = np.linspace(0, 0.1, 5)
 params = [momentum_params, constant_params]
 
-# linear regression NN
+# ------------------ Linear Regression NN ------------------
 dims = (X.shape[1], 1)
 neural = FFNN(dims, seed=1337)
 
@@ -43,7 +51,7 @@ batches_list = np.logspace(
 )
 
 sns.set(font_scale=3)
-# optimize constant, momentum hyperparameters
+# Gridsearching parameters learning rate and lambda for "Constant" and Momentum scheduler
 for i in range(len(schedulers)):
     optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
         X_train,
@@ -57,7 +65,7 @@ for i in range(len(schedulers)):
         folds=folds,
     )
 
-    # take average runtime constant
+    # Measurement of average runtime of our FFNN model
     start = timeit.default_timer()
     constant_scores = neural.cross_val(
         folds,
