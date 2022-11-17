@@ -251,10 +251,10 @@ From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improv
 \label{constant_v_momentum}
 \end{figure}
 
-By introducing mini-batch gradient descent, we can observe how decreasing the batch size improves our performance further (Fig.~\ref{batch_constant_v_momentum}). Mini-batch gradient descent clearly yields a lower MSE for the test data than full batch gradient descent for the same amount of epochs. The best result for both constant and momentum were reached for a batch size equal to 2, close to a fully stochastic gradient descent. The test data MSE reached $0.044$, an impressive improvement over constant's previous result of $0.198$ MSE with full batch gradient descent. Because we first gridsearched the optimal values of eta and lambda first with a predefined base batch size, we must acknowledge that these results will have some bias towards the batch size used when searching for the optimal hyperparameters. However, given that we have gridsearched with different base batch sizes accross our testing, we have found the results to be similar accross different base batch sizes, and that this bias which we induced to save computational time was insignificant. A full comparison of MSE over batch sizes for all the different schedulers can be viewed in Figure ~\ref{sgdbatch} in the appendix, but all schedulers yield increasingly better results as the batch size decreases.
+By introducing mini-batch gradient descent, we can observe how decreasing the batch size improves our performance further (Fig.~\ref{batch_constant_v_momentum}). Mini-batch gradient descent clearly yields a lower MSE for the test data than full batch gradient descent for the same amount of epochs. The best result for both constant and momentum were reached for a batch size equal to 2, close to a fully stochastic gradient descent. The test data MSE reached $0.044$, an impressive improvement over constant's previous result of $0.198$ MSE with full batch gradient descent. Because we first gridsearched the optimal values of eta and lambda first with a predefined base batch size, we must acknowledge that these results will have some bias towards the batch size used when searching for the optimal hyperparameters. However, given that we have gridsearched with different base batch sizes accross our testing, we have found the results to be similar accross different base batch sizes, and that this bias which we induced to save computational time was insignificant. A full comparison of MSE over batch sizes for all the different schedulers can be viewed in Figure ~\ref{sgdbatch} in the appendix, where we can see that all schedulers yield increasingly better results as the batch size decreases.
 
 \begin{figure}[H]
-\centerline{\includegraphics[width=6in]{figure/SGD_batch_momentum_constant.png}}
+\centerline{\includegraphics[width=6in]{figure/new_SGD_batch_momentum_constant.png}}
 \caption{Constant vs momentum test MSE for different batch sizes, plotted for 200 epochs using full batch gradient descent. A batch size of 320 is full batch GD, whilst a batch size of 1 is fully stochastic GD.}
 \label{batch_constant_v_momentum}
 \end{figure}
@@ -294,16 +294,13 @@ An interesting insight from Fig.~\ref{heatmap} is that all the schedulers prefer
 \label{heatmap}
 \end{figure}
 
+Based on these findings, we decided to push Adagrad and Adam further, allowing them to run for much longer. After 5000 epochs, we reached an MSE of $0.012$ for Adam and $0.011$ for Adagrad. The plot for the MSE over epochs can be found in the appendix (Fig.~\ref{adam_v_adagrad}).
+
 
 %100 epochs are more or less the same. As the largest change in MSE occurs in the first 50 epochs as seen in Fig.~\ref{figall}, perhaps the other schedulers are given enough time to catch up as the best performing schedulers, such as Adagrad, starts slowing down the rate at which the MSE is decreased. However, as can be seen in Fig.~\ref{heatmap}, Adagrad offers a 12\% \footnote{$\frac{constant MSE}{adagrad MSE} * 100 = \frac{0.018}{0.015} * 100 = 12\%$} decrease in MSE compared to the constant scheduler. It is clear from the results thus far that Adagrad is the best scheduler for approximating the Franke function when using linear regression with gradient descent. We believe that the reason Adagrad wins out is that these result are based on training for 100 epochs. The downfall of Adagrad in the literature seems to be that the aggressive decaying of the learning rate hinders a quick convergence deeper into training \cite{datasci}. We are thus cautionary to claim that Adagrad will do the best job over a much larger amount of epochs when compared to adaptive schedulers that claim to improve this aspect such as Adam.
 
 % To test this, we compared Adagrad with Adam over 5000 epochs, cross validated for 5 folds, as can be seen in Fig.~\ref{adam_v_adagrad}. Both schedulers perform almost equally, with Adagrad reaching a slightly lower MSE of 0.011 for the test data when compared to Adam's 0.012. It could be argued that 5000 epochs is not enough for the improvements of Adam to be noticeable, as the MSE could still be pushed much lower. However, for these computationally expensive runs it is clear that Adagrad is the scheduler of choice, especially considering our previous conclusion that Adagrad used less time to train. It should be noted that scikit learn's implementation outperforms both our implementation of Adagrad and Adam, with an MSE of 0.004. This could be due to a more favorable wight initialization in scikits model, along with additional optimizations implemented in their library. That we don't beat the analytical solution is no surprise, as we have limited ourself to a polynomial approximation of the Franke Function with 56 features. Our MSE might approach the analytical MSE, but this might take an unreasonable amount of epochs considering the computational runtime. Still, we have obtained an MSE lower than the Newton method's result of 0.020, even though it was at a much greater computation. Next, we investigate the use of linear regression in a neural network with hidden nodes, such that we can free ourselves of the limitations of the polynomial approximation.
 
-% \begin{figure}[H]
-% \centerline{\includegraphics[width=5in]{figure/5000e_adam_v_adagrad.png}}
-% \caption{MSE test error over 5000 epochs for Adam and Adagrad schedulers}
-% \label{adam_v_adagrad}
-% \end{figure}
 
 \subsection{Neural Network for regression}
 
@@ -408,6 +405,12 @@ Figure & Shell command \\
 \centerline{\includegraphics[width=5in]{figure/SGD_batch_size_100e.png}}
 \caption{MSE over epochs for different batch sizes, for all different schedulers}
 \label{sgdbatch}
+\end{figure}
+
+\begin{figure}[H]
+\centerline{\includegraphics[width=5in]{figure/5000e_adam_v_adagrad.png}}
+\caption{MSE test error over 5000 epochs for Adam and Adagrad schedulers}
+\label{adam_v_adagrad}
 \end{figure}
 
 \end{document}
