@@ -115,9 +115,12 @@ We developed a Feed Forward Neural Network (FFNN) and applied it to both regress
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
-Many problems in machine learning cannot be solved analytically. Thus, we turn to numerical methods, but this change implicitly comes with computationally heavy caveats as they require large matrix calculations over many iterations. Finding a solution becomes a waiting game, finding the many solutions of varying hyperparameters in order to make an informed model selection becomes virtually impossible. The problem of model selection is at the heart machine learning, as optimal model selection allows us to make predictions with the greatest possible accuracy. Finding ways around the liminations of numerical methods becomes a must for proper usage of these powerful machine learning tools.
 
-In this paper we will investigate implantations of the numerical optimization technique of gradient descent by researching stochastic gradient descent, along with constant, adaptive and momentum-enhanced schedulers with the aim of decreasing the computational cost of our calculations. We will study different supervised learning models which utilize gradient descent such as linear regression, logistic regression and a feed forward neural network (FFNN) in order to gain an understanding of model selection across regression, binary- and multi-class classification problems.
+Many problems in machine learning cannot be solved analytically. Thus, we turn to numerical methods, but this change implicitly comes with computationally heavy caveats as they require large matrix calculations over many iterations. Finding a solution becomes a waiting game, and finding the many solutions of varying hyperparameters in order to make an informed model selection becomes virtually impossible. The problem of model selection is at the heart machine learning, as optimal model selection allows us to make predictions with the greatest possible accuracy. Finding ways around the liminations of numerical methods becomes a must for proper usage of these powerful machine learning tools.
+
+In this paper we will investigate the numerical optimization technique of gradient descent and various techniques used to boost its performance. Thus, we will compare full batch versus stochastic gradient descent, different schedulers such as constant, adaptive and momentum-encanced schedulers, with the aim of decreasing the computational cost of our calculations. We will then study different supervised learning models which utilize gradient descent such as linear regression, logistic regression and a feed forward neural network (FFNN) in order to gain an understanding of model selection across regression, binary- and multi-class classification problems. Furthermore, we will expand our research to include comparisons between different activation functions and model architectures, gaining insights of the different trade-offs each decision entails. Through this, we will attempt to answer the following questions: How complex does our model have to be to achieve satisfying results? Which tradeoffs have to be made to reach these results while balancing the computational effort required to achieve them?
+
+% In this paper we are going to study supervised learning algorithms used for classification and regression problems, which utilize the numerical optimization technique of gradient descent as a means of finding an optimal solution. We will start by investigating different methods used to boost the performance of our gradient descent, and then proceed by diving deeper into the problem of model selection and the various trade offs which must be made to reach satisfying results while balancing the computational effort required to achieve them.
 
 First, we will give an explanation of the methods and theory used in this paper, followed up by a presentation and critical discussion of our results. Finally, we will provide a conclusion summarizing the core results and lessons.
 
@@ -127,34 +130,33 @@ First, we will give an explanation of the methods and theory used in this paper,
 
 This sections covers the theoretic background which underlies the methods used in this paper.
 
+% \subsubsection{Linear Regression}
+
+% TODO
+
 \subsubsection{Logistic Regression}
 
-As part of the research conducted in this project, we introduce a new type of regression model, known as Logistic regression. This is a powerful, yet simple algorithm used in machine learning for the purpose of approximating a probability associated with the occurrence of a specific event given measured data. The fundamental idea behind logistic regression is based on the exact approach used in Linear Regression, meaning that we wish to describe a relationship between dependent and explanatory variables in terms of a set of estimated parameters. However, in this case we are not using the weighted sum of our basis functions directly, but feeding them into an activation function. This function, often the sigmoid function, maps the reals onto a range $y \in (0,1)$. This in turn allows for the computation of probability related to an event taking place. Rounding of said probability leads to labeling of each input as belonging to one of two classes, meaning that each object fed into the model will be classified as being of class 0 or 1 (in the case of binary classification).
-
-% To begin with however, the probability output by the activation function will be incorrect for majority of inputs, due to the random nature of the initialized parameters. While this may seem to be an issue, the weights can be adjusted to give better classification results through the application of the gradient descent coupled with an adjustable variable called learning rate. As we also shall see, the implementation of an activation function at the output gives a significant advantage over the classic Linear regression in terms of classification power.
- 
+Logistic regression is a powerful, yet simple algorithm used in machine learning for the purpose of approximating a probability associated with the occurrence of a specific event given measured data. The fundamental idea behind logistic regression is based on the exact approach used in linear regression, meaning that we wish to describe a relationship between dependent and explanatory variables in terms of a set of estimated parameters. However, in this case we are not using the weighted sum of our basis functions directly, but feeding them into an activation function. This function, often the sigmoid function, maps the reals onto a range $y \in (0,1)$. This in turn allows for the computation of probability related to an event taking place. Rounding of said probability leads to labeling of each input as belonging to one of two classes, meaning that each object fed into the model will be classified as being of class 0 or 1 (in the case of binary classification). However, this method is not limited to binary classification, as the substitution of the activation function for SoftMax can allow for multiclass classification.
 
 \subsubsection{Gradient Descent}
 
-In our previous project, we have primarily dealt with problems that have an analytical solution. This means that once a model has been decided on (polynomial degree and value for lambda for example), finding the optimal solution is a deterministic process which does not require further tuning. However, for the methods we use in this project - such as Logistic Regression - no analytical solutions exist, thus we will have to turn to numerical techniques to find the 'ideal' solution. Our method of choice in this case is gradient descent, an optimization technique which reduces the residuals by utilizing the idea of moving downhill a convex function until a globally minimal scalar value is reached. The gradient itself is nothing more than a first order derivative of a given function, which points in the direction of the greatest change. 
+In linear regression problems, the optimal solution can be found analytically. This means that once a model has been decided on (polynomial degree and value for lambda for example), finding the optimal solution is a deterministic process which does not require further tuning. However, for the methods we use in this project - such as Logistic Regression - no analytical solutions exist, thus we will have to turn to numerical techniques to find the 'ideal' solution. Our method of choice in this case is gradient descent, an optimization technique which reduces the residuals by utilizing the idea of moving downhill a function representing our cost until a local optimum is reached. The gradient itself is nothing more than a first order derivative of a given function, which points in the direction of the greatest change. 
 
-The application of gradient descent to our problems as means of finding the ideal solution implies that the parameters be initialized randomly. The most common approach is to set each parameter equal to a normal distribution with mean zero and variance equal to one, and iteratively update the parameters by calculating the gradient at each given point in the residual space \cite[preface p. x]{dds}. For any one-layer model, the gradient function used to tune the weights will take the form of the product of the partial derivative of the cost function with respect to the activation function, and the partial derivative of the activation function with respect to the weights: 
+The application of gradient descent to our problems as a means of finding the ideal solution implies that the parameters used in our prediction be initialized randomly. The most common approach is to set the parameters according to a normal distribution with mean zero and variance equal to one, and iteratively update the parameters by calculating the gradient at each given point in the residual space \cite[preface p. x]{dds}. For any one-layer model, the gradient function used to tune the weights will take the form of the product of the partial derivative of the cost function with respect to the activation function, and the partial derivative of the activation function with respect to the weights: 
 
 \begin{equation}
-\frac{\partial{\cal C}}{\partial w_{jk}}  = \frac{\partial C}{\partial a_{j}}\frac{\partial a_j}{\partial w_{jk}}
+\frac{\partial{\cal C}}{\partial w_{jk}}  = \frac{\partial C}{\partial a_{j}}\frac{\partial a_j}{\partial w_{jk}}.
 \end{equation}
 
-Although gradient decent is an excellent algorithm for finding optimal solutions, it can also become quite computationally expensive for problems where large numbers of datapoints are available. However, this issue may be effectively countered by applying a variant of standard gradient approach known as Stochastic Gradient Decent or simply SGD. The SGD is based on randomly choosing one or a small number of instances from the dataset to update the parameters, hence the name stochastic. While it may seem like a poor idea to approximate the gradient instead of using the true gradient, the SGD has proven to give a large computational advantage and will often allow the model to converge into a global minima faster than GD. Furthermore, the stochastic nature of this method can allow SGD to avoid getting stuck in local minima \cite[46]{sr}.
+Although gradient descent is an excellent algorithm for finding optimal solutions, it can also become quite computationally expensive for problems where large numbers of datapoints are available. However, this issue may be effectively countered by applying a variant of the standard gradient descent known as Stochastic Gradient Decent or simply SGD. The SGD is based on randomly choosing one or a small number of instances from the dataset to update the parameters, hence the name stochastic. While it may seem like a poor idea to approximate the gradient instead of using the true gradient, SGD has proven to give a large computational advantage over full batch gradient descent. Furthermore, the stochastic nature of this method can allow SGD to avoid getting stuck in local minima \cite[46]{sr}.
 
 \subsubsection{Schedulers}
 
-Whilst SGD itself gives a significant boost to the learning pace of machine learning models, it is possible to improve the algorithm further by performing what is known as scheduling. These methods work by adaptively adjusting the learning rate, thus allowing us to avoid local minima and converge even faster. One of the simpler methods involves adding a fraction of the previous change to the current value used to update the weights, thus keeping a sort of memory of the previous iterations. This is called momentum, due to the physical analogue of a moving particle having momentum. With this addition, we will keep moving in parameter space even if our current gradient is small, because we have gained momentum in a certain direction based on our previous iterations. Furthermore, we will keep moving in the direction where most gradients point, even if outliers point in other directions. Other, more complex methods, also keep track of approximations of the second moment of the cost function. These methods aim to adaptively change the learning rate for different directions in parameter space, so that small steps are taking in steep, narrow directions and large steps taken in shallow, flat directions \cite{mortensched}. Examples of schedulers using the second moment are RMS-prop, Adam and Adagrad.
-
-% Adaptive optimization methods don't always have good generalization. Recent studies have shown that adaptive methods such as ADAM, RMSPorp, and AdaGrad tend to have poor generalization compared to SGD or SGD with momentum, particularly in the high-dimensional limit (i.e. the number of parameters exceeds the number of data points). Although it is not clear at this stage why these methods perform so well in training deep neural networks, simpler procedures like properly-tuned SGD may work as well or better in these applications.
+Whilst SGD itself gives a significant boost to the learning pace of machine learning models, it is possible to improve the algorithm further by performing what is known as scheduling. These methods work by adaptively adjusting the learning rate, thus allowing us to avoid local minima and converge even faster. One of the simpler methods involves adding a fraction of the previous change to the current value used to update the weights, hence keeping a sort of memory of the previous iterations. This is called momentum, due to the physical analogue of a moving particle having momentum. With this addition, we will keep moving in parameter space even if our current gradient is small, because we have gained momentum in a certain direction based on our previous iterations. Furthermore, we will keep moving in the direction where most gradients point, even if outliers point in other directions. Other, more complex methods, also keep track of approximations of the second moment of the cost function. These methods aim to adaptively change the learning rate for different directions in parameter space, so that small steps are taking in steep, narrow directions and large steps taken in shallow, flat directions \cite{mortensched}. Examples of schedulers using the second moment are RMS-prop, Adam and Adagrad. The mathematical formulas for these scheduling algorithms can be found in Hjorth-Jensens lecture \cite{mortensched}.
 
 \subsubsection{Feedforward Neural Networks}
 
-For some problems, like approximating a simple function like the Franke Function in project 1, it is sufficient to choose a set of basis functions and find their optimal linear combination. Given that our problem can be reasonably approximated by this basis, we can achieve good results. However, by limiting ourselves to linear functions, we are possibly limiting our model, as our dataset may well be better approximated by a different basis, our perhaps not even by a linear combination of functions at all. Because of this, linear regression is not able to understand the interaction between two arbitrary input variables \cite[165]{gbc}. A better approach would be to simply feed our model our features directly, and hope that it may somehow learn the relationship organically.
+For some problems, it is sufficient to choose a set of basis functions and find their optimal linear combination. Given that our problem can be reasonably approximated by this basis, we can achieve good results. However, by limiting ourselves to linear functions, we are possibly limiting our model, as our dataset may well be better approximated by a different basis, or perhaps not even by a linear combination of functions at all. Because of this, linear regression is not able to understand the interaction between two arbitrary input variables \cite[165]{gbc}. A better approach would be to simply feed our model our features directly, and hope that it may somehow learn the relationship organically.
 
 To learn any arbitrary relationship between our features may at first seem like an intractable problem, but we are actually able to achieve this with relatively small changes to our linear regression methods. Instead of having our prediction vector be a linear combination of our input vector, we use the linear combinations of the inputs to create an intermediate vector, and apply an activation function to this vector. The resulting values from this function are either passed to the output as a linear combination again, or sent to another intermediate vector. By having the activation function be a nonlinear function, such as the sigmoid or RELU function, we are able to approximate any continous function to arbitrary accuracy \cite[230]{cmb}. By introducing these intermediate vectors, we have created a layered structure, where information is fed forward from layer to layer. Because of this, we call this model a Multilayer Perceptron or a Feedforward Neural Network.
 
@@ -164,16 +166,6 @@ Mathematically, each node on a layer is a linear combination of all the nodes of
 a_i^l = f^l(z_i^l) = f^l\left(\sum_{j=1}^{N_{l-1}} w_{ij}^l a_j^{l-1} + b_i^l\right).
 \end{equation}
 
-% For an FFNN with an arbitrary amount of hidden layers, the output layer is thus defined as
-%
-% \begin{equation}
-% a^{l+1}_i = f^{l+1}\left[\!\sum_{j=1}^{N_l} w_{ij}^3 f^l\left(\sum_{k=1}^{N_{l-1}}w_{jk}^{l-1}\left(\dots f^1\left(\sum_{n=1}^{N_0} w_{mn}^1 x_n+ b_m^1\right)\dots\right)+b_k^2\right)+b_1^3\right].
-% \end{equation}
-%
-% \begin{equation}
-% 	a^{L}_i = f^{L}\left[\!\sum_{j=1}^{N_{L-1}} w_{ij}^3 f^{L-1}\left(\sum_{k=1}^{N_{L-2}}w_{jk}^{L-2}\left(\dots f^1\left(\sum_{n=1}^{N_0} w_{mn}^1 x_n+ b_m^1\right)\dots\right)+b_k^2\right)+b_1^3\right].
-% \end{equation}
-
 \subsubsection{Activation functions}
 
 As we have seen, the behaviour of our neural network is defined by the amount of hidden layers and the amount of nodes in each one (our architecture), but also by our choice of activation functions. For the output layer, the activation is usually easily decided based on the problem (identity for regression problems, sigmoid for binary classification, SoftMax for multiclass). For the hidden layers, the choice of activation function is often decided through a process of trial and error, as this is an area without definitive guiding theoretical principles \cite[188]{gbc}. Below are the definitions of some of the most common activation functions.
@@ -181,7 +173,7 @@ As we have seen, the behaviour of our neural network is defined by the amount of
 The sigmoid is defined as follows:
 
 \begin{equation}
-y = \frac{1}{1 + exp(x)}
+y = \frac{1}{1 + exp(x)}.
 \end{equation}
 
 As we can see from the equation, this function has a range of $y \in (0,1)$, and for high values of x, the rate of change is very small. This saturation is a problem for gradient descent methods, and especially for backpropagation, as the repeated multiplication of very small gradients can lead to weights barely being updated and training slowing down (or even stopping completely). Because of this saturation, the sigmoid is generally not used as an activation function for the hidden layers \cite[191]{gbc}.
@@ -218,7 +210,7 @@ Using these delta terms, we can calculate the gradients for the weights and bias
 
 \begin{gather}
 w_{jk}^l\leftarrow  = w_{jk}^l- \eta \delta_j^la_k^{l-1} \\
-b_j^l \leftarrow b_j^l-\eta \frac{\partial {\cal C}}{\partial b_j^l}=b_j^l-\eta \delta_j^l
+b_j^l \leftarrow b_j^l-\eta \frac{\partial {\cal C}}{\partial b_j^l}=b_j^l-\eta \delta_j^l.
 \end{gather}
 
 With the theory explained, we can go on to describe how we have applied it to our problem.
@@ -247,7 +239,16 @@ Below is a short description of each dataset used in this report, along with a t
 
 \subsubsection{Franke Function}
 
-The Franke Function is a simple weighted sum of polynomials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems. For our linear regression problems, our training data will be based on a 9th degree polynomial approximation to the Franke Function, with 56 features. For the feed forward neural network, we will use 2 of the features (x, y) of the Franke Function.
+The Franke Function is a simple weighted sum of exponentials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems. For our linear regression problems, our training data will be based on a 9th degree polynomial approximation to the Franke Function, with 56 features. For the feed forward neural network, we will use the x and y values directly. The Franke Function is defined as follows.
+
+
+\begin{multline}
+f(x,y) = \frac{3}{4}e^{\left(-\frac{(9x-2)^2}{4}-\frac{(9y-2)^2}{4}\right)} +  \frac{3}{4}e^{\left(-\frac{(9x+1)^2}{49}-\frac{(9y+1)}{10}\right)} +
+\frac{1}{2}e^{\left(-\frac{(9x-7)^2}{4}-\frac{(9y-3)^2}{4}\right)} - 
+\frac{1}{5}e^{\left(-(9x-4)^2-(9y-7)^2\right)}.
+\end{multline}
+
+In practice, we add a normally distributed noise $N(0,0.05)$ to this function.
 
 \subsubsection{Wisconsin Breast Cancer Dataset}
 
@@ -265,8 +266,8 @@ This dataset contains a preprocessed set of black and white images of hand drawn
 \hline
 Dataset & Number of instances & Features & Type \\
 \hline
-Franke Function & synthetic & 56 & regression \\
-Franke Function & synthetic & 2 & regression \\
+Franke Function (raw data) & 400 & 2 & regression \\
+Franke Function (polynomial features) & 400 & 56 & regression \\
 Wisconsin Breast Cancer & 569 & 30 & binary classification \\
 MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
 \hline
@@ -278,31 +279,33 @@ MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
 
 \subsection{Different schedulers used with linear regression}
 
-In order to study the attributes of the different scheduler methods we performed numerical linear regression using gradient descent on the Franke Function with 55 features. We started off by comparing Newtons method for gradient descent to a constant learning rate using full batch gradient descent.
+In order to study the attributes of the different scheduler methods we performed numerical linear regression using gradient descent on the Franke Function with 56 features. To gain an intuition, we compare momentum and 
 
-\begin{figure}[h]
-\centerline{\includegraphics[width=5in]{figure/constant_v_hessian.png}}
-\caption{Constant scheduler with gridsearched hyperparameters vs hessian (Newton's method) MSE for test data plotted for 200 epochs}
-\label{constant_v_hessian}
-\end{figure}
+% \begin{figure}[h]
+% \centerline{\includegraphics[width=5in]{figure/constant_v_hessian.png}}
+% \caption{Constant scheduler with gridsearched hyperparameters vs hessian (Newton's method) MSE for test data plotted for 200 epochs}
+% \label{constant_v_hessian}
+% \end{figure}
 
-From observing Fig.~\ref{constant_v_hessian} we see that Newton's method using inversion of the  Hessian matrix greatly outperforms the constant scheduler by reaching an MSE of 0.020 for the testing data within the first epoch. Newton's method quickly converges, but does so with some error SULI P121, meaning it will not improve past this result. The analytical solution provides an MSE of approximately 0.003 REBER ET HANSSEN, a whole order of magnitude lower than the MSE Newton's method achieves. By comparison, the constant scheduler given 200 epochs reaches an MSE of 0.198 for the testing data. Given this result, it would seem indefensible to claim that Newtons method requires improvements, especially considering the time it took the Newton method 0.1512 seconds to compute 200 epochs, again beating the result from the constant scheduler which took 0.4991 seconds \footnote{this result should be taken with a grain of salt, given that the constant scheduler is run as a part of a larger architecture, whilst the Hessian calculation is done in a seperate script. Still, this provides an intuition that Newton's method does not take much time to compute this specific problem}. This result is due to the Hessian matrix only being a mere 56x56 matrix for this problem, such that the Hessian matrix inversion will not be computationally complex. However, if we were to increase the complexity of the problem, Newtons method would rapidly increase in computational complexity as it is a large matrix inversion with many floating point operations. For problems of such a small scale, when our features are based on a polynomial approximation of the Franke Function, it can be important to remember that we don't necessarily have to turn to these fancier solutions as the simple Newton method will do the job perfectly very well for little computational cost. Keeping this lesson in mind, we wish to further investigate the various scheduler methods in order to gain a better understanding of how well they perform, which will become useful for larger problems.
+% From observing Fig.~\ref{constant_v_hessian} we see that Newton's method using inversion of the  Hessian matrix greatly outperforms the constant scheduler by reaching an MSE of 0.020 for the testing data within the first epoch. Newton's method quickly converges, but does so with some error \cite[121]{num}, meaning it will not improve past this result. The analytical solution provides an MSE of approximately 0.004 \cite{ericjona}, a whole order of magnitude lower than the MSE Newton's method achieves. By comparison, the constant scheduler given 200 epochs reaches an MSE of 0.198 for the testing data. Given this result, it would seem indefensible to claim that Newtons method requires improvements, especially considering the time it took. Newton's method took 0.1512 seconds to compute 200 epochs, again beating the result from the constant scheduler which took 0.4991 seconds \footnote{this result should be taken with a grain of salt, given that the constant scheduler is run as a part of a larger architecture, whilst the Hessian calculation is done in a seperate script. Still, this provides an intuition that Newton's method does not take much time to compute this specific problem}. This result is due to the Hessian matrix only being a mere 56x56 matrix for this problem, such that the Hessian matrix inversion will not be computationally complex. However, if we were to increase the complexity of the problem, Newtons method would rapidly increase in computational complexity as it is a large matrix inversion with many floating point operations. For problems of such a small scale, when our features are based on a polynomial approximation of the Franke Function, it can be important to remember that we don't necessarily have to turn to these fancier solutions as the simple Newton method will do the job perfectly very well for little computational cost. Keeping this lesson in mind, we wish to further investigate the various scheduler methods in order to gain a better understanding of how well they perform, which will become useful for larger problems.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/constant_v_momentum.png}}
-\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full gradient descent}
+\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent}
 \label{constant_v_momentum}
 \end{figure}
 
-From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum does not improve upon the solutions found by the constant scheduler when using full gradient descent, reaching once again an MSE of 0.21 for the test data. This implies that when both schedulers are gridsearched for optimal hyperparameters, the optimal value for the momentum hyperparameter is 0. This result makes sense, as the momentum hyperparameter is used to reduce noise from derivatives calculated from smaller batch sizes, so-called mini batches. When utilizing a full gradient descent, where the batch size equals the size of the training data, momentum will not improve our results.
+From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler when using full batch gradient descent, reaching an MSE of NUMBER for the test data. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of 0.198.
+
+% This implies that when both schedulers are gridsearched for optimal hyperparameters, the optimal value for the momentum hyperparameter is 0. This result makes sense, as the momentum hyperparameter is used to reduce noise from derivatives calculated from smaller batch sizes, so-called mini batches. When utilizing a full batch gradient descent, where the batch size equals the size of the training data, momentum will not improve our results.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/SGD_batch_momentum_constant.png}}
-\caption{Constant vs momentum test MSE for different batch sizes, plotted for 200 epochs using full gradient descent. A batch size of 320 is full GD, whilst a batch size of 1 is fully stochastic GD.}
+\caption{Constant vs momentum test MSE for different batch sizes, plotted for 200 epochs using full batch gradient descent. A batch size of 320 is full GD, whilst a batch size of 1 is fully stochastic GD.}
 \label{batch_constant_v_momentum}
 \end{figure}
 
-By introducing mini-batch gradient descent, we can observe that stochastic gradient descent with momentum starts outperforming the constant scheduler consistantly, requiring fewer steps to reach a low MSE. Mini-batch gradient descent clearly yields a lower MSE for the test data than full gradient descent for the same amount of epochs. The best result for both constant and momentum were reached for a batch size equal to 2, close to a fully stochastic gradient descent. The test data MSE reached 0.044, an impressive improvement over constant's previous result of 0.198 MSE with full gradient descent. Because we first gridsearched the optimal values of eta and lambda first with a predefined base batch size, we must acknowledge that Fig.~\ref{batch_constant_v_momentum} will have some bias towards the batch size used when found the optimal hyperparameters. However, given that we have gridsearched with different base batch sizes accross our testing, we have found the results to be similar accross different base batch sizes, and that this bias which we induced to save computational time was insignificant. A full comparison of MSE over batch sizes for all the different schedulers can be viewed in APPENDIX in the appendix, but all schedulers yield the lowest MSE for stochastic gradient descent.
+By introducing mini-batch gradient descent, we can observe that stochastic gradient descent with momentum keeps outperforming the constant scheduler. Mini-batch gradient descent clearly yields a lower MSE for the test data than full batch gradient descent for the same amount of epochs. The best result for both constant and momentum were reached for a batch size equal to 2, close to a fully stochastic gradient descent. The test data MSE reached 0.044, an impressive improvement over constant's previous result of 0.198 MSE with full batch gradient descent. Because we first gridsearched the optimal values of eta and lambda first with a predefined base batch size, we must acknowledge that Fig.~\ref{batch_constant_v_momentum} will have some bias towards the batch size used when found the optimal hyperparameters. However, given that we have gridsearched with different base batch sizes accross our testing, we have found the results to be similar accross different base batch sizes, and that this bias which we induced to save computational time was insignificant. A full comparison of MSE over batch sizes for all the different schedulers can be viewed in APPENDIX in the appendix, but all schedulers yield the lowest MSE for stochastic gradient descent.
 
 FIG ALL
 TIME TABLE FOR ALL SCHEDULERS
@@ -416,6 +419,11 @@ Figure & Shell command \\
 \ref{cancerarchcomp} & \texttt{python3 bycomplexitycancer.py}\\
 \ref{cancerarchcompsigmoid} & \texttt{python3 bycomplexitycancer.py}\\
 \ref{msebymodelfranke} & \texttt{python3 bycomplexityfranke.py}\\
+\ref{constant_v_momentum} & \texttt{python3 constant\_v\_momentum.py}\\
+\ref{batch_constant_v_momentum} & \texttt{python3 constant\_v\_momentum.py}\\
+\ref{heatmap} & \texttt{python3 task\_a.py}\\
+\ref{adam_v_adagrad} & \texttt{python3 unknown.py}\\
+\ref{predterrain} & \texttt{python3 task\_b.py}\\
 \hline
 \end{tabular}
 \end{center}
