@@ -11,6 +11,12 @@ Brunton, S.~L. and Kutz, J.~N. (2018).
   Systems, and Control}.
 \newblock Brunton \& Kutz, Seattle, WA.
 
+\bibitem[Chandra, 2019]{datasci}
+Chandra, A.~L. (2019).
+\newblock Learning parameters part 5.
+\newblock URL
+  \verb+https://towardsdatascience.com/learning-parameters-part-5-65a2f3583f7d+.
+
 \bibitem[Goodfellow et~al., 2016]{gbc}
 Goodfellow, I., Bengio, Y., and Courville, A. (2016).
 \newblock {\em Deep Learning}.
@@ -33,11 +39,5 @@ Hjorth-Jensen, M. (2022b).
 Raschka, S. and Mirjalili, V. (2019).
 \newblock {\em Python Machine Learning}.
 \newblock Packt, Birmingham.
-
-\bibitem[Reber and Hanssen, 2022]{ericjona}
-Reber, E. and Hanssen, J. (2022).
-\newblock Linear regression for approximating real and synthetic data.
-\newblock URL
-  \verb+https://raw.githubusercontent.com/jonatan-hanssen/linear_regression_report/main/doc/paper.pdf+.
 
 \end{thebibliography}

@@ -13,50 +13,6 @@
 \usepackage{xcolor}
 \usepackage{xurl}
 
-\definecolor{codegreen}{rgb}{0,0.6,0}
-\definecolor{codegray}{rgb}{0.5,0.5,0.5}
-\definecolor{codepurple}{rgb}{0.58,0,0.82}
-\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
-
-% \expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks%  save the current one
-%   \do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j%
-%   \do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t%
-%   \do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D%
-%   \do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N%
-%   \do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X%
-%   \do\Y\do\Z}
-
-\lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},
-    commentstyle=\color{codegreen},
-    keywordstyle=\color{magenta},
-    numberstyle=\tiny\color{codegray},
-    stringstyle=\color{codepurple},
-    basicstyle=\ttfamily\footnotesize,
-    breakatwhitespace=false,
-    breaklines=true,
-    captionpos=b,
-    keepspaces=true,
-    numbers=left,
-    numbersep=5pt,
-    showspaces=false,
-    showstringspaces=false,
-    showtabs=false,
-    tabsize=2
-}
-
-\lstset{breaklines=true, style=mystyle}
-%% The class has several options
-%  onecolumn/twocolumn - format for one or two columns per page
-%  10pt/11pt/12pt - use 10, 11, or 12 point font
-%  oneside/twoside - format for oneside/twosided printing
-%  final/draft - format for final/draft copy
-%  cleanfoot - take out copyright info in footer leave page number
-%  cleanhead - take out the conference banner on the title page
-%  titlepage/notitlepage - put in titlepage or leave out titlepage
-%  
-%% The default is oneside, onecolumn, 10pt, final
-
 \title{Neural networks for solving regression and classification problems}
 
 %%% first author
@@ -103,7 +59,7 @@
 
 \section{Abstract}
 
-We developed a Feed Forward Neural Network (FFNN) and applied it to both regression and classification problems. Furthermore, we compared our results to those attained by linear and logistic regression. To optimize our network, we explored the use of different schedulers in our gradient descent method, and compared their performance against eachother. Amongst our schedulers, we found that Adam and Adagrad performed the best. Overall, we found that our FFNN performed well in both classification tasks we tested, attaining a test accuracy of $98.76$ on the Wisconsin Breast Cancer Dataset and a test accuracy of $99.07$ on the MNIST 8x8 dataset. However, we also found that simple logistic regression performed similarly, with a much lower computational cost. For regression applied to the Franke Function, we found that our neural net performed worse than a simple polynomial fit using linear regression, attaining a MSE of $0.004781$, 24\% higher than our best polynomial fit MSE of $0.0038302$.
+We developed a Feed Forward Neural Network (FFNN) and applied it to both regression and classification problems. Furthermore, we compared our results to those attained by linear and logistic regression. To optimize our network, we explored the use of different schedulers in our gradient descent method, and compared their performance against eachother. Amongst our schedulers, we found that Adam and Adagrad performed best achieving a METRIC THAT IS BETTER. In our applications of our neural network, we found that it performed well in both classification tasks we tested, attaining a test accuracy of $98.59\%$ on the Wisconsin Breast Cancer Dataset and a test accuracy of $99.07\%$ on the MNIST 8x8 dataset. However, we also found that simple logistic regression performed similarly in terms of accuracy, achieving a test accuracy of $98.76\%$ and $99.54\%$ on the cancer and MNIST dataset, respectively. Moreover, these results came at a much lower computational cost. For regression applied to the Franke Function, we found that our neural net performed worse than a simple polynomial fit using linear regression, attaining a MSE of $0.004781$, 24\% higher than our best polynomial fit MSE of $0.0038302$. We conclude that allthough neural networks are powerful tools which can be used in many contexts, there are many cases in which simpler and less computationally intensive methods can be used to gain similar or even superior performance.
 
 
 % \begin{nomenclature}
@@ -217,7 +173,9 @@ With the theory explained, we can go on to describe how we have applied it to ou
 
 \subsection{Implementation}
 
-We implement the FFNN as a class, using NumPy's many matrix functions. In the instantiation of the class, one is able to specify an arbitrary architecture, and choose activation functions for the output and the hidden layer. The cost function can also be specified, and this, along with the choice of output function, allows the network to be used for regression, binary classification and multiclass classification. By specifying no hidden layers in the architecture, the model can be used for linear and logistic regression as well. Because of this, no explicit implementation of linear and logistic regression has been made, which means that almost all relevant code is contained in \texttt{src/FFNN.py} and \texttt{src/Schedulers.py}. When instatiating the model, we set the weights to normal distributions with mean zero and variance one. We set the bias to $0.1$ as recommended in Goodfellow et Al. \cite[189]{gbc}.
+Our implementation can be found at \texttt{github.com/EricEReber/FFNN\_optimization.git}.
+
+We implement the FFNN as a class, using NumPy's many matrix functions. In the instantiation of the class, one is able to specify an arbitrary architecture, and choose activation functions for the output and the hidden layer. The cost function can also be specified, and this, along with the choice of output function, allows the network to be used for regression, binary classification and multiclass classification. By specifying no hidden layers in the architecture, the model can be used for linear and logistic regression as well. Because of this, no explicit implementation of linear and logistic regression has been made, which means that almost all relevant code is contained in \texttt{src/FFNN.py} and \texttt{src/Schedulers.py}. This unity in implementation ensures that we can directly compare metrics obtained from the different models we are comparing, e.g neural network versus logistic regression. When instatiating the model, we set the weights to normal distributions with mean zero and variance one. We set the bias to $0.1$ as recommended in Goodfellow et Al. \cite[189]{gbc}.
 
 The feedforward part is implemented as a simple matrix vector multiplication, followed by an elementwise application of the chosen activation function. For processing batches of inputs, the same multiplication code is used, but this time the input is the design matrix instead of a single row. Each hidden layer will now contain matrices themselves, consisting of a number of rows equivalent to the batch size and a number of columns equal to the number of nodes in this layer.
 
@@ -239,7 +197,7 @@ Below is a short description of each dataset used in this report, along with a t
 
 \subsubsection{Franke Function}
 
-The Franke Function is a simple weighted sum of exponentials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems. For our linear regression problems, our training data will be based on a 9th degree polynomial approximation to the Franke Function, with 56 features. For the feed forward neural network, we will use the x and y values directly. The Franke Function is defined as follows.
+The Franke Function is a simple weighted sum of exponentials, taking two inputs and returning a real value. It is commonly used to test machine learning algorithms for regression problems. For our linear regression problems, our training data will be based on a 9th degree polynomial fit of the Franke Function, with 56 features. For the feed forward neural network, we will use the x and y values directly. The Franke Function is defined as follows.
 
 
 \begin{multline}
@@ -279,7 +237,7 @@ MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
 
 \subsection{Different schedulers used with linear regression}
 
-In order to study the attributes of the different scheduler methods we performed numerical linear regression using gradient descent on the Franke Function with 56 features. To gain an intuition, we compare momentum and 
+In order to study the attributes of the different scheduler methods we performed numerical linear regression using gradient descent on the Franke Function with 56 polynomial features. To gain an intuition, we compare momentum and 
 
 % \begin{figure}[h]
 % \centerline{\includegraphics[width=5in]{figure/constant_v_hessian.png}}
@@ -291,26 +249,48 @@ In order to study the attributes of the different scheduler methods we performed
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/constant_v_momentum.png}}
-\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent}
+\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent. The final MSE for Constant was 0.198, ten percent higher than Momentum's 0.180.}
 \label{constant_v_momentum}
 \end{figure}
 
-From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler when using full batch gradient descent, reaching an MSE of NUMBER for the test data. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of 0.198.
+From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler when using full batch gradient descent, reaching an MSE of 0.1799 for the test data. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of 0.198.
 
 % This implies that when both schedulers are gridsearched for optimal hyperparameters, the optimal value for the momentum hyperparameter is 0. This result makes sense, as the momentum hyperparameter is used to reduce noise from derivatives calculated from smaller batch sizes, so-called mini batches. When utilizing a full batch gradient descent, where the batch size equals the size of the training data, momentum will not improve our results.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/SGD_batch_momentum_constant.png}}
-\caption{Constant vs momentum test MSE for different batch sizes, plotted for 200 epochs using full batch gradient descent. A batch size of 320 is full GD, whilst a batch size of 1 is fully stochastic GD.}
+\caption{Constant vs momentum test MSE for different batch sizes, plotted for 200 epochs using full batch gradient descent. A batch size of 320 is full batch GD, whilst a batch size of 1 is fully stochastic GD.}
 \label{batch_constant_v_momentum}
 \end{figure}
 
 By introducing mini-batch gradient descent, we can observe that stochastic gradient descent with momentum keeps outperforming the constant scheduler. Mini-batch gradient descent clearly yields a lower MSE for the test data than full batch gradient descent for the same amount of epochs. The best result for both constant and momentum were reached for a batch size equal to 2, close to a fully stochastic gradient descent. The test data MSE reached 0.044, an impressive improvement over constant's previous result of 0.198 MSE with full batch gradient descent. Because we first gridsearched the optimal values of eta and lambda first with a predefined base batch size, we must acknowledge that Fig.~\ref{batch_constant_v_momentum} will have some bias towards the batch size used when found the optimal hyperparameters. However, given that we have gridsearched with different base batch sizes accross our testing, we have found the results to be similar accross different base batch sizes, and that this bias which we induced to save computational time was insignificant. A full comparison of MSE over batch sizes for all the different schedulers can be viewed in APPENDIX in the appendix, but all schedulers yield the lowest MSE for stochastic gradient descent.
 
-FIG ALL
-TIME TABLE FOR ALL SCHEDULERS
+\begin{figure}[h]
+\centerline{\includegraphics[width=5in]{figure/200e_schedulers.png}}
+\caption{Test MSE over epochs for all schedulers}
+\label{figall}
+\end{figure}
 
-Furthermore, with the introduction of various adaptive scheduler methods such as RMS prop, adagrad, adagrad with momentum and adam we can observe from FIGURE ALL that we can reach even greater results in fewer epochs. We can also observe that the different schedulers all reach an MSE of 0.200 within a couple of epochs, but in order to get a better understanding of the computational cost we have also compared the time it took to fit the data to an MSE of 0.200 of the test data. Looking at TIME TABLE FOR ALL SCHEDULERS, Adagrad took the least time, beating out our baseline constant scheduler by 0,222106 seconds. Based on FIG ALL, Adam seems to reach an MSE of 0.2 the fastest when strictly looking at the number of epochs required, however, whilst Adagrad requires more epochs the computations are computed faster in our implementation. Surprisingly, RMS prop performed more poorly than expected compared to other adaptive schedulers.
+Furthermore, with the introduction of various adaptive scheduler methods such as RMS prop, adagrad, adagrad with momentum and adam we can observe from Fig.~\ref{figall} that we can reach even greater results in fewer epochs. We can also observe that the different schedulers all reach an MSE of 0.200 within a couple of epochs, but in order to get a better understanding of the computational cost we have also compared the time it took to fit the data to an MSE of 0.200 of the test data. Looking at Table.~\ref{timetable}, Adagrad took the least time, beating out our baseline constant scheduler by 0,222106 seconds. Based on Fig.~\ref{figall}, Adam seems to reach an MSE of 0.2 the fastest when strictly looking at the number of epochs required, however, whilst Adagrad requires more epochs the computations are computed faster in our implementation. Surprisingly, RMS prop performed more poorly than expected compared to other adaptive schedulers.
+
+\begin{table}[h]
+\caption{Table over time take for each scheduler}
+\begin{center}
+\label{timetable}
+\begin{tabular}{| c | l |}
+\hline
+Scheduler & Time to reach 0.2 test MSE \\
+\hline
+Constant & 0.601 \\
+Momentum & 0.513 \\
+RMS\_prop & 0.330 \\
+AdaGrad & 0.013 \\
+AdaGrad with Momentum & 0.014 \\
+Adam & 0.041 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/100e_gridsearch.png}}
@@ -318,9 +298,9 @@ Furthermore, with the introduction of various adaptive scheduler methods such as
 \label{heatmap}
 \end{figure}
 
-An interesting insight from Fig.~\ref{heatmap} is that all the schedulers prefer high learning rates and regularization. As this plot was generated for 100 epochs due to the computational complexity of gridsearching the six schedulers, the bias towards higher learning rates is certainly due to the high learning rates being able to reach a low MSE in the short training time. With the lambda = 0 column representing the ordinary least squares solutions, these are clearly consistantly outperformed by Ridge regression as the best MSE is achieved with regularization. For this specific plot, momentum does not seem to make out a noticeable difference for the best solutions, as the optimal solution equals their momentumless counterparts. That being said, in FIG ALL it is clear that the added momentum aids in a quicker convergence when compared to the constant scheduler.
+An interesting insight from Fig.~\ref{heatmap} is that all the schedulers prefer high learning rates and regularization. As this plot was generated for 100 epochs due to the computational complexity of gridsearching the six schedulers, the bias towards higher learning rates is certainly due to the high learning rates being able to reach a low MSE in the short training time. With the lambda = 0 column representing the ordinary least squares solutions, these are clearly consistantly outperformed by Ridge regression as the best MSE is achieved with regularization. For this specific plot, momentum does not seem to make out a noticeable difference for the best solutions, as the optimal solution equals their momentumless counterparts. That being said, in Fig.~\ref{figall} it is clear that the added momentum aids in a quicker convergence when compared to the constant scheduler.
 
-Another observation from Fig.~\ref{heatmap} is that the schedulers final error for 100 epochs are more or less the same. As the largest change in MSE occurs in the first 50 epochs as seen in ALL FIGS, perhaps the other schedulers are given enough time to catch up as the best performing schedulers, such as Adagrad, starts slowing down the rate at which the MSE is decreased. However, as can be seen in Fig.~\ref{heatmap}, Adagrad offers a 12\% \footnote{$\frac{constant MSE}{adagrad MSE} * 100 = \frac{0.018}{0.015} * 100 = 12\%$} decrease in MSE compared to the constant scheduler. It is clear from the results thus far that Adagrad is the best scheduler for approximating the Franke function when using linear regression with gradient descent. We believe that the reason Adagrad wins out is that these result are based on training for 100 epochs. The downfall of Adagrad in the literature seems to be that the aggressive decaying of the learning rate hinders a quick convergence deeper into training SOURCE https://towardsdatascience.com/learning-parameters-part-5-65a2f3583f7d. We are thus cautionary to claim that Adagrad will do the best job over a much larger amount of epochs when compared to adaptive schedulers that claim to improve this aspect such as Adam.
+Another observation from Fig.~\ref{heatmap} is that the schedulers final error for 100 epochs are more or less the same. As the largest change in MSE occurs in the first 50 epochs as seen in Fig.~\ref{figall}, perhaps the other schedulers are given enough time to catch up as the best performing schedulers, such as Adagrad, starts slowing down the rate at which the MSE is decreased. However, as can be seen in Fig.~\ref{heatmap}, Adagrad offers a 12\% \footnote{$\frac{constant MSE}{adagrad MSE} * 100 = \frac{0.018}{0.015} * 100 = 12\%$} decrease in MSE compared to the constant scheduler. It is clear from the results thus far that Adagrad is the best scheduler for approximating the Franke function when using linear regression with gradient descent. We believe that the reason Adagrad wins out is that these result are based on training for 100 epochs. The downfall of Adagrad in the literature seems to be that the aggressive decaying of the learning rate hinders a quick convergence deeper into training \cite{datasci}. We are thus cautionary to claim that Adagrad will do the best job over a much larger amount of epochs when compared to adaptive schedulers that claim to improve this aspect such as Adam.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=5in]{figure/5000e_adam_v_adagrad.png}}
@@ -332,7 +312,7 @@ To test this, we compared Adagrad with Adam over 5000 epochs, cross validated fo
 
 \subsection{Neural Network for regression}
 
-Having gained an understanding of how the different schedulers function, and having created the necessary infrastructure to study our models performance based on a number of different factors, we use these methods to optimize our neural network for linear regression. More specifically, we attempt to fit the Franke function. First, we perform a preliminary test on MSE over model complexity. For comparisons sake, we use the same scheduler for each architecture, and fix the regularization parameter at 0. By fixing the regularization parameter at 0, we are of course favouring less complex models, but this a good way to get a general sense of when the model starts to overfit. Using the sigmoid activation function, we can study the MSE as a function of the total hidden node count (Fig.~\ref{msebymodelfranke}). Here we see, somewhat surprisingly, that our train and test MSE are not deviating particularly much from eachother, even with very complex networks. There are many reasons that this may be the case. As we have stated before, once we start using numerical methods, computational effort becomes a large factor in any test one does, and many decisions have to made regarding how much time can be spent on each test. Due to these computational constraints, we have not been able to grid search for the best parameters for each model complexity, nor have we been able to train for more than 200 epochs for each model. These shortcomings will greatly affect how our models perform, as it is unlikely that each model uses the same learning rate and scheduler, or that more complex models use the same amount of epochs to train their weights. Based on this, we can assume that the higher complexity models have not been trained enough, and that this explains why both their train and test MSE are higher than the less complex models. Regardless, it seems that for up to about 200 total nodes, three hidden layers does the best, and as such we chose an architecture of three hidden layers with 66 nodes each (which is where we achieved our lowest MSE).
+Having gained an understanding of how the different schedulers function, and having created the necessary infrastructure to study our models' performance based on a number of different factors, we use these methods to optimize our neural network for linear regression. More specifically, we attempt to fit the Franke function. First, we perform a preliminary test on MSE over model complexity. For comparisons sake, we use the same scheduler for each architecture, and fix the regularization parameter at 0. By fixing the regularization parameter at 0, we are of course favouring less complex models, but this a good way to get a general sense of when the model starts to overfit. Using the sigmoid activation function, we can study the MSE as a function of the total hidden node count (Fig.~\ref{msebymodelfranke}). Here we see, somewhat surprisingly, that our train and test MSE are not deviating particularly much from eachother, even with very complex networks. There are many reasons that this may be the case. As we have stated before, once we start using numerical methods, computational effort becomes a large factor in any test one does, and many decisions have to made regarding how much time can be spent on each test. Due to these computational constraints, we have not been able to grid search for the best parameters for each model complexity, nor have we been able to train for more than 200 epochs for each model. These shortcomings will greatly affect how our models perform, as it is unlikely that each model uses the same learning rate and scheduler, or that more complex models use the same amount of epochs to train their weights. Based on this, we can assume that the higher complexity models have not been trained enough, and that this explains why both their train and test MSE are higher than the less complex models. Regardless, it seems that for up to about 200 total nodes, three hidden layers does the best, and as such we chose an architecture of three hidden layers with 66 nodes each (which is where we achieved our lowest MSE).
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=6in]{figure/msebymodelfranke.png}}
@@ -342,17 +322,17 @@ Having gained an understanding of how the different schedulers function, and hav
 
 Using this architecture, we performed a gridsearch. Due to time constraints, we have felt it necessary to limit our gridsearch to only two schedulers. Based on our testing with linear regression with gradient descent, we have seen that Adam and Adagrad seems to be the best performers. Based on Goodfellows recommendations, we started with the RELU activation function \cite[188]{gbc}. With this, we found Adam to be the best scheduler, with an eta of 0.01 and no regularization. However, when using these parameters, we encountered the so called "dying RELU problem", where too many of our RELU nodes output zero, leading to our gradient descent slowing down and eventually stopping completely. A better weight initialization, for example using Xavier Initilization, could solve this problem, but another way to circumvent this issue is to use Leaky RELU. This activation function has a small but non-zero gradient for negative values, instead of zero as with RELU. Gridsearching with Leaky RELU instead gave the exact same parameters.
 
-Using these parameters along with Adam and LRELU, we acheived and MSE of VERYNICE, which is better than the results gained using gradient descent on our polynomial fit. Furthermore, we beat our gradient descended polynomial fit after a very short amount of epochs, achieving MSEs lower than 0.011 (the best gradient descended polynomial fit) after only EPOCH epochs. We can see that by not forcing our model to try and find a polynomial fit, we are achieving better results more quickly. However, we are still not able to beat the analytical solution to the best polynomial fit at polynomial degree 9, which is somewhat disappointing. A possible explanation for this is that the Franke function can be represented as a weighted sum of polynomials, and as such a polynomial fit is especially suited to approximate this function. Our neural net must learn the relation between the inputs and outputs on its own, a process which is computationally intensive and difficult. Looking at our predicted terrain (Fig.~\ref{predterrain}), we can see that our prediction is somewhat reasonable, but not entirely convincing.
+Using these parameters along with Adam and LRELU, we acheived an MSE of $0.004781$, which is better than the results gained using gradient descent on our polynomial fit. We can see that by not forcing our model to try and find a polynomial fit, we are achieving better results. However, we are still not able to beat the analytical solution to the best polynomial fit at polynomial degree 9, which is somewhat disappointing. A possible explanation for this is that the Franke function can be represented as a weighted sum of polynomials, and as such a polynomial fit is especially suited to approximate this function. Our neural net must learn the relation between the inputs and outputs on its own, a process which is computationally intensive and difficult. Looking at our predicted terrain (Fig.~\ref{predterrain}), we can see that our prediction is somewhat reasonable, but not entirely convincing. Furthermore, we can see that the polynomial fit seems to match the actual terrain more closely, which it achieves in a fraction of the runtime.
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=6in]{figure/Franke_fit_66x3_lam0.png}}
-\caption{Comparison of our prediction of }
+\centerline{\includegraphics[width=7in]{figure/Franke_fit_66x3_lam0.png}}
+\caption{Surface plot of the actual terrain created by the Franke function, the best fit achieved by our Neural Network, and the best polynomial fit for polynomial degree 9}
 \label{predterrain}
 \end{figure}
 
 \subsection{Neural Network for binary and multiclass classification}
 
-With mediocre results on regression, we turn to classification. To test our neural networks ability to solve classification problems, we first applied it to the Wisconsin Breast Cancer dataset. But to get the best results, there are a large amount of parameters that need to be decided on. We must find the best architecture, the best activation functions, best scheduler and the best parameters for the scheduler. Finding the absolute best combination of all these choices is impossible, so compromises must be made.
+With mediocre results on regression, we turn to classification. To test our neural networks ability to solve classification problems, we first applied it to the Wisconsin Breast Cancer dataset. But to get the best results, there are a large amount of parameters that need to be decided on. We must find the best architecture, the best activation functions, the best scheduler and the best parameters for said scheduler. Finding the absolute best combination of all these choices is impossible, so compromises must be made.
 
 We start by trying to find a good model complexity, i.e the best number of hidden layers, and the amount of nodes in them. To do this, we plotted the accuracy over different model architectures. Like we did during regression, we fix all the other parameters and study the architecture by itself. Using the sigmoid activation function (Fig.~\ref{cancerarchcompsigmoid}), our results are somewhat surprising. We see that even at 400 total hidden nodes, we are not overfitting. This implies that the dataset is quite homogenous, and that the test set is very similar to our training set. With such a dataset, it is possible to gain a very good fit using more and more complex models, although the computational effort obviously increases as well. Moreover, it is not given that instances outside this dataset are as homogenous as the relatively small (569) sample we have here, so one should be careful to use an overcomplex model even if it does not hurt the test accuracy for this particular dataset. Using the RELU activation function, the results are quite different, as can be seen in Fig.~\ref{cancerarchcomp}. Here we can observe that a neural net with two or three hidden layers starts performing very inconsistently when the number of nodes increases. Looking more closely at the training process, we can see that training stops completely in some of our crossvalidations. Clearly, we are again running into the "dying RELU problem". Here we can clearly see some of the benefits of the sigmoid, as even if the gradients become very small, they will never be zero, as with RELU. Regardless, we see similar performance for RELU using only one hidden layer. Based on these findings, we decided to use a model with a single hidden layer of 100 nodes, using the RELU activation function.
 
@@ -368,10 +348,10 @@ We start by trying to find a good model complexity, i.e the best number of hidde
 \label{cancerarchcomp}
 \end{figure}
 
-Using our gridsearch method on this model, we found that the best scheduler was Adam, with an eta of $0.001$ and a lambda of $0.0001$. With this combination of architecture and scheduler, we were able to achieve a crossvalidated test accuracy of $98.76\%$, which is a great result. This outperforms SciKit's MLP classifier, which achieved a crossvalidated test accuracy of around 95\%. Looking at the confusion matrix (Fig.~\ref{cancerconf}), we see that we are achieving good predictions for both true positives and true negatives.
+Using our gridsearch method on this model, we found that the best scheduler was Adam, with an eta of $0.001$ and a lambda of $0.0001$. With this combination of architecture and scheduler, we were able to achieve a crossvalidated test accuracy of $98.59\%$, which is a great result. This outperforms SciKit's MLP classifier, which achieved a crossvalidated test accuracy of around $95\%$. Looking at the confusion matrix (Fig.~\ref{cancerconf}), we see that we are achieving good predictions for both true positives and true negatives.
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=5in]{figure/cancerconf.png}}
+\centerline{\includegraphics[width=5in]{figure/conf_mat_NN_cancer.png}}
 \caption{Confusion matrix for the cancer dataset using a neural net with a single hidden layer of 60 nodes}
 \label{cancerconf}
 \end{figure}
@@ -380,23 +360,34 @@ Confident in our networks's ability to do binary classification, we turned to th
 
 \subsection{Logistic Regression}
 
-Based on our good results with the neural net, we attempt to solve the same problems using simple logistic regression. Using logistic regression on the cancer dataset, we found through our gridsearch that Adam with an eta $0.1$ gave the best results. Here we found that logistic regression performed essentially equivalent or even better, at a much lower computational cost. Looking at Fig.~\ref{cancerlogneur}, we see that logistic regression keeps up and even surpasses our neural network in accuracy over epochs. The value of logistic regression becomes even greater when we consider the computational cost of each method. In this case, the logistic regression was about 65\% faster\footnote{The time taken to complete a crossvalidation with 5 folds up to 200 epochs was about 52 seconds for our neural network, but only 18 seconds for logistic regression}, with results surpassing our neural network (see Fig.~\ref{cancerconflog}). This implies that our classification datasets were perhaps too simple, and that using Neural Networks was not needed to achieve good results.
+Based on our good results with the neural net, we attempt to solve the same problems using simple logistic regression. Using logistic regression on the cancer dataset, we found through our gridsearch that Adam with an eta $0.1$ gave the best results. Here we found that logistic regression performed essentially equivalent to our neural net, achieving a test accuracy of $98.76\%$. Looking at Fig.~\ref{cancerlogneur}, we see that logistic regression keeps up and even surpasses our neural network in accuracy over epochs. The value of logistic regression becomes even greater when we consider the computational cost of each method. In this case, the logistic regression was about 65\% faster\footnote{The time taken to complete a crossvalidation with 5 folds up to 200 epochs was about 52 seconds for our neural network, but only 18 seconds for logistic regression}, with results surpassing our neural network (see Fig.~\ref{cancerconflog}). This implies that our classification datasets were perhaps too simple, and that using Neural Networks was not needed to achieve good results.
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=5in]{figure/cancerlogneur.png}}
+\centerline{\includegraphics[width=5in]{figure/comp_NN_logreg_cancer.png}}
 \caption{Comparison between the test accuracy of logistic regression and a neural network on classifying the cancer dataset}
 \label{cancerlogneur}
 \end{figure}
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=5in]{figure/cancerconflog.png}}
+\centerline{\includegraphics[width=5in]{figure/conf_mat_logreg_cancer.png}}
 \caption{Confusion matrix for the cancer dataset using logistic regression}
 \label{cancerconflog}
 \end{figure}
 
 \section{Conclusion}
 
-In this paper we have explored the use of a Feed Forward Neural Network for both regression and classification. We have studied how different schedulers, affect the gradient descent
+
+In this paper we have studied supervised learning algorithms used for classification and regression problems, using the numerical optimization technique of gradient descent as a means of finding an optimal solution. We have observed how different schedulers improve the performance of our gradient descent, and found that amongst all the schedulers we tested, Adam and AdaGrad exhibited the best performance overall, achieving a METRIC THAT IS BETTER. These schedulers were then used for numerical linear regression, logistic regression and a feed forward neural network. Solving both classification and regression problems with these models, we found that our neural network 
+
+FUTURE WORK AN ANALYSIS
+
+We then implemented these schedulers in a Feed Forward Neural Network, and applied said network to both regression and classification problems. 
+
+Using these schedulers, we applied a Feed Forward Neural network to both classification and regression problems.
+
+Through the application of a Feed Forward Neural Network to both regression and classification problems, we have found that for the problems we have studied, simpler and less computationally intensive methods proved to be superior.
+
+In this paper we have explored the use of a Feed Forward Neural Network, as well as numerical  for both regression and classification alon. Furthermore, we have applied 
 
 \bibliographystyle{apalike}
 \bibliography{bibliography}
@@ -412,18 +403,18 @@ The next pages contain plots and tables that are of interest.
 \begin{tabular}{c | l l l}
 Figure & Shell command \\
 \hline
-\ref{verification} & \texttt{python3 testing/verification.py}\\
-\ref{cancerconflog} & \texttt{python3 task\_d.py}\\
-\ref{cancerconf} & \texttt{python3 task\_d.py}\\
-\ref{cancerlogneur} & \texttt{python3 task\_d.py}\\
-\ref{cancerarchcomp} & \texttt{python3 bycomplexitycancer.py}\\
-\ref{cancerarchcompsigmoid} & \texttt{python3 bycomplexitycancer.py}\\
-\ref{msebymodelfranke} & \texttt{python3 bycomplexityfranke.py}\\
+\ref{verification} & \texttt{python3 verification.py}\\
 \ref{constant_v_momentum} & \texttt{python3 constant\_v\_momentum.py}\\
 \ref{batch_constant_v_momentum} & \texttt{python3 constant\_v\_momentum.py}\\
 \ref{heatmap} & \texttt{python3 task\_a.py}\\
 \ref{adam_v_adagrad} & \texttt{python3 unknown.py}\\
+\ref{msebymodelfranke} & \texttt{python3 bycomplexityfranke.py}\\
 \ref{predterrain} & \texttt{python3 task\_b.py}\\
+\ref{cancerarchcompsigmoid} & \texttt{python3 bycomplexitycancer.py}\\
+\ref{cancerarchcomp} & \texttt{python3 bycomplexitycancer.py}\\
+\ref{cancerconf} & \texttt{python3 task\_d.py}\\
+\ref{cancerlogneur} & \texttt{python3 task\_d.py}\\
+\ref{cancerconflog} & \texttt{python3 task\_d.py}\\
 \hline
 \end{tabular}
 \end{center}
