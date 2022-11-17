@@ -1,5 +1,9 @@
 from utils import *
 
+"""
+This file, as indicated by its name, contains all the sceduler methods 
+used with our gradient descent in the FFNN. 
+"""
 
 class Scheduler:
     """

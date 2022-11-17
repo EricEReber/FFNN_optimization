@@ -3,6 +3,14 @@ from Schedulers import *
 from FFNN import FFNN
 from sklearn.neural_network import MLPRegressor
 
+"""
+This script is used for gridsearching the best parameters for schedulers Adagrad and Adam. 
+This is done in order to achieve the best possible fit of the Franke function in part b 
+when using the FFNN. The script also generates a heatmap displaying the final MSE achieved with 
+each scheduler over each eta and lambda value. 
+"""
+
+# ------------------------- Loading data -------------------------
 np.random.seed(1337)
 (
     betas_to_plot,
@@ -22,7 +30,7 @@ np.random.seed(1337)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-# ------------------------- Params -------------------------
+# ------------------------- Setting params -------------------------
 rho = 0.9
 rho2 = 0.99
 
@@ -33,13 +41,12 @@ eta = np.logspace(-4, -1, 4)
 lams = np.logspace(-4, -1, 4)
 lams[0] = 0.0
 
-# batch_sizes = np.linspace(1, X.shape[0] // 2, 5, dtype=int)
-
-schedulers = [Adam]
+schedulers = [Adagrad, Adam]
 adagrad_params = []
 adam_params = [rho, rho2]
 
 params_list = [ 
+        adagrad_params. 
         adam_params,
         ]
 
@@ -49,7 +56,7 @@ optimal_lambdas = np.zeros(len(schedulers))
 # ------------------------- FFNN -------------------------
 neural = FFNN(dims, hidden_func=LRELU, seed=1337)
 
-# gridsearch params eta and lambda for schedulers
+# Gridsearch of parameters eta and lambda for schedulers
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
@@ -70,7 +77,7 @@ for i in range(len(schedulers)):
     optimal_lambdas[i] = optimal_lambda
     optimal_params_list.append(optimal_params)
 
-    # plot heatmap
+    # Plot of heatmap visualising the MSE as a function
     ax = sns.heatmap(loss_heatmap, xticklabels=lams, yticklabels=eta, annot=True)
     ax.add_patch(
         Rectangle(

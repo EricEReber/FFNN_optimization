@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
+# Other libraries and packages
 from matplotlib.patches import Rectangle
 from utils import *
 from Schedulers import *
@@ -11,15 +11,21 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 
 np.random.seed(1337)
+"""
+When run, the following code generates a plot the accuracy achieved by a model
+as function of its complexity, i.e the number og hidden layers and nodes 
+in each of said layers. 
+"""
 
-# read in data
+
+# ------------------------ Loading data ------------------------
 cancer = load_breast_cancer()
 
 X = cancer.data
 z = cancer.target
 z = z.reshape(z.shape[0], 1)
 
-# epochs to run for
+# ----------------------- Setting params -----------------------
 epochs = 200
 folds = 5
 scheduler = Adam
@@ -27,6 +33,7 @@ args = [0.01, 0.9, 0.999]
 
 funcs = [RELU, sigmoid, CostLogReg]
 
+# ------------------------ Plots ------------------------
 results = plot_arch(
     FFNN,
     400,
@@ -41,7 +48,6 @@ results = plot_arch(
     classify=True,
     step_size=60
 )
-
 
 sns.set(font_scale=2)
 plt.title(
@@ -88,5 +94,6 @@ plt.plot(
     label="Three hidden layers: test",
     lw=4,
 )
+
 plt.legend(loc=(1.04, 0))
 plt.show()

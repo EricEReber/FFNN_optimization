@@ -16,14 +16,13 @@ import time
 
 np.random.seed(1337)
 
-# read in data
+# ------------------ Read in data ------------------
 cancer = load_breast_cancer()
-
 X = cancer.data
 z = cancer.target
 z = z.reshape(z.shape[0], 1)
 
-# epochs to run for
+# ------------------ Setting params ------------------
 epochs = 200
 folds = 9
 batches = 23
@@ -31,25 +30,20 @@ batches = 23
 rho = 0.9
 rho2 = 0.999
 
+optimal_params = [0.001, 0.9, 0.999]
+optimal_lambda = 0.0001
+
+# ------------------------- FFNN -------------------------
 X_train, X_test, t_train, t_test = train_test_split(X, z)
 
 # dims = (30, 60, 1)
 dims = (30, 100, 1)
-# dims = (30, 66, 1)
 neural = FFNN(
-    dims, hidden_func=RELU, output_func=sigmoid, cost_func=CostLogReg, seed=1337
+    dims, hidden_func=LRELU, output_func=sigmoid, cost_func=CostLogReg, seed=1337
     )
-
-optimal_params = [0.001, 0.9, 0.999]
-optimal_lambda = 0.0001
-
 
 start = time.time()
 
-print(optimal_params)
-print(optimal_lambda)
-
-print(neural.dimensions)
 neuralscores = neural.cross_val(
     folds,
     X,
@@ -66,8 +60,12 @@ plot_confusion(
     neuralscores["confusion"],
     title="Confusion matrix for cancer data using a neural network",
 )
+
+# Cross-validation results
 print(neuralscores)
 
+
+# ------------------------- Logistic Regression -------------------------
 
 dims = (30, 1)
 logreg = FFNN(dims, output_func=sigmoid, cost_func=CostLogReg, seed=1337)
@@ -95,9 +93,10 @@ plot_confusion(
     logregscores["confusion"],
     title="Confusion matrix for cancer data using logistic regression",
 )
+# Cross-validation results
 print(logregscores)
 
-
+# ------------------------- Plots -------------------------
 plt.title("Crossvalidated test accuracy per epoch")
 plt.plot(neuralscores["test_accs"], label="Neural", lw=4)
 plt.plot(logregscores["test_accs"], label="Logreg", lw=4)

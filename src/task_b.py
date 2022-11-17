@@ -3,7 +3,15 @@ from Schedulers import *
 from FFNN import FFNN
 from sklearn.neural_network import MLPRegressor
 
+"""
+This python script is used for generating the final fit of the franke function
+which uses the neural network to perform linear regresion.
+"""
+
+
 np.random.seed(1337)
+
+# ------------------------- Loading data -------------------------
 (
     betas_to_plot,
     N,
@@ -22,22 +30,20 @@ np.random.seed(1337)
 z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
-# ------------------------- Params -------------------------
+# ------------------------- Setting params -------------------------
 eta = 0.01
 rho = 0.9
 rho2 = 0.999
 sched = Adam
 params = [eta, rho, rho2]
 
-#dims = (2, 266, 133, 1) # second best
-#dims = (2, 133, 133, 1)
-#dims = (2, 320, 160, 1) # second best 
-dims = (2, 66, 66, 66, 1) # best so far 
+dims = (2, 66, 66, 66, 1)  
 train_epochs = 200
 
 
 # ------------------------- FFNN -------------------------
 neural = FFNN(dims, hidden_func=LRELU, seed=1337)
+
 """
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train[:, 1:3],
