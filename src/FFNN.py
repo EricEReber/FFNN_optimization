@@ -46,6 +46,7 @@ class FFNN:
         self.checkpoint_file = checkpoint_file
         self.seed = seed
 
+        # weight initialization
         for i in range(len(self.dimensions) - 1):
             if self.seed is not None:
                 np.random.seed(self.seed)
@@ -61,7 +62,7 @@ class FFNN:
         X: np.ndarray,
         t: np.ndarray,
         scheduler_class,
-        *args,  # arguments for the scheduler (sans batchsize)
+        *args,  # arguments for the scheduler
         batches: int = 1,
         epochs: int = 1000,
         lam: float = 0,
@@ -82,7 +83,7 @@ class FFNN:
         :param use_best_weights: save the best weights and only use them. This runs slower because
         it has to check every epoch if it is better than the best. Only use with X_test set
 
-        :return: error over epochs for training and test runs for plotting
+        :return: scores dictionary containing test and train error amongst other things
         """
 
         # --------- setup ---------
@@ -98,6 +99,7 @@ class FFNN:
         if X_test is not None and t_test is not None:
             test_set = True
 
+        # --- arrays of scores over epochs ----
         train_errors = np.empty(epochs)
         train_errors.fill(
             np.nan
@@ -118,9 +120,7 @@ class FFNN:
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        # if X_test is not None:
-        #     test_preds = np.zeros((X_test.shape[0], epochs))
-
+        # logic for getting the best weights
         best_weights = deepcopy(self.weights)
         best_test_error = 10e20
         best_test_acc = 0
@@ -137,6 +137,7 @@ class FFNN:
         if test_set:
             cost_function_test = self.cost_func(t_test)
 
+        # create schedulers for each weight matrix
         for i in range(len(self.weights)):
             self.schedulers_weight.append(scheduler_class(*args))
             self.schedulers_bias.append(scheduler_class(*args))
@@ -152,14 +153,13 @@ class FFNN:
                         X_batch = X[i * batch_size :, :]
                         t_batch = t[i * batch_size :, :]
                     else:
-                        # print(f"{t=}")
                         X_batch = X[i * batch_size : (i + 1) * batch_size, :]
                         t_batch = t[i * batch_size : (i + 1) * batch_size, :]
 
                     self._feedforward(X_batch)
                     self._backpropagate(X_batch, t_batch, lam)
 
-                # reset schedulers every epoch
+                # reset schedulers every epoch (some schedulers pass in this call)
                 for scheduler in self.schedulers_weight:
                     scheduler.reset()
 
@@ -251,11 +251,12 @@ class FFNN:
         )
         print()
 
-        # return performance metrics for the entire run
 
+        # update weights if specified
         if use_best_weights:
             self.weights = best_weights
 
+        # return performance metrics for the entire run
         scores = dict()
 
         scores["train_errors"] = train_errors
@@ -286,9 +287,12 @@ class FFNN:
         epochs: int = 1000,
         lam: float = 0,
         use_best_weights=False,
-        # X_test=None,
-        # t_test=None,
     ):
+        """Crossvalidate our fitting
+        Takes the same parameters as fit (except for test set)
+        
+        returns a scores dictionary, but this time averaged over the number of folds
+        """
         if self.seed:
             np.random.seed(self.seed)
         cv_data = crossval(X, t, folds)
@@ -296,8 +300,6 @@ class FFNN:
         if self.cost_func.__name__ == "CostLogReg":
             avg_confusion = np.array([[0.0, 0.0], [0.0, 0.0]])
 
-        avg_weights = [x * 0 for x in self.weights]
-        # print(avg_weights)
         avg_scores = None
         for i in range(len(cv_data)):
             scaler = MinMaxScaler()
@@ -331,18 +333,15 @@ class FFNN:
             if self.cost_func.__name__ == "CostLogReg":
                 avg_confusion += confusion(self.predict(X_test), t_test) / folds
 
-            # avg_weights = [avg_weights[i] + self.weights[i] for i in range(len(avg_weights))]
-            # print(avg_weights)
             if not avg_scores:
                 avg_scores = scores
                 for key in avg_scores:
                     avg_scores[key] /= folds
             else:
                 for key in avg_scores:
+                    # this works because everything in the scores dict is a number
+                    # or an array of numbers
                     avg_scores[key] += scores[key] / folds
-
-        # avg_weights = [avg_weights[i] / folds for i in range(len(avg_weights))]
-        # self.weights = avg_weights
 
         if self.cost_func.__name__ == "CostLogReg":
             avg_scores["confusion"] = avg_confusion
@@ -358,6 +357,7 @@ class FFNN:
 
         Returns:
             z (np.ndarray): A prediction vector (row) for each row in our design matrix
+            This vector is thresholded if we are dealing with classification and raw is not True
         """
 
         # if self.output_func.__name__ == "sigmoid":
@@ -479,6 +479,16 @@ class FFNN:
         return a
 
     def _backpropagate(self, X, t, lam):
+        """
+        Perform backpropagation
+
+        Parameters:
+            X (np.ndarray): The design matrix, with n rows of p features each
+            t (np.ndarray): The target vector, with n rows of p targets
+
+        Returns:
+            does not return anything, but updates the weights
+        """
         out_derivative = derivate(self.output_func)
         hidden_derivative = derivate(self.hidden_func)
         update_list = list()
@@ -488,6 +498,7 @@ class FFNN:
             # creating the delta terms
             if i == len(self.weights) - 1:
                 if self.output_func.__name__ == "softmax":
+                    # here we just assume that if softmax, our cost function is cross entropy loss
                     delta_matrix = self.a_matrices[i + 1] - t
                 else:
                     cost_func_derivative = grad(self.cost_func(t))
