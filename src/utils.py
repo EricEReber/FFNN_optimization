@@ -58,7 +58,6 @@ def plot_terrain(x, y, z, pred_map, *args):
     ax.zaxis.set_major_formatter(FormatStrFormatter("%.02f"))
     ax.set_title("Scaled terrain", size=24)
     # Add a color bar which maps values to colors.
-    # fig.colorbar(surf_real, shrink=0.5, aspect=5)
 
     # Subplot for the prediction
     # Plot the surface.
@@ -349,7 +348,6 @@ def hessian(
         test_errors = np.empty(epochs)
         test_errors.fill(np.nan)
 
-    print(((2 / X.shape[0]) * X.T @ X).shape)
     inv_hessian = np.linalg.inv((2 / X.shape[0]) * X.T @ X)
 
     train_errors = np.empty(epochs)
@@ -403,7 +401,6 @@ def bootstrap(
 
 def confusion(prediction: np.ndarray, target: np.ndarray):
     # expects that both are vector of zero and one
-    # print(np.hstack([target,prediction]))
     target = np.where(target, True, False)
     pred = np.where(prediction, True, False)
     not_target = np.bitwise_not(target)
@@ -467,7 +464,6 @@ def fmt(value, N=4):
     if n >= N - 1:
         return str(round(value))
         # or overflow
-        # return '!'*N
     return f"{value:.{N-n-1}f}"
 
 
@@ -704,25 +700,3 @@ def read_from_cmdline():
         y,
         z,
     )
-
-
-def plot_decision_boundary(X, t, classifier):
-    # Plot the decision boundary. For that, we will assign a color to each
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-
-    h = 0.02  # step size in the mesh
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
-    Z = classifier.predict(np.c_[xx.ravel(), yy.ravel()])
-    plt.figure(figsize=(8, 6))
-
-    # Put the result into a color plot
-    Z = Z.reshape(xx.shape)
-    plt.contourf(xx, yy, Z, alpha=0.2, cmap="Paired")
-    plt.scatter(X[:, 0], X[:, 1], c=t, s=20.0, cmap="Paired")
-    plt.xlim(xx.min(), xx.max())
-    plt.ylim(yy.min(), yy.max())
-    plt.title("Decision regions")
-    plt.xlabel("x0")
-    plt.ylabel("x1")
-    plt.show()

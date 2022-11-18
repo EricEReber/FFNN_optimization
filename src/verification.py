@@ -10,8 +10,6 @@ y = 3 + x + x**2
 x = x.reshape(x.shape[0], 1)
 y = y.reshape(y.shape[0], 1)
 
-# X = np.c_[np.ones((x.shape[0], 1)), x, x**2]
-
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
 # network
