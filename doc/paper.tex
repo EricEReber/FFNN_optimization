@@ -250,13 +250,11 @@ MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
 
 \subsection{Different schedulers used with linear regression}
 
-In order to study the attributes of the different scheduler methods, we performed numerical linear regression using gradient descent on the Franke Function with 56 polynomial features. This simple problem will allow us to gain an intuition of how the different schedulers compare against eachother. 
-
-From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler when using full batch gradient descent, reaching an MSE of 0.180 for the test data. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of 0.198.
+In order to study the attributes of the different scheduler methods, we performed numerical linear regression using gradient descent on the Franke Function with 56 polynomial features. This simple problem will allow us to gain an intuition of how the different schedulers compare against eachother. From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler considerably, reaching an MSE of $0.09$ for the test data after 200 epochs. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of $0.21$.
 
 \begin{figure}[H]
 \centerline{\includegraphics[width=5in]{figure/constant_v_momentum.png}}
-\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent. The final MSE for Constant was 0.198, ten percent higher than Momentum's 0.180.}
+\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent. The final MSE for Constant was $0.21$, considerably higher than Momentum's $0.09$.}
 \label{constant_v_momentum}
 \end{figure}
 
