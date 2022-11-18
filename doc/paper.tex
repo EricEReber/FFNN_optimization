@@ -299,7 +299,7 @@ Moving over to Fig.~\ref{heatmap}, we gain interesting insight into the behavior
 
 \begin{figure}[H]
 \centerline{\includegraphics[width=8in]{figure/fin_heatmap.png}}
-\caption{MSE score gridsearch for hyperparameters eta, lambda for different schedulers}
+\caption{Heatmap for each scheduler, showing the optimal lambda and eta for each method, as well as the best MSE reached (highlighted in red)}
 \label{heatmap}
 \end{figure}
 
@@ -404,13 +404,13 @@ Figure & Shell command \\
 \end{table*}
 
 \begin{figure}[H]
-\centerline{\includegraphics[width=7in]{figure/SGD_batch_size_100e.png}}
+\centerline{\includegraphics[width=7in]{figure/fin_sgd_batch_size_all.png}}
 \caption{MSE over epochs for different batch sizes, for all different schedulers}
 \label{sgdbatch}
 \end{figure}
 
 \begin{figure}[H]
-\centerline{\includegraphics[width=7in]{figure/5000e_adam_v_adagrad.png}}
+\centerline{\includegraphics[width=8in]{figure/5000e_adam_v_adagrad.png}}
 \caption{MSE test error over 5000 epochs for Adam and Adagrad schedulers}
 \label{adam_v_adagrad}
 \end{figure}
