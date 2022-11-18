@@ -121,6 +121,7 @@ for i in range(len(schedulers)):
 plt.show()
 
 # search batch size
+sns.set(font_scale=1)
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=42)
@@ -140,7 +141,7 @@ for i in range(len(schedulers)):
         plt.plot(
             batches_list_search[j, :],
             label=f"batch size {X_train.shape[0]//batches_list[j]}",
-            linewidth=5,
+            linewidth=4,
         )
         plt.legend(loc=(1.04, 0))
     plt.xlabel("epochs", fontsize=32)
@@ -148,8 +149,8 @@ for i in range(len(schedulers)):
     plt.title(schedulers[i].__name__, fontsize=42)
 plt.show()
 
-print(np.nanmin(batches_list_search))
 # plot best run for each scheduler
+sns.set(font_scale=1.4)
 for i in range(len(schedulers)):
     scores = neural.cross_val(
         folds,
@@ -164,7 +165,7 @@ for i in range(len(schedulers)):
 
     test_errors = scores["test_errors"]
 
-    plt.plot(test_errors, label=f"{schedulers[i].__name__}", linewidth=5)
+    plt.plot(test_errors, label=f"{schedulers[i].__name__}", linewidth=4)
     plt.legend(loc=(1.04, 0))
 
 best_MSE_analytically = np.zeros(epochs)
