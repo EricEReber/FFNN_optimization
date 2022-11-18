@@ -173,15 +173,14 @@ class FFNN:
                 if train_error > 10e20:
                     # if this happens, we have a problem
                     length = 10
-                    train_error=None
-                    test_error=None
-                    train_acc=None
-                    test_acc=None
+                    train_error = None
+                    test_error = None
+                    train_acc = None
+                    test_acc = None
                     break
                 if test_set:
                     prediction_test = self.predict(X_test, raw=True)
                     test_error = cost_function_test(prediction_test)
-                    # test_preds[:, e] = prediction_test.ravel()
 
                     if use_best_weights:
                         if test_error < best_test_error:
@@ -194,7 +193,6 @@ class FFNN:
 
                 else:
                     test_errors = np.nan  # a
-
 
                 train_acc = None
                 test_acc = None
@@ -251,7 +249,6 @@ class FFNN:
         )
         print()
 
-
         # update weights if specified
         if use_best_weights:
             self.weights = best_weights
@@ -290,7 +287,7 @@ class FFNN:
     ):
         """Crossvalidate our fitting
         Takes the same parameters as fit (except for test set)
-        
+
         returns a scores dictionary, but this time averaged over the number of folds
         """
         if self.seed:
@@ -360,9 +357,6 @@ class FFNN:
             This vector is thresholded if we are dealing with classification and raw is not True
         """
 
-        # if self.output_func.__name__ == "sigmoid":
-        #   return np.where(self.feedforward(X) > 0.5, 1, 0)
-        # else:
         predict = self._feedforward(X)
         if raw:
             return predict
@@ -380,7 +374,6 @@ class FFNN:
         Parameters:
             path (str): The path to the file to be written to
         """
-        # print(f'Writing weights to file "{path}"')
         np.set_printoptions(threshold=np.inf)
         with open(path, "w") as file:
             text = str(self.dimensions) + "\n"
@@ -527,7 +520,6 @@ class FFNN:
             gradient_weights = np.mean(gradient_weights_matrix, axis=0)
             delta_accumulated = np.mean(delta_matrix, axis=0)
 
-            # gradient_weights = self.a_matrices[i][:, 1:].T @ delta_matrix
             gradient_weights += self.weights[i][1:, :] * lam
 
             update_matrix = np.vstack(

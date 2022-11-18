@@ -1,3 +1,6 @@
+"""
+This script plots a heatmap displaying a gridsearch over our hyperparameters eta, lambda for different schedulers. The gridsearch also searches for the optimal momentum hyperparameter for momentum-enhanced schedulers. 
+"""
 # Our own library of functions
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,8 +32,8 @@ z_train = z_train.reshape(z_train.shape[0], 1)
 z_test = z_test.reshape(z_test.shape[0], 1)
 
 # epochs to run for
-epochs = 10
-folds = 2
+epochs = 100
+folds = 5
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
@@ -39,7 +42,7 @@ neural = FFNN(dims, seed=1337)
 # parameters to test for
 eta = np.logspace(-5, -1, 5)
 lam = np.logspace(-5, -1, 5)
-momentums = np.linspace(0, 0.1, 5)
+momentums = np.linspace(0, 1, 5)
 lam[0] = 0
 rho = 0.9
 rho2 = 0.999
@@ -76,7 +79,7 @@ optimal_eta = np.zeros(len(schedulers))
 optimal_lambdas = np.zeros(len(schedulers))
 optimal_batches = np.zeros(len(schedulers), dtype=int)
 
-sns.set(font_scale=2)
+sns.set(font_scale=1.4)
 # gridsearch eta, lambda
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
@@ -88,7 +91,7 @@ for i in range(len(schedulers)):
         eta,
         lam,
         params_list[i],
-        batches=batches_list[-1],
+        batches=batches_list[3],
         epochs=epochs,
         folds=folds,
     )
@@ -118,11 +121,10 @@ for i in range(len(schedulers)):
 plt.show()
 
 # search batch size
-optimal_batches = np.zeros(len(schedulers))
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("MSE over epochs for different \n batch sizes", fontsize=42)
-    optimal_batch, batches_list_search = neural.optimize_batch(
+    _, batches_list_search = neural.optimize_batch(
         X_train,
         z_train,
         X_test,
@@ -134,11 +136,11 @@ for i in range(len(schedulers)):
         epochs=epochs,
     )
 
-    optimal_batches[i] = optimal_batch
     for j in range(len(batches_list)):
         plt.plot(
             batches_list_search[j, :],
-            label=f"batch size {X_train.shape[0]//batches_list[j]}", linewidth=5,
+            label=f"batch size {X_train.shape[0]//batches_list[j]}",
+            linewidth=5,
         )
         plt.legend(loc=(1.04, 0))
     plt.xlabel("epochs", fontsize=32)
@@ -146,6 +148,7 @@ for i in range(len(schedulers)):
     plt.title(schedulers[i].__name__, fontsize=42)
 plt.show()
 
+print(np.nanmin(batches_list_search))
 # plot best run for each scheduler
 for i in range(len(schedulers)):
     scores = neural.cross_val(
@@ -154,7 +157,7 @@ for i in range(len(schedulers)):
         z_train,
         schedulers[i],
         *optimal_params_list[i],
-        batches=optimal_batches[i],
+        batches=batches_list[3],
         epochs=epochs,
         lam=optimal_lambdas[i],
     )

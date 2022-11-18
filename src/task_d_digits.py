@@ -19,7 +19,6 @@ X = digits.data
 z = digits.target
 
 z = onehot(z)
-# z = z.reshape(z.shape[0], 1)
 
 # epochs to run for
 epochs = 200

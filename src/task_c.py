@@ -42,10 +42,8 @@ momentum = 0.5
 rho = 0.9
 rho2 = 0.99
 sched = Adam
-# sched = Momentum
 params = [eta, rho, rho2]
 opt_params = [rho, rho2]
-# params = [eta, momentum]
 
 dims = (2, 224, 112, 1)
 train_epochs = 10

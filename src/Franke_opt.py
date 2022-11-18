@@ -34,7 +34,7 @@ z_test = z_test.reshape(z_test.shape[0], 1)
 rho = 0.9
 rho2 = 0.99
 
-dims = (2, 66,66,66, 1)
+dims = (2, 66, 66, 66, 1)
 train_epochs = 1000
 
 eta = np.logspace(-4, -1, 4)
@@ -45,10 +45,9 @@ schedulers = [Adagrad, Adam]
 adagrad_params = []
 adam_params = [rho, rho2]
 
-params_list = [ 
-        adagrad_params. 
-        adam_params,
-        ]
+params_list = [
+    adagrad_params.adam_params,
+]
 
 optimal_params_list = []
 optimal_eta = np.zeros(len(schedulers))
@@ -60,10 +59,10 @@ neural = FFNN(dims, hidden_func=LRELU, seed=1337)
 for i in range(len(schedulers)):
     plt.subplot(321 + i)
     plt.suptitle("Test loss for eta, lambda grid", fontsize=22)
-    
+
     optimal_params, optimal_lambda, loss_heatmap = neural.optimize_scheduler(
         X[:, 1:3],
-        z.reshape(400,1),
+        z.reshape(400, 1),
         schedulers[i],
         eta,
         lams,
@@ -81,7 +80,10 @@ for i in range(len(schedulers)):
     ax = sns.heatmap(loss_heatmap, xticklabels=lams, yticklabels=eta, annot=True)
     ax.add_patch(
         Rectangle(
-            (np.where(lams == optimal_lambda)[0], np.where(eta == optimal_params[0])[0]),
+            (
+                np.where(lams == optimal_lambda)[0],
+                np.where(eta == optimal_params[0])[0],
+            ),
             width=1,
             height=1,
             fill=False,

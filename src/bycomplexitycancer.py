@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+
 # Other libraries and packages
 from matplotlib.patches import Rectangle
 from utils import *
@@ -11,6 +12,7 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 
 np.random.seed(1337)
+
 """
 When run, the following code generates a plot the accuracy achieved by a model
 as function of its complexity, i.e the number og hidden layers and nodes 

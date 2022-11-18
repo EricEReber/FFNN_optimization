@@ -5,6 +5,7 @@ This file, as indicated by its name, contains all the sceduler methods
 used with our gradient descent in the FFNN. 
 """
 
+
 class Scheduler:
     """
     Abstract class for Schedulers
@@ -21,22 +22,6 @@ class Scheduler:
     def reset(self):
         pass
 
-class Hessian(Scheduler): 
-    def __init__(self, eta):
-        super().__init__(eta)
-        self.invH = 0
-    
-    def update_change(self, gradient):
-        return self.invH @ gradient  
-
-    def set_invH(self, X): 
-
-        # concat bias
-        # X = np.c_[np.ones((X.shape[0], 1))*0.1, X]
-        XT_X = X.T @ X 
-    
-        H = (2.0/X.shape[0])*XT_X
-        self.invH = np.linalg.pinv(H)
 
 class Constant(Scheduler):
     def __init__(self, eta):
@@ -57,7 +42,6 @@ class Momentum(Scheduler):
         return self.change
 
     def reset(self):
-        # self.change = 0
         pass
 
 
@@ -106,7 +90,6 @@ class AdagradMomentum(Scheduler):
 
     def reset(self):
         self.G_t = None
-        # self.change = 0
 
 
 class RMS_prop(Scheduler):

@@ -10,6 +10,9 @@ from Schedulers import *
 from FFNN import FFNN
 
 np.random.seed(1337)
+"""
+This script plots a line diagram showcasing progress of cross validated MSE score of test data over epochs for Adagrad and Adam when ran for 5000 epochs for numerical linear regression of the Franke function.
+"""
 
 # read in data
 (
@@ -77,9 +80,9 @@ adam_scores = neural.cross_val(
 adam_test_errors = adam_scores["test_errors"]
 adam_train_errors = adam_scores["train_errors"]
 
-
 adagrad_scheduler = Adagrad
 adagrad_params = []
+
 # optimize Adagrad
 optimal_params, optimal_lambda, _ = neural.optimize_scheduler(
     X_train,

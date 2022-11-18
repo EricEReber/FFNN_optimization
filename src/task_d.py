@@ -1,7 +1,3 @@
-"""
-Performs classification using a neural net and logistic regression, using
-params found by gridsearch performed in src/cancer_opt.py
-"""
 # Our own library of functions
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +11,11 @@ from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 import time
 
 np.random.seed(1337)
+
+"""
+Performs classification using a neural net and logistic regression, using
+params found by gridsearch performed in src/cancer_opt.py
+"""
 
 # ------------------ Read in data ------------------
 cancer = load_breast_cancer()
@@ -36,7 +37,6 @@ optimal_lambda = 0.0001
 # ------------------------- FFNN -------------------------
 X_train, X_test, t_train, t_test = train_test_split(X, z)
 
-# dims = (30, 60, 1)
 dims = (30, 100, 1)
 neural = FFNN(
     dims, hidden_func=LRELU, output_func=sigmoid, cost_func=CostLogReg, seed=1337
