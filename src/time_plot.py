@@ -42,21 +42,21 @@ schedulers = [Constant, Momentum, Adagrad, AdagradMomentum, RMS_prop, Adam]
 
 # optimal parameters from task_a.py
 optimal_params = [
-    [0.01],
-    [0.01, 0.1],
     [0.1],
-    [0.1, 0.075],
-    [0.001, 0.9],
+    [0.1, 0.25],
+    [0.01],
+    [0.01, 0.75],
+    [0.01, 0.9],
     [0.01, 0.9, 0.999],
 ]
-optimal_lambdas = [0.1, 0.1, 0.001, 0.001, 0.001, 0.01]
+optimal_lambdas = [0.01, 0.01, 0.001, 0.0001, 0.001, 0.0001]
 
 # no hidden layers, no activation function
 dims = (X.shape[1], 1)
 neural = FFNN(dims, seed=1337)
 
 time = np.zeros(len(schedulers))
-MSE_to_reach = 0.2
+MSE_to_reach = 0.03
 
 # runtime comparison
 for i in range(len(schedulers)):
