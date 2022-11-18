@@ -39,7 +39,7 @@ lam = np.logspace(-5, -1, 5)
 
 schedulers = [Momentum, Constant]
 constant_params = []
-momentum_params = np.linspace(0, 0.1, 5)
+momentum_params = np.linspace(0, 1, 5)
 params = [momentum_params, constant_params]
 
 # ------------------ Linear Regression NN ------------------

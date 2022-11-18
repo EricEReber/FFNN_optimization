@@ -11,6 +11,9 @@ from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 
 np.random.seed(1337)
+"""
+This script performs multinomial classification using neural networks and logistic regression on the MNIST dataset. Prints scores.
+"""
 
 # read in data
 digits = load_digits()
