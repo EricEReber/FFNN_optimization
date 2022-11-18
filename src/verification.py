@@ -1,3 +1,7 @@
+"""
+This scripts plots our prediction of a simple polynomial, to verify
+that our FFNN implementation works
+"""
 from FFNN import FFNN
 from utils import *
 from Schedulers import *
