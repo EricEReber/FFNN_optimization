@@ -250,13 +250,11 @@ MNIST 8x8 & 1797 & 64 & multiclass classification (10 classes) \\
 
 \subsection{Different schedulers used with linear regression}
 
-In order to study the attributes of the different scheduler methods, we performed numerical linear regression using gradient descent on the Franke Function with 56 polynomial features. This simple problem will allow us to gain an intuition of how the different schedulers compare against eachother. 
-
-From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler when using full batch gradient descent, reaching an MSE of 0.180 for the test data. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of 0.198.
+In order to study the attributes of the different scheduler methods, we performed numerical linear regression using gradient descent on the Franke Function with 56 polynomial features. This simple problem will allow us to gain an intuition of how the different schedulers compare against eachother. From  Fig.~\ref{constant_v_momentum}, we can observe that adding momentum improves upon the solutions found by the constant scheduler considerably, reaching an MSE of $0.09$ for the test data after 200 epochs. By adding a memory of the previous gradients, we gain speed in the direction where most gradients point, speeding up our descent. This allows us to obtain a lower MSE scores in fever epochs, when compared to the constant scheduler's MSE of $0.21$.
 
 \begin{figure}[H]
 \centerline{\includegraphics[width=5in]{figure/constant_v_momentum.png}}
-\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent. The final MSE for Constant was 0.198, ten percent higher than Momentum's 0.180.}
+\caption{Constant vs momentum MSE for test data plotted for 200 epochs using full batch gradient descent. The final MSE for Constant was $0.21$, considerably higher than Momentum's $0.09$.}
 \label{constant_v_momentum}
 \end{figure}
 
@@ -299,7 +297,7 @@ Moving over to Fig.~\ref{heatmap}, we gain interesting insight into the behavior
 
 \begin{figure}[H]
 \centerline{\includegraphics[width=8in]{figure/fin_heatmap.png}}
-\caption{MSE score gridsearch for hyperparameters eta, lambda for different schedulers}
+\caption{Heatmap for each scheduler, showing the optimal lambda and eta for each method, as well as the best MSE reached (highlighted in red)}
 \label{heatmap}
 \end{figure}
 
@@ -404,13 +402,13 @@ Figure & Shell command \\
 \end{table*}
 
 \begin{figure}[H]
-\centerline{\includegraphics[width=7in]{figure/SGD_batch_size_100e.png}}
+\centerline{\includegraphics[width=7in]{figure/fin_sgd_batch_size_all.png}}
 \caption{MSE over epochs for different batch sizes, for all different schedulers}
 \label{sgdbatch}
 \end{figure}
 
 \begin{figure}[H]
-\centerline{\includegraphics[width=7in]{figure/5000e_adam_v_adagrad.png}}
+\centerline{\includegraphics[width=8in]{figure/5000e_adam_v_adagrad.png}}
 \caption{MSE test error over 5000 epochs for Adam and Adagrad schedulers}
 \label{adam_v_adagrad}
 \end{figure}
